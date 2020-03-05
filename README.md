@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/CloodV2.png" width="400">
+<img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/CloodV2.png" width="400">
 
 *Clood CBR: Towards Microservices Oriented Case-Based Reasoning*
 
@@ -8,7 +8,7 @@ Case-based Reasoning (CBR) applications have been deployed in a wide range of se
 
 ## Project Components
 
-### Architecture
+### Implementation Architecture
 
 
 ## Clood Structure and Technologies
