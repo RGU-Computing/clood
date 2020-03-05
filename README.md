@@ -11,7 +11,7 @@ Case-based Reasoning (CBR) applications have been deployed in a wide range of se
 ### Architecture
 
 
-## Clood Structure and Technologies**
+## Clood Structure and Technologies
 - API - REST API for communication from client apps (Serverless Framework with Python functions)
 - Client - This is the demonstration dashboard (AngularJS)
 - Elasticsearch - Managed ES service used as casebase 
