@@ -12,13 +12,16 @@ Case-based Reasoning (CBR) applications have been deployed in a wide range of se
 
 ### Implementation Architecture
 
+<img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/clood_architecture.jpg">
 
 ## Clood Structure and Technologies
-- API - REST API for communication from client apps (Serverless Framework with Python functions)
+- Serverless Functions - REST API for communication from client apps (Serverless Framework with Python functions)
 - Client - This is the demonstration dashboard (AngularJS)
 - Elasticsearch - Managed ES service used as casebase 
 
 ### Serverless Functions
+
+Project is available in    ```serverless-functions``` folder
 
 ### Elasticsearch
 
@@ -29,7 +32,7 @@ Case-based Reasoning (CBR) applications have been deployed in a wide range of se
 ### Elasticsearch 
 Follow the guide [Here](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html) on getting started with Elasticsearch in AWS. All you need next is the ES url and the AWS access keys.
 
-### API - Serverless functions
+### Serverless functions (API)
 
 We have built Clood with the [serverless](https://serverless.com/) framework which is a used deploy and test serverless apps across different cloud providers. The example installation here will be for AWS.
 
@@ -60,7 +63,6 @@ serverless deploy
 
 ### Client Dashboard
 <img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/screenshots/client_projects.png">
-
 
 
 
