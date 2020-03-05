@@ -11,6 +11,11 @@ Case-based Reasoning (CBR) applications have been deployed in a wide range of se
 ### Architecture
 
 
+## Clood Structure and Technologies**
+- API - REST API for communication from client apps (Serverless Framework with Python functions)
+- Client - This is the demonstration dashboard (AngularJS)
+- Elasticsearch - Managed ES service used as casebase 
+
 ### Serverless Functions
 
 ### Elasticsearch
@@ -19,7 +24,10 @@ Case-based Reasoning (CBR) applications have been deployed in a wide range of se
 
 ## Deployment
 
-### How to use
+
+### How to use?
+
+We have built Clood with the [serverless](https://serverless.com/) framework which is a used deploy and test serverless apps across different cloud providers. The example installation here will be for AWS.
 
 ### Examples
 
