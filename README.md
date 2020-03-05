@@ -6,14 +6,18 @@ Cse-based Reasoning (CBR) applications have been deployed in a wide range of sec
 
 ## Project Components
 
+### Architecture
+
 ### Serverless Functions
 
 ### Elasticsearch
 
 ### Dashboard
 
-## Examples
+## Deployment
 
-## How to use
+### How to use
+
+### Examples
 
 ----
