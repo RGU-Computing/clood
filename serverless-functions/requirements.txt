@@ -1,0 +1,4 @@
+requests
+elasticsearch
+requests_aws4auth
+numpy

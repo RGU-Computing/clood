@@ -1,0 +1,13 @@
+{
+  "name": "es",
+  "description": "",
+  "version": "0.1.0",
+  "dependencies": {
+    "core-util-is": "^1.0.2"
+  },
+  "devDependencies": {
+    "serverless-offline": "^5.12.1",
+    "serverless-python-requirements": "^5.0.1",
+    "serverless-wsgi": "^1.7.4"
+  }
+}
