@@ -1,0 +1,10 @@
+.DS_STORE
+
+/dist/
+*.log
+node_modules
+app/lib/*
+
+app/index-async.html
+app/*.csv
+app/*.json

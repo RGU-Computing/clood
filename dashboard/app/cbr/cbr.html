@@ -1,0 +1,15 @@
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+  <!-- Select project -->
+  <div class="row">
+    <div >
+      <select class="form-control" ng-model="selected" ng-options="item as (item.name + ' | ' + item.description) for item in projects" ng-change="selectProject()"></select>
+    </div>
+  </div>
+
+  <p></p><hr><p></p>
+
+  <div class="row">
+    <div ui-view></div>
+  </div>
+
+</div>
