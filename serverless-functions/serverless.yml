@@ -86,20 +86,6 @@ functions:
           path: retain
           method: post
           cors: true
-  search:
-    handler: handler.es_search
-    events:
-      - http:
-          path: search
-          method: post
-          cors: true
-  suggest:
-    handler: handler.es_suggest
-    events:
-      - http:
-          path: suggest/{field}
-          method: get
-          cors: true
 plugins:
   - serverless-python-requirements
 custom:
