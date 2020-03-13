@@ -1,0 +1,93 @@
+
+
+service: clood-cbr
+
+provider:
+  name: aws
+  runtime: python3.8
+  region: eu-west-2
+  stage: dev
+
+functions:
+  all_projects:
+    handler: handler.all_projects
+    events:
+      - http:
+          path: project
+          method: get
+          cors: true
+  get_project:
+    handler: handler.get_project
+    events:
+      - http:
+          path: project/{id}
+          method: get
+          cors: true
+  new_project:
+    handler: handler.new_project
+    events:
+      - http:
+          path: project
+          method: post
+          cors: true
+  update_project:
+    handler: handler.update_project
+    events:
+      - http:
+          path: project/{id}
+          method: put
+          cors: true
+  delete_project:
+    handler: handler.delete_project
+    events:
+      - http:
+          path: project/{id}
+          method: delete
+          cors: true
+  create_index:
+    handler: handler.create_project_index
+    events:
+      - http:
+          path: project/mapping/{id}
+          method: get
+          cors: true
+  save_case_list:
+    handler: handler.save_case_list
+    events:
+      - http:
+          path: case/{id}/list
+          method: post
+          cors: true
+  get_config:
+    handler: handler.get_config
+    events:
+      - http:
+          path: config
+          method: get
+          cors: true
+  save_config:
+    handler: handler.update_config
+    events:
+      - http:
+          path: config
+          method: post
+          cors: true
+  retrieve:
+    handler: handler.cbr_retrieve
+    events:
+      - http:
+          path: retrieve
+          method: post
+          cors: true
+  retain:
+    handler: handler.cbr_retain
+    events:
+      - http:
+          path: retain
+          method: post
+          cors: true
+plugins:
+  - serverless-python-requirements
+custom:
+  pythonRequirements:
+    dockerizePip: true
