@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html lang="en" ng-app="cloodApp" class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html lang="en" ng-app="cloodApp" class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html lang="en" ng-app="cloodApp" class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html lang="en" ng-app="cloodApp" class="no-js"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>CloudCBR App</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="lib/html5-boilerplate/dist/css/normalize.css">
+  <link rel="stylesheet" href="lib/html5-boilerplate/dist/css/main.css">
+  <script src="lib/html5-boilerplate/dist/js/vendor/modernizr-2.8.3.min.js"></script>
+  <!-- Bootstrap core CSS -->
+  <link href="lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+  <link href="lib/ie10-viewport-bug-workaround.css" rel="stylesheet">
+  <!-- UI notifications and icons -->
+  <link href="lib/angularjs-toaster/toaster.min.css" rel="stylesheet">
+  <link href="lib/@fortawesome/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <!-- Custom css -->
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <!-- Top Navigation -->
+  <nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="#"><img src="CloodV2.png" height="32" alt="CloodCBR"></a>
+      </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav navbar-right">
+          <li><a href="#/projects"><i class="fas fa-tachometer-alt"></i> Projects</a></li>
+          <li><a href="#/config"><i class="fas fa-cog"></i> Configuration</a></li>
+          <li><a href="#"><i class="fas fa-info"></i> Help</a></li>
+        </ul>
+        <!-- <form class="navbar-form navbar-right">
+          <input type="text" class="form-control" placeholder="Search...">
+        </form> -->
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Left sidebar -->
+      <div class="col-sm-3 col-md-2 sidebar" ng-cloak>
+        <ul class="nav nav-sidebar"><!-- Menu list is in app.js: used to control active class tag-->
+          <li ng-class="{active: menu.active==menu.items[0]}"><a href="#!/projects"><i class="fas fa-tachometer-alt"></i> {{ menu.items[0] }}</a></li>
+          <li ng-class="{active: menu.active==menu.items[1]}"><a href="#/config"><i class="fas fa-cog"></i> {{ menu.items[1] }}</a></li>
+          <li ng-class="{active: menu.active==menu.items[2]}"><a href="#/cbr"><i class="fas fa-tasks"></i> {{ menu.items[2] }}</a></li>
+        </ul>
+        <!-- <ul class="nav nav-sidebar">
+          <li><a href="">Settings</a></li>
+          <li><a href="">Sign out</a></li>
+        </ul> -->
+      </div>
+
+      <!-- Main body (for fragments) -->
+      <div ui-view></div>
+
+    </div>
+  </div>
+
+  <!--[if lt IE 7]>
+      <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+  <![endif]-->
+
+
+
+  <div>Cloud CBR app: v<span app-version></span></div>
+
+  <!-- UI notifications -->
+  <toaster-container toaster-options="{'time-out': 3000}"></toaster-container>
+
+  <!-- Placed at the end of the document so the pages load faster -->
+  <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>
+  <script>window.jQuery || document.write('<script src="lib/jquery/dist/jquery.min.js"><\/script>')</script>
+  <script src="lib/bootstrap/dist/js/bootstrap.min.js"></script>
+  <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+  <script src="lib/ie10-viewport-bug-workaround.js"></script>
+  <!-- In production use:
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/x.x.x/angular.min.js"></script>
+  -->
+  <script src="lib/angular/angular.js"></script>
+  <script src="lib/angular-resource/angular-resource.js"></script>
+  <script src="lib/angular-animate/angular-animate.js"></script>
+  <script src="lib/@uirouter/angularjs/release/angular-ui-router.min.js"></script>
+  <script src="lib/angularjs-toaster/toaster.min.js"></script>
+  <!-- Parse CSV files. Source & documentation: https://www.papaparse.com -->
+  <script src="lib/papaparse.min.js"></script>
+  <!-- Universal Sentence Encoder lite -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder"></script>
+
+  <script src="app.js"></script>
+  <script src="env.js"></script>
+  <script src="projects/projects.js"></script>
+  <script src="config/config.js"></script>
+  <script src="cbr/cbr.js"></script>
+  <script src="core/version/version.js"></script>
+  <script src="core/version/version-directive.js"></script>
+  <script src="core/version/interpolate-filter.js"></script>
+</body>
+</html>
