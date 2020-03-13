@@ -69,4 +69,6 @@ serverless deploy
 
 Guide to install and use the Clood Dashboard is available in the /dashboard folder. [Clood Dashboard](https://github.com/RGU-Computing/clood/tree/master/dashboard)
 
+
 ----
+Repo Maintained by [Ikechukwu Nkisi-Orji (RGU)](https://github.com/ike01) and [Chamath Palihawadana (RGU)](https://github.com/chamathpali)
