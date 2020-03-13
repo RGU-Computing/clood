@@ -1,6 +1,6 @@
 # `clood-dashboard` — the client application for CloodCBR
 
-This project demonstrates the use of AngularJS for CBR applications. The application interacts with the serverless functions of Clood throught RESTfukl APIs.
+This project demonstrates the use of AngularJS for CBR applications. The application interacts with the serverless functions of Clood through RESTful APIs.
 
 
 ## Getting Started
@@ -23,6 +23,8 @@ Behind the scenes this will also call `npm run copy-libs`, which copies the Angu
 *Note copying the AngularJS files from `node_modules` to `app/lib` makes it easier to serve the files by a web server.*
 
 ### Run the Application
+
+In the root directory, rename `env.sample.js` to `env.js` and edit file to specify the root URL for the serverless functions (i.e. set `base_api_url` value without a trailing slash).
 
 We have preconfigured the project with a simple development web server. The simplest way to start this server is:
 
