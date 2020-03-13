@@ -21,11 +21,14 @@ Case-based Reasoning (CBR) applications have been deployed in a wide range of se
 
 ### Serverless Functions
 
-Project is available in    ```serverless-functions``` folder
+Project is available in the ```serverless-functions``` folder
 
 ### Elasticsearch
+For the Clood implementation we have used [AWS Elasticsearch service](https://aws.amazon.com/elasticsearch-service/).
 
 ### Dashboard
+Project is available in the ```dashboard``` folder. 
+
 
 ## Start Using Clood? 🚀
 
@@ -64,8 +67,6 @@ serverless deploy
 ### Client Dashboard
 <img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/screenshots/client_projects.png">
 
-
-
-### Examples
+Guide to install and use the Clood Dashboard is available in the /dashboard folder. [Clood Dashboard](https://github.com/RGU-Computing/clood/tree/master/dashboard)
 
 ----
