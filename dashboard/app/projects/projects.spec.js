@@ -1,8 +1,8 @@
 'use strict';
 
-describe('myApp.projects module', function() {
+describe('cloodApp.projects module', function() {
 
-  beforeEach(module('myApp.projects'));
+  beforeEach(module('cloodApp.projects'));
 
   describe('projects controller', function(){
 

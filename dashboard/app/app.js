@@ -1,18 +1,16 @@
 'use strict';
 
-const base_api_url = "https://gmf6n4v3pb.execute-api.eu-west-2.amazonaws.com/dev";
-const project_url = base_api_url + "/project";
-const config_url = base_api_url + "/config";
 // Declare app level module which depends on views, and core components
-angular.module('myApp', [
+angular.module('cloodApp', [
+  'cloodApp.env',
   'ui.router',
   'ngResource',
   'ngAnimate',
   'toaster',
-  'myApp.projects',
-  'myApp.config',
-  'myApp.cbr',
-  'myApp.version'
+  'cloodApp.projects',
+  'cloodApp.config',
+  'cloodApp.cbr',
+  'cloodApp.version'
 ]).
 config(['$locationProvider', '$urlRouterProvider', '$stateProvider', function($locationProvider, $urlRouterProvider, $stateProvider) {
   $locationProvider.hashPrefix('');
@@ -37,9 +35,9 @@ run(['$rootScope', function($rootScope){
   $rootScope.menu = menu;
 }]).
 // App-wide functions
-run(['$rootScope', '$http', function($rootScope, $http){ // global functions
+run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){ // global functions
   $rootScope.getGlobalConfig = function() {
-    $http.get(config_url).then(function(res) {
+    $http.get(ENV_CONST.base_api_url + "/config").then(function(res) {
       if (typeof res.data.attributeOptions != 'undefined'){
         $rootScope.globalConfig = res.data; // should allow update in settings
       }
@@ -49,11 +47,7 @@ run(['$rootScope', '$http', function($rootScope, $http){ // global functions
     return typeof data;
   };
   $rootScope.objOrArrayHasContent = function(data) {
-    console.log(typeof data[0]);
-    console.log(typeof Object.keys(data)[0]);
-
     if ((typeof data[0] != 'undefined') || (typeof Object.keys(data)[0] != 'undefined')) {
-      console.log('Here');
       return true;
     } else {
       return false;
@@ -72,16 +66,3 @@ directive('disallowSpaces', [function(){
     }
   }
 }]);
-
-// .directive('a', [function() {
-//   return {
-//     restrict: 'E',
-//     link: function(scope, elem, attrs) {
-//       elem.on('click', function(e) {
-//         if (attrs.disabled) {
-//           e.preventDefault(); // prevent link click
-//         }
-//       });
-//     }
-//   };
-// }]);

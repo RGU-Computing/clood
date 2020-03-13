@@ -1,9 +1,9 @@
 {
-  "name": "angular-seed",
+  "name": "clood-dahsboard",
   "private": true,
-  "version": "0.0.0",
-  "description": "A starter project for AngularJS",
-  "repository": "https://github.com/angular/angular-seed",
+  "version": "0.0.1",
+  "description": "A Clood client demonstration using AngularJS framework",
+  "repository": "https://github.com/RGU-Computing/clood.git",
   "license": "MIT",
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.12.1",

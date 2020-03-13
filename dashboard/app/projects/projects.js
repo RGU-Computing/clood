@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('myApp.projects', [])
+angular.module('cloodApp.projects', [])
 .config(['$stateProvider', function($stateProvider) {
   var projectsState = {
     name: 'projects',
@@ -10,18 +10,22 @@ angular.module('myApp.projects', [])
   };
   $stateProvider.state(projectsState);
 }])
-.factory('Project', ['$resource', function($resource) {
-  return $resource(project_url + '/:id', null, {
+.factory('Project', ['$resource', 'ENV_CONST', function($resource, ENV_CONST) {
+  return $resource(ENV_CONST.base_api_url + "/project" + '/:id', null, {
     'update': { method: 'PUT'}
   });
 }])
-.controller('ProjectCtrl', ['$scope', '$http', 'Project', function($scope, $http, Project) {
+.controller('ProjectCtrl', ['$scope', '$http', 'Project', 'ENV_CONST', function($scope, $http, Project, ENV_CONST) {
   $scope.menu.active = $scope.menu.items[0]; // ui active menu tag
   $scope.projects = [];
   $scope.newProj = null; // new project to be saved
 
+  if (typeof ENV_CONST.base_api_url == 'undefined' || ENV_CONST.base_api_url == '') {
+    $scope.pop("warn", null, "The root API to the serverless functions is not set. You can set this up in env.js");
+  }
+
   $scope.getAllProjects = function() {
-    $http.get(project_url).then(function(res) {
+    $http.get(ENV_CONST.base_api_url + "/project").then(function(res) {
       $scope.projects = res.data;
       console.log(res.data);
     });

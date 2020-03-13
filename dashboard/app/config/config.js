@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('myApp.config', [])
+angular.module('cloodApp.config', [])
 .config(['$stateProvider', function($stateProvider) {
   var configState = {
     name: 'config',
@@ -33,53 +33,20 @@ angular.module('myApp.config', [])
     }
   };
 }])
-.factory('Project', ['$resource', function($resource) {
-  return $resource(project_url + '/:id', null, {
+.factory('Project', ['$resource', 'ENV_CONST', function($resource, ENV_CONST) {
+  return $resource(ENV_CONST.base_api_url + "/project" + '/:id', null, {
     'update': { method: 'PUT'}
   });
 }])
-.controller('ProjectConfigCtrl', ['$scope', '$http', '$state', 'Project', function($scope, $http, $state, Project) {
+.controller('ProjectConfigCtrl', ['$scope', '$http', '$state', 'Project', 'ENV_CONST', function($scope, $http, $state, Project, ENV_CONST) {
   $scope.menu.active = $scope.menu.items[1]; // ui active menu tag
   $scope.selected = {};
   $scope.newAttrib = {};
   $scope.newCasebase = {'data':[], 'columnHeads':[], 'preview':false};
-  // $scope.globalConfig = [];
-  // $scope.globalConfig = [
-  //   {
-  //     'type': 'String',
-  //     'similarityTypes': ['Equal', 'TFIDF', 'BM25', 'None'],
-  //     'reuseStrategy': ['Best']
-  //   },
-  //   {
-  //     'type': 'Integer',
-  //     'similarityTypes': ['Equal'],
-  //     'reuseStrategy': ['Best', 'Maximum', 'Minimum', 'Mean', 'Median', 'Mode', 'None']
-  //   },
-  //   {
-  //     'type': 'Float',
-  //     'similarityTypes': ['Equal'],
-  //     'reuseStrategy': ['Best', 'Maximum', 'Minimum', 'Mean', 'Median', 'None']
-  //   },
-  //   {
-  //     'type': 'Boolean',
-  //     'similarityTypes': ['Equal'],
-  //     'reuseStrategy': ['Best', 'Maximum', 'Minimum', 'Mean', 'Median', 'None']
-  //   }
-  // ];
-
-  // // Get global config
-  // $scope.getGlobalConfig = function() {
-  //   $http.get(config_url).then(function(res){
-  //     console.log(res);
-  //     if (typeof res.data.attributeOptions != 'undefined') {
-  //       $scope.globalConfig = res.data; // select first
-  //     }
-  //   });
-  // };
 
   // Get all projects
   $scope.getAllProjects = function() {
-    $http.get(project_url).then(function(res){
+    $http.get(ENV_CONST.base_api_url + "/project").then(function(res){
       $scope.projects = res.data; // array of projects
       if ($scope.projects.length > 0) {
         $scope.selectProject($scope.projects[0]); // select first
@@ -131,7 +98,7 @@ angular.module('myApp.config', [])
 
   // Create index mapping for a project. Index mapping specifies the case structure and is a required step before adding cases
   $scope.createIndexMapping = function() {
-    $http.get(project_url + "/mapping/" + $scope.selected.id__).then(function(res) {
+    $http.get(ENV_CONST.base_api_url + "/project" + "/mapping/" + $scope.selected.id__).then(function(res) {
       $scope.pop("success", null, "Project case-base has been set up.");
       $scope.selected.hasCasebase = true;
       console.log(res.data);
@@ -216,7 +183,7 @@ angular.module('myApp.config', [])
   // Save casebase
   $scope.saveCasebase = function() {
     console.log($scope.newCasebase);
-    $http.post(base_api_url + "/case/" + $scope.selected.id__ + "/list", $scope.newCasebase.data)
+    $http.post(ENV_CONST.base_api_url + "/case/" + $scope.selected.id__ + "/list", $scope.newCasebase.data)
         .then(function(res) {
           console.log(res);
           $scope.newCasebase = {'data':[], 'columnHeads':[], 'preview':false}; // reset

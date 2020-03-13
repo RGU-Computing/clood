@@ -5,6 +5,8 @@
 node_modules
 app/lib/*
 
+app/env.js
+
 app/index-async.html
 app/*.csv
 app/*.json

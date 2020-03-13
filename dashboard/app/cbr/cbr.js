@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('myApp.cbr', [])
+angular.module('cloodApp.cbr', [])
 
 .config(['$stateProvider', function($stateProvider) {
   var cbrState = {
@@ -33,14 +33,14 @@ angular.module('myApp.cbr', [])
   $stateProvider.state(cbrRetainState);
 }])
 
-.controller('CBRCtrl', ['$scope', '$http', '$state', function($scope, $http, $state) {
+.controller('CBRCtrl', ['$scope', '$http', '$state', 'ENV_CONST', function($scope, $http, $state, ENV_CONST) {
   $scope.menu.active = $scope.menu.items[2]; // ui active menu tag
   $scope.selected = {};
   $scope.requests = { current:  { data: [], topk: 10, globalSim: "Weighted Sum" }, previous: [], response: null };
 
   // Retrieves all projects
   $scope.getAllProjects = function() {
-    $http.get(project_url).then(function(res){
+    $http.get(ENV_CONST.base_api_url + "/project").then(function(res){
       $scope.projects = res.data; // array of projects
       if ($scope.projects.length > 0) {
         $scope.selected = $scope.projects[0]; // select first
@@ -65,7 +65,7 @@ angular.module('myApp.cbr', [])
   $scope.retrieveCases = function() {
     $scope.requests.current.project = angular.copy($scope.selected);
     console.log($scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown)
-    $http.post(base_api_url + '/retrieve', $scope.requests.current).then(function(res) {
+    $http.post(ENV_CONST.base_api_url + '/retrieve', $scope.requests.current).then(function(res) {
       $scope.requests.response = res.data;
       console.log($scope.requests.response)
       $state.transitionTo('cbr.reuse');
@@ -101,7 +101,7 @@ angular.module('myApp.cbr', [])
     var newCase = {};
     newCase.data = $scope.requests.response.recommended;
     newCase.project = $scope.selected;
-    $http.post(base_api_url + '/retain', newCase).then(function(res) {
+    $http.post(ENV_CONST.base_api_url + '/retain', newCase).then(function(res) {
       console.log(res.data);
       $scope.pop("success", null, "New case added.");
       $state.transitionTo('cbr.retrieve');

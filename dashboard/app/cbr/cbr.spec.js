@@ -1,8 +1,8 @@
 'use strict';
 
-describe('myApp.cbr module', function() {
+describe('cloodApp.cbr module', function() {
 
-  beforeEach(module('myApp.cbr'));
+  beforeEach(module('cloodApp.cbr'));
 
   describe('cbr controller', function(){
 

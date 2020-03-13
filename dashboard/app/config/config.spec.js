@@ -1,8 +1,8 @@
 'use strict';
 
-describe('myApp.config module', function() {
+describe('cloodApp.config module', function() {
 
-  beforeEach(module('myApp.config'));
+  beforeEach(module('cloodApp.config'));
 
   describe('project"s config controller', function(){
 
