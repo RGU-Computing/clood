@@ -722,7 +722,7 @@ def ClosestDate(caseAttrib, queryValue, weight, maxDate, minDate): # format 'dd-
 					"oldestDate": minDate,
 					"newestDate": maxDate
 				},
-		    	"source": "SimpleDateFormat sdf = new SimpleDateFormat('dd-MM-yyyy', Locale.ENGLISH); doc[caseAttrib].size()==0 ? 0 : (1 - Math.abs(sdf.parse(doc[caseAttrib].value).getTime() - sdf.parse(params.queryValue).getTime()) / ((sdf.parse(params.oldestDate).getTime() - sdf.parse(params.newestDate).getTime()) + 1)) * params.weight"
+		    	"source": "SimpleDateFormat sdf = new SimpleDateFormat('dd-MM-yyyy', Locale.ENGLISH); doc[caseAttrib].size()==0 ? 0 : (1 - Math.abs(sdf.parse(doc[caseAttrib].value).getTime() - sdf.parse(params.queryValue).getTime()) / ((sdf.parse(params.newestDate).getTime() - sdf.parse(params.oldestDate).getTime()) + 1)) * params.weight"
 		    },
 		    "_name": "closestdate"
 		}
