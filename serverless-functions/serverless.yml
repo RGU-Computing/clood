@@ -4,7 +4,7 @@ service: clood-cbr
 
 provider:
   name: aws
-  runtime: python3.8
+  runtime: python3.7
   region: eu-west-2
   stage: dev
 

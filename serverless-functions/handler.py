@@ -514,7 +514,7 @@ def test(event, context):
 
 # SIMILARITY FUNCTIONS. Requires field name and set of functions-specific parameters
 
-def McSherryLessIsBetter(caseAttrib, queryValue, maxV, minV, weight):
+def McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
   """
   Returns the similarity of two numbers following the McSherry - Less is better formula. queryVal is not used!
   """
@@ -530,8 +530,8 @@ def McSherryLessIsBetter(caseAttrib, queryValue, maxV, minV, weight):
           "script": {
             "source": "(params.max - doc[caseAttrib].value) / (params.max - params.min)",
             "params": {
-              "max": maxV,
-              "min": minV
+              "max": maxValue,
+              "min": minValue
             }
           }
         },
@@ -658,6 +658,38 @@ def Interval(caseAttrib, queryValue, interval, weight):
               "queryValue": queryValue
             },
             "source": "1 - ( Math.abs(params.queryValue - doc[caseAttrib].value) / params.interval )"
+          }
+        },
+        "boost": weight,
+        "_name": "interval"
+      }
+    }
+    return queryFnc
+
+  except ValueError:
+    print("Interval() is only applicable to numbers")
+
+#To test!!
+def EnumDistance(caseAttrib, queryValue, arrayList, weight): # stores enum as array
+  """
+  Implements EnumDistance local similarity function. 
+  Returns the similarity of two enum values as their distance sim(x,y) = |ord(x) - ord(y)|.
+  """
+  try:
+    queryValue = float(queryValue)
+    # build query string
+    queryFnc = {
+      "function_score": {
+        "query": {
+          "match_all": {}
+        },
+        "script_score": {
+          "script": {
+            "params": {
+              "lst": arrayList,
+              "queryValue": queryValue
+            },
+            "source": "1 - ( Math.abs(lst.indexOf(params.queryValue) - lst.indexOf(doc[caseAttrib].value)) / lst.length )"
           }
         },
         "boost": weight,
