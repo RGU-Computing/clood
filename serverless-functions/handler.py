@@ -1,8 +1,10 @@
+import sys
+import os
 import json
 import copy
+import requests
 from timeit import default_timer as timer
 from elasticsearch import Elasticsearch, helpers, RequestsHttpConnection
-import requests
 from requests_aws4auth import AWS4Auth
 # imports for hash - to test for unique records
 import hashlib
@@ -11,6 +13,16 @@ from collections import OrderedDict
 import numpy as np
 import statistics
 import config as cfg
+# Local: utility
+sys.path.append(os.path.abspath("others"))
+import project
+import utility
+# Local: functions for CBR cycle
+sys.path.append(os.path.abspath("cbrcycle"))
+import retrieve
+import reuse
+import revise
+import retain
 
 # For example, my-test-domain.us-east-1.es.amazonaws.com
 host = cfg.aws['host']
@@ -28,27 +40,33 @@ headers = {
   'Content-Type': 'application/json'
 }
 
-es = Elasticsearch(
-  hosts=[{'host': host, 'port': 443}],
-  http_auth=AWS4Auth(access_key, secret_key, region, 'es'),
-  use_ssl=True,
-  verify_certs=True,
-  connection_class=RequestsHttpConnection
-)
+def getESConn():
+  """
+  Get connection to Amazon Elasticsearch service (the casebase).
+  Can be modified to point to any other Elasticsearch cluster.
+  """
+  esconn = Elasticsearch(
+    hosts=[{'host': host, 'port': 443}],
+    http_auth=AWS4Auth(access_key, secret_key, region, 'es'),
+    use_ssl=True,
+    verify_certs=True,
+    connection_class=RequestsHttpConnection
+  )
+  return esconn
 
 
 # main function of your lambda
 
 def all_projects(event, context=None):
   """
-  End-point: Retrieves all projects
+  End-point: Retrieves all projects. Each project is separate CBR application.
   """
   result = []
   # retrieve if ES index does exist
+  es = getESConn()
   if es.indices.exists(index=projects_db):
     query = {}
-    query['query'] = {}
-    query['query']['match_all'] = {}
+    query['query'] = retrieve.MatchAll()
     
     res = es.search(index=projects_db, body=query)
     for hit in res['hits']['hits']:
@@ -66,11 +84,12 @@ def all_projects(event, context=None):
 
 def get_project(event, context=None):
   """
-  End-point: Retrieves a project
+  End-point: Retrieves a project (details of a CBR application).
   """
   pid = event['pathParameters']['id']
   # retrieve if ES index does exist
-  result = getByUniqueField(projects_db, "_id", pid)
+  es = getESConn()
+  result = project.getByUniqueField(projects_db, "_id", pid, es, projects_db)
   
   response = {
     "statusCode": 200,
@@ -82,40 +101,23 @@ def get_project(event, context=None):
 
 def new_project(event, context=None):
   """
-  End-point: Creates a new project
+  End-point: Creates a new CBR application (project).
   """
   result = {}
   statusCode = 201
   proj = json.loads(event['body'])  # parameters in request body
   # create ES index for Projects if it does not exist
+  es = getESConn()
   if not es.indices.exists(index=projects_db):
-    project_mapping = {
-      "mappings": {
-        "properties": {
-          "name": { "type": "text" },
-          "description": { "type": "text" },
-          "casebase": { "type": "text" },
-          "hasCasebase": { "type": "boolean" },
-          "retainDuplicateCases": { "type": "boolean" },
-          "attributes": {
-            "type": "nested",
-            "properties": {
-              "name": { "type": "keyword" },
-              "type": { "type": "keyword" },
-              "similarity": { "type": "keyword" }
-            }
-          }
-        }
-      }
-    }
+    project_mapping = project.getProjectMapping()
     es.indices.create(index=projects_db, body=project_mapping)
     # create config db if it does not exist
-    createOrUpdateGlobalConfig()
+    utility.createOrUpdateGlobalConfig(es, projects_db=projects_db, config_db=config_db)
     
   if 'casebase' not in proj or "" == proj['casebase'] or "" == proj['name']:
     result = "A new project has to specify a name and a casebase."
     statusCode = 400
-  elif indexHasDocWithFieldVal(index=projects_db, field='casebase', value=proj['casebase']): # (index, field, value)
+  elif utility.indexHasDocWithFieldVal(es, index=projects_db, field='casebase', value=proj['casebase']): # (index, field, value)
     result = "Casebase already exists. Choose a different name for the casebase."
     statusCode = 400
   else:
@@ -142,6 +144,7 @@ def update_project(event, context=None):
   source_to_update = {}
   source_to_update['doc'] = body  # parameters in request body
   print(source_to_update)
+  es = getESConn()
   res = es.update(index=projects_db, id=pid, body=source_to_update)
   print(res)
   
@@ -159,8 +162,9 @@ def delete_project(event, context=None):
   """
   pid = event['pathParameters']['id'] # project id
   # delete casebase
-  proj = getByUniqueField(projects_db, "_id", pid) # get project
+  proj = project.getByUniqueField(projects_db, "_id", pid) # get project
   casebase = proj['casebase']
+  es = getESConn()
   es.indices.delete(index=casebase, ignore=[400, 404])  # delete index if it exists
   # delete project
   res = es.delete(index=projects_db, id=pid)
@@ -182,16 +186,17 @@ def save_case_list(event, context=None):
   # try:
   doc_list = json.loads(event['body']) # parameters in request body
   pid = event['pathParameters']['id']
-  proj = getByUniqueField(projects_db, "_id", pid) # project
+  proj = project.getByUniqueField(projects_db, "_id", pid) # project
   index_name = proj['casebase']
   # create index with mapping if it does not exist already
-  indexMapping(proj)
+  project.indexMapping(proj)
   
   # Add documents to created index
   print("Adding a hash field to each case for duplicate-checking")
   for x in doc_list: # generate a hash after ordering dict by key
     x['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(x.items()))).encode('utf-8')).digest())
   print("Attempting to index the list of docs using helpers.bulk()")
+  es = getESConn()
   resp = helpers.bulk(es, doc_list, index=proj['casebase'], doc_type="_doc")
   
   # Indicate that the project has a casebase
@@ -219,15 +224,16 @@ def create_project_index(event, context=None):
   End-point: Creates the mapping for an index if it does not exist.
   """
   pid = event['pathParameters']['id']
-  proj = getByUniqueField(projects_db, "_id", pid) # project
+  proj = project.getByUniqueField(projects_db, "_id", pid) # project
   index_name = proj['casebase']
-  res = indexMapping(proj)
+  res = project.indexMapping(proj)
   
   # Indicate that the project has a casebase (empty)
   print("Casebase added. Attempting to update project detail. Set hasCasebase => True")
   proj['hasCasebase'] = True
   source_to_update = { 'doc': proj }
   print(source_to_update)
+  es = getESConn()
   res = es.update(index=projects_db, id=pid, body=source_to_update)
   print(res)
   
@@ -245,10 +251,12 @@ def get_config(event, context=None):
   """
   # get config. configuration index has 1 document
   result = []
-  query = { "query": { "match_all": {} } }
-  res = es.search(index=config_db, body=query) 
-  if (res['hits']['total']['value'] > 0):
-    result = res['hits']['hits'][0]['_source']
+  es = getESConn()
+  if es.indices.exists(index=config_db):
+    query = { "query": retrieve.MatchAll() }
+    res = es.search(index=config_db, body=query) 
+    if (res['hits']['total']['value'] > 0):
+      result = res['hits']['hits'][0]['_source']
   response = {
     "statusCode": 200,
     "headers": headers,
@@ -261,7 +269,7 @@ def update_config(event, context=None):
   """
   End-point: Updates configuration
   """
-  res = createOrUpdateGlobalConfig(json.loads(event['body']))
+  res = utility.createOrUpdateGlobalConfig(getESConn(), projects_db=projects_db, config_db=config_db, globalConfig=json.loads(event['body']))
   msg = "Configuration updated" if res else "Configuration not updated"
   body = {
     "result": res,
@@ -277,7 +285,7 @@ def update_config(event, context=None):
 
 def cbr_retrieve(event, context=None):
   """
-  End-point: Completes the retrieval step of the CBR cycle
+  End-point: Completes the Retrieve step of the CBR cycle.
   """
   start = timer() # start timer
   result = { 'recommended': {}, 'bestK': [] }
@@ -301,14 +309,15 @@ def cbr_retrieve(event, context=None):
       # isProblem = entry['unknown']
       # strategy = entry['strategy']
       similarityType = entry['similarityType']
-      qfnc = getQueryFunction(field, value, weight, similarityType)
+      qfnc = retrieve.getQueryFunction(field, value, weight, similarityType)
       query['query']['bool']['should'].append(qfnc)
 
   if not queryAdded: # retrieval all (up to k) if not query was added
-    query['query']['bool']['should'].append(MatchAll())
+    query['query']['bool']['should'].append(retrieve.MatchAll())
   print(query)
   # perform retrieval
   counter = 0
+  es = getESConn()
   res = es.search(index=proj['casebase'], body=query)
   for hit in res['hits']['hits']:
     entry = hit['_source']
@@ -320,7 +329,7 @@ def cbr_retrieve(event, context=None):
     result['bestK'].append(entry)
     counter += 1
   
-  # Reuse: Get the recommended result using chosen reuse strategies for unknown attribute values and keep known attribute values supplied
+  # Recommend: Get the recommended result using chosen reuse strategies for unknown attribute values and keep known attribute values supplied
   if counter > 0:
     for entry in queryFeatures:
       if not entry['unknown'] and ('value' in entry) and entry['value'] is not None and "" != entry['value']: # copy known values
@@ -348,19 +357,50 @@ def cbr_retrieve(event, context=None):
   return response
 
 
+def cbr_reuse(event, context=None):
+  """
+  End-point: Completes the Reuse step of the CBR cycle.
+  """
+  result = {}
+  # reuse logic here
+  
+  response = {
+    "statusCode": 200,
+    "headers": headers,
+    "body": json.dumps(result)
+  }
+  return response
+  
+
+def cbr_revise(event, context=None):
+  """
+  End-point: Completes the Revise step of the CBR cycle.
+  """
+  result = {}
+  # revise logic here
+  
+  response = {
+    "statusCode": 200,
+    "headers": headers,
+    "body": json.dumps(result)
+  }
+  return response
+  
+
 def cbr_retain(event, context=None):
   """
-  End-point: Completes the retain step of the CBR cycle by added a case to the casebase.
-  To consider: Check for uniqueness here or sufficient to do so on the frontend?
+  End-point: Completes the Retain step of the CBR cycle.
   """
+  result = {}
+  # retain logic here
   statusCode = 201
   params = json.loads(event['body'])  # parameters in request body
   print(params)
   new_case = params['data']
   new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
   proj = params['project']
-  
-  if not proj['retainDuplicateCases'] and indexHasDocWithFieldVal(index=proj['casebase'], field='hash__', value=new_case['hash__']):
+  es = getESConn()
+  if not proj['retainDuplicateCases'] and project.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__', value=new_case['hash__']):
     result = "The case already exists in the casebase"
     statusCode = 400
   else:
@@ -374,133 +414,12 @@ def cbr_retain(event, context=None):
   return response
 
 
-def indexHasDocWithFieldVal(index, field, value):
-  query = { "query": { "term": { field : value } } }
-  res = es.search(index=index, body=query)
-  return res['hits']['total']['value'] > 0
-  
-  
-def createOrUpdateGlobalConfig(globalConfig=None):
+def home(event, context):
   """
-  Create or update the global configuration. The configuration resides in its own index and is the only document in it.
-  The document's id is not tracked since it's the only document in the index and will not be updated often.
+  End-point: To check API reachability.
   """
-  result = True
-  if not es.indices.exists(index=config_db): # create index if it does not exist and add the default configuration
-    res1 = es.indices.create(index=config_db) # create index
-    print("Adding global configuration to ES.")
-    config = {}
-    config['attributeOptions'] = []
-    config['attributeOptions'].append({ 'type': 'String', 'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'None'], 'reuseStrategy': ['Best Match'] })
-    config['attributeOptions'].append({ 'type': 'Integer', 'similarityTypes': ['Equal', 'McSherry More', 'McSherry Less', 'INRECA More', 'INRECA Less','Interval', 'None'], 'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median', 'Mode'] })
-    config['attributeOptions'].append({ 'type': 'Float', 'similarityTypes': ['Equal', 'McSherry More', 'McSherry Less', 'INRECA More', 'INRECA Less','Interval', 'None'], 'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median'] })
-    config['attributeOptions'].append({ 'type': 'Boolean', 'similarityTypes': ['Equal', 'None'], 'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median'] })
-    config['attributeOptions'].append({ 'type': 'Date', 'similarityTypes': ['ClosestDate', 'None'], 'reuseStrategy': ['Best Match'] })
-    config['attributeOptions'].append({ 'type': 'Enum', 'similarityTypes': ['EnumDistance', 'None'], 'reuseStrategy': ['Best Match'] })
-    print(config)
-    res2 = es.index(index=config_db, body=config)
-    result = False if not res2['_id'] else True
-    if globalConfig is not None: # update the configuration if data is supplied
-      # get config id
-      query = { "query": { "match_all": {} } }
-      res3 = es.search(index=config_db, body=query) 
-      if (res3['hits']['total']['value'] > 0): # expects 1 document
-        cid = res3['hits']['hits'][0]['_id'] # get id of config doc
-        # update using supplied data
-        source_to_update = {}
-        source_to_update['doc'] = globalConfig 
-        print(source_to_update)
-        res4 = es.update(index=projects_db, id=cid, body=source_to_update)
-        result = False if not res4['_id'] else True
-  return result
-    
-
-def indexMapping(project):
-  """
-  Creates mapping for for a [project's] index.
-  """
-  index_name = project['casebase']
-  res = 'Index already created or could not create index'
-  if not es.indices.exists(index=index_name):
-    print("Casebase does not exist. Creating casebase index mapping...")
-    mapping = {} # create mapping
-    mapping['mappings'] = {}
-    mapping['mappings']['properties'] = {}
-    for attrib in project['attributes']:
-      mapping['mappings']['properties'].update({ attrib['name'] : getMappingFrag(attrib['type'], attrib['similarity']) })
-    mapping['mappings']['properties'].update({ 'hash__' : { 'type': 'keyword' } }) # keeps hash of entry
-    print(mapping)
-    print("Creating casebase index...")
-    res = es.indices.create(index=index_name, body=mapping)
-    if res['acknowledged']: # update project to indicate that a casebase has been created (ES can add but not update mappings)
-      print("Index created for casebase, " + project['name'])
-  return res
-  
-
-def getMappingFrag(attrType, simMetric):
-  """
-  Generate mapping fragment for indexing document fields using Elasticsearch Reference v7.6.
-  """
-  res = {}
-  if attrType == "Semantic":
-    res['properties'] = { "name": { "type": "text" }, "rep": { "type": "dense_vector", "dims": 512 } } # dimension for universal sentence encoder. May require passing in as parameter
-  elif attrType == "String" and not (simMetric == "Equal"):
-    res['type'] = "text"
-  elif attrType == "Boolean":
-    res['type'] = "boolean"
-  elif attrType == "Integer":
-    res['type'] = "integer"
-  elif attrType == "Float":
-    res['type'] = "float"
-  elif attrType == "Date":
-    res['type'] = "keyword"
-  elif attrType == "NativeDate":
-    res['type'] = "date"
-    res['format'] = "dd-MM-yyyy||dd-MM-yyyy HH:mm:ss||yyyy-MM-dd||yyyy-MM-dd HH:mm:ss||epoch_millis"
-  elif attrType == "Autocomplete":
-    res['type'] = "search_as_you_type"
-  elif attrType == "Location":
-    res['type'] = "geo_point"
-  else:
-    res['type'] = "keyword"
-  return res
-
-
-def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs):
-  """
-  Determine query function to use base on attribute specification and retrieval features
-  """
-  # minVal = kwargs.get('minVal', None) # optional parameter, minVal (name 'minVal' in function params when calling function e.g. minVal=5)
-  if simMetric == "Equal":
-    return Exact(caseAttrib, queryValue, weight)
-  else:
-    return MostSimilar(caseAttrib, queryValue, weight)
-  
-
-def getByUniqueField(index, field, value):
-  """
-  Retrieve an item from specified index using a unique field
-  """
-  result = {}
-  # retrieve if ES index does exist
-  query = {}
-  query['query'] = {}
-  query['query']['terms'] = {}
-  query['query']['terms'][field] = []
-  query['query']['terms'][field].append(value)
-  print(query)
-  res = es.search(index=projects_db, body=query)
-  if (res['hits']['total']['value'] > 0):
-    entry = res['hits']['hits'][0]['_source']
-    entry['id__'] = res['hits']['hits'][0]['_id']
-    result = entry
-  return result
-
-
-def test(event, context):
   body = {
-    "message": "Go Serverless with CloodCBR! Your function executed successfully!",
-    "input": event
+    "message": "Go Serverless with CloodCBR! Your function executed successfully!"
   }
 
   response = {
@@ -508,263 +427,4 @@ def test(event, context):
     "headers": headers,
     "body": json.dumps(body)
   }
-
   return response
-
-
-# SIMILARITY FUNCTIONS. Requires field name and set of functions-specific parameters
-
-def McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
-  """
-  Returns the similarity of two numbers following the McSherry - Less is better formula. queryVal is not used!
-  """
-  try:
-    queryValue = float(queryValue)
-    # build query string
-    queryFnc = {
-      "function_score": {
-        "query": {
-          "match_all": {}
-        },
-        "script_score": {
-          "script": {
-            "source": "(params.max - doc[caseAttrib].value) / (params.max - params.min)",
-            "params": {
-              "max": maxValue,
-              "min": minValue
-            }
-          }
-        },
-        "boost": weight,
-        "_name": "mcsherryless"
-      }
-    }
-    return queryFnc
-
-  except ValueError:
-    print("McSherryLessIsBetter() is only applicable to numbers")
-
-
-def McSherryMoreIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
-  """
-  Returns the similarity of two numbers following the McSherry - More is better formula. queryVal is not used!
-  """
-  try:
-    queryValue = float(queryValue)
-    # build query string
-    queryFnc = {
-      "function_score": {
-        "query": {
-          "match_all": {}
-        },
-        "script_score": {
-          "script": {
-            "source": "1 - ( (params.max - doc[caseAttrib].value) / (params.max - params.min) )",
-            "params": {
-              "max": maxValue,
-              "min": minValue
-            }
-          }
-        },
-        "boost": weight,
-        "_name": "mcsherrymore"
-      }
-    }
-    return queryFnc
-
-  except ValueError:
-    print("McSherryMoreIsBetter() is only applicable to numbers")
-
-
-def InrecaLessIsBetter(caseAttrib, queryValue, maxValue, jump, weight):
-  """
-  Returns the similarity of two numbers following the INRECA - Less is better formula.
-  """
-  try:
-    queryValue = float(queryValue)
-    # build query string
-    queryFnc = {
-      "function_score": {
-        "query": {
-          "match_all": {}
-        },
-        "script_score": {
-          "script": {
-            "source": "if (doc[caseAttrib].value <= params.queryValue) { return 1 } if (doc[caseAttrib].value >= params.maxValue) { return 0 } return params.jump * (params.maxValue - doc[caseAttrib].value) / (params.maxValue - params.queryValue)",
-            "params": {
-              "jump": jump,
-              "maxValue": maxValue,
-              "queryValue": queryValue
-            }
-          }
-        },
-        "boost": weight,
-        "_name": "inrecaless"
-      }
-    }
-    return queryFnc
-
-  except ValueError:
-    print("InrecaLessIsBetter() is only applicable to numbers")
-
-
-def InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight):
-  """
-  Returns the similarity of two numbers following the INRECA - More is better formula.
-  """
-  try:
-    queryValue = float(queryValue)
-    # build query string
-    queryFnc = {
-      "function_score": {
-        "query": {
-          "match_all": {}
-        },
-        "script_score": {
-          "script": {
-            "source": "if (doc[caseAttrib].value <= params.queryValue) { return 1 } return params.jump * (1 - ((params.queryValue - doc[caseAttrib].value) / params.queryValue))",
-            "params": {
-              "jump": jump,
-              "queryValue": queryValue
-            }
-          }
-        },
-        "boost": weight,
-        "_name": "inrecamore"
-      }
-    }
-    return queryFnc
-
-  except ValueError:
-    print("InrecaMoreIsBetter() is only applicable to numbers")
-
-
-def Interval(caseAttrib, queryValue, interval, weight):
-  """
-  Returns the similarity of two numbers inside an interval.
-  """
-  try:
-    queryValue = float(queryValue)
-    # build query string
-    queryFnc = {
-      "function_score": {
-        "query": {
-          "match_all": {}
-        },
-        "script_score": {
-          "script": {
-            "params": {
-              "interval": interval,
-              "queryValue": queryValue
-            },
-            "source": "1 - ( Math.abs(params.queryValue - doc[caseAttrib].value) / params.interval )"
-          }
-        },
-        "boost": weight,
-        "_name": "interval"
-      }
-    }
-    return queryFnc
-
-  except ValueError:
-    print("Interval() is only applicable to numbers")
-
-#To test!!
-def EnumDistance(caseAttrib, queryValue, arrayList, weight): # stores enum as array
-  """
-  Implements EnumDistance local similarity function. 
-  Returns the similarity of two enum values as their distance sim(x,y) = |ord(x) - ord(y)|.
-  """
-  try:
-    queryValue = float(queryValue)
-    # build query string
-    queryFnc = {
-      "function_score": {
-        "query": {
-          "match_all": {}
-        },
-        "script_score": {
-          "script": {
-            "params": {
-              "lst": arrayList,
-              "queryValue": queryValue
-            },
-            "source": "1 - ( Math.abs(lst.indexOf(params.queryValue) - lst.indexOf(doc[caseAttrib].value)) / lst.length )"
-          }
-        },
-        "boost": weight,
-        "_name": "interval"
-      }
-    }
-    return queryFnc
-
-  except ValueError:
-    print("Interval() is only applicable to numbers")
-
-
-def Exact(caseAttrib, queryValue, weight):
-  """
-  Exact matches for fields defined as equal. Attributes that use this are indexed using 'keyword'.
-  """
-  # build query string
-  query = {
-    "term": {
-      caseAttrib: {
-        "value": queryValue,
-        "boost": weight,
-        "_name": "exact"
-      }
-    }
-  }
-  return query
-
-
-def MostSimilar(caseAttrib, queryValue, weight):
-  """
-  Most similar matches using ES default (works for all attribute types). Default similarity for strings and exact match for other types.
-  """
-  # build query string
-  query = {
-    "match": {
-      caseAttrib: {
-        "query": queryValue,
-        "boost": weight,
-        "_name": "mostsimilar"
-      }
-    }
-  }
-  return query
-
-
-def ClosestDate(caseAttrib, queryValue, weight, maxDate, minDate): # format 'dd-MM-yyyy' e.g. '01-02-2020'
-  """
-  Find the documents whose attribute values have the closest date to the query date. The date field field is indexed as 'keyword' to enable use of this similarity metric.
-  """
-  queryValue = float(queryValue)
-  # build query string
-  queryFnc = {
-    "script_score": {
-			"query": {
-		    	"match_all": {}
-		    },
-		    "script": {
-		    	"params": {
-					"weight": weight,
-					"queryValue": queryValue,
-					"oldestDate": minDate,
-					"newestDate": maxDate
-				},
-		    	"source": "SimpleDateFormat sdf = new SimpleDateFormat('dd-MM-yyyy', Locale.ENGLISH); doc[caseAttrib].size()==0 ? 0 : (1 - Math.abs(sdf.parse(doc[caseAttrib].value).getTime() - sdf.parse(params.queryValue).getTime()) / ((sdf.parse(params.newestDate).getTime() - sdf.parse(params.oldestDate).getTime()) + 1)) * params.weight"
-		    },
-		    "_name": "closestdate"
-		}
-  }
-  return queryFnc
-
-
-def MatchAll():
-  """
-  Retrieve all documents. There is a 10,000 size limit for Elasticsearch query results! The Scroll API can be used to 
-  retrieve more than 10,000. 
-  """
-  return { "match_all": {} }
