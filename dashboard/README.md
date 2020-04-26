@@ -24,7 +24,7 @@ Behind the scenes this will also call `npm run copy-libs`, which copies the Angu
 
 ### Run the Application
 
-In the root directory, rename `env.sample.js` to `env.js` and edit file to specify the root URL for the serverless functions (i.e. set `base_api_url` value without a trailing slash).
+In the `app` directory, rename `env.sample.js` to `env.js` and edit file to specify the root URL for the serverless functions (i.e. set `base_api_url` value without a trailing slash).
 
 We have preconfigured the project with a simple development web server. The simplest way to start this server is:
 
@@ -32,7 +32,7 @@ We have preconfigured the project with a simple development web server. The simp
 npm start
 ```
 
-Now browse to the app at [`localhost:8000/index.html`][local-app-url].
+Now browse to the app at [`localhost:8000`][local-app-url].
 
 
 ## Directory Layout
@@ -184,7 +184,7 @@ You will need to enable the integration between Travis and GitHub. See the
 [jdk]: https://wikipedia.org/wiki/Java_Development_Kit
 [jdk-download]: http://www.oracle.com/technetwork/java/javase/downloads
 [karma]: https://karma-runner.github.io/
-[local-app-url]: http://localhost:8000/index.html
+[local-app-url]: http://localhost:8000
 [node]: https://nodejs.org/
 [npm]: https://www.npmjs.org/
 [protractor]: http://www.protractortest.org/
