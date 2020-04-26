@@ -9,6 +9,13 @@ provider:
   stage: dev
 
 functions:
+  home:
+    handler: handler.home
+    events:
+      - http:
+          path: /
+          method: get
+          cors: true
   all_projects:
     handler: handler.all_projects
     events:
@@ -77,6 +84,20 @@ functions:
     events:
       - http:
           path: retrieve
+          method: post
+          cors: true
+  reuse:
+    handler: handler.cbr_reuse
+    events:
+      - http:
+          path: reuse
+          method: post
+          cors: true
+  revise:
+    handler: handler.cbr_revise
+    events:
+      - http:
+          path: revise
           method: post
           cors: true
   retain:
