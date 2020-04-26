@@ -88,8 +88,7 @@ def get_project(event, context=None):
   """
   pid = event['pathParameters']['id']
   # retrieve if ES index does exist
-  es = getESConn()
-  result = project.getByUniqueField(projects_db, "_id", pid, es, projects_db)
+  result = project.getByUniqueField(getESConn(), projects_db, "_id", pid)
   
   response = {
     "statusCode": 200,
@@ -161,14 +160,13 @@ def delete_project(event, context=None):
   End-point: Deletes a project. Also deletes the project's casebase index if it exists.
   """
   pid = event['pathParameters']['id'] # project id
-  # delete casebase
-  proj = project.getByUniqueField(projects_db, "_id", pid) # get project
-  casebase = proj['casebase']
   es = getESConn()
+  # delete casebase
+  proj = project.getByUniqueField(es, projects_db, "_id", pid) # get project
+  casebase = proj['casebase']
   es.indices.delete(index=casebase, ignore=[400, 404])  # delete index if it exists
   # delete project
   res = es.delete(index=projects_db, id=pid)
-  print(res)
   
   response = {
     "statusCode": 200,
@@ -185,18 +183,18 @@ def save_case_list(event, context=None):
   """
   # try:
   doc_list = json.loads(event['body']) # parameters in request body
+  es = getESConn()
   pid = event['pathParameters']['id']
-  proj = project.getByUniqueField(projects_db, "_id", pid) # project
+  proj = project.getByUniqueField(es, projects_db, "_id", pid) # project
   index_name = proj['casebase']
   # create index with mapping if it does not exist already
-  project.indexMapping(proj)
+  project.indexMapping(es, proj)
   
   # Add documents to created index
   print("Adding a hash field to each case for duplicate-checking")
   for x in doc_list: # generate a hash after ordering dict by key
     x['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(x.items()))).encode('utf-8')).digest())
   print("Attempting to index the list of docs using helpers.bulk()")
-  es = getESConn()
   resp = helpers.bulk(es, doc_list, index=proj['casebase'], doc_type="_doc")
   
   # Indicate that the project has a casebase
@@ -223,17 +221,16 @@ def create_project_index(event, context=None):
   """
   End-point: Creates the mapping for an index if it does not exist.
   """
+  es = getESConn()
   pid = event['pathParameters']['id']
-  proj = project.getByUniqueField(projects_db, "_id", pid) # project
+  proj = project.getByUniqueField(es, projects_db, "_id", pid) # project
   index_name = proj['casebase']
-  res = project.indexMapping(proj)
+  res = project.indexMapping(es, proj)
   
   # Indicate that the project has a casebase (empty)
   print("Casebase added. Attempting to update project detail. Set hasCasebase => True")
   proj['hasCasebase'] = True
   source_to_update = { 'doc': proj }
-  print(source_to_update)
-  es = getESConn()
   res = es.update(index=projects_db, id=pid, body=source_to_update)
   print(res)
   
@@ -252,11 +249,12 @@ def get_config(event, context=None):
   # get config. configuration index has 1 document
   result = []
   es = getESConn()
-  if es.indices.exists(index=config_db):
-    query = { "query": retrieve.MatchAll() }
-    res = es.search(index=config_db, body=query) 
-    if (res['hits']['total']['value'] > 0):
-      result = res['hits']['hits'][0]['_source']
+  if es.indices.exists(index=config_db): # create config db if it does not exist
+    utility.createOrUpdateGlobalConfig(es, projects_db=projects_db, config_db=config_db)
+  query = { "query": retrieve.MatchAll() }
+  res = es.search(index=config_db, body=query) 
+  if (res['hits']['total']['value'] > 0):
+    result = res['hits']['hits'][0]['_source']
   response = {
     "statusCode": 200,
     "headers": headers,

@@ -1,5 +1,5 @@
 
-def indexMapping(project, es=None):
+def indexMapping(es, project):
   """
   Creates mapping for a [project's] index.
   """
@@ -50,7 +50,7 @@ def getMappingFrag(attrType, simMetric):
   return res
 
 
-def getByUniqueField(index, field, value, es=None, projects_db="projects"):
+def getByUniqueField(es, index, field, value):
   """
   Retrieve an item from specified index using a unique field
   """
@@ -62,7 +62,7 @@ def getByUniqueField(index, field, value, es=None, projects_db="projects"):
   query['query']['terms'][field] = []
   query['query']['terms'][field].append(value)
   print(query)
-  res = es.search(index=projects_db, body=query)
+  res = es.search(index=index, body=query)
   if (res['hits']['total']['value'] > 0):
     entry = res['hits']['hits'][0]['_source']
     entry['id__'] = res['hits']['hits'][0]['_id']
