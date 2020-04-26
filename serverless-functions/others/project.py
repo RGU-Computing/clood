@@ -21,6 +21,29 @@ def indexMapping(es, project):
   return res
 
 
+def getProjectMapping():
+  pmap = {
+    "mappings": {
+    "properties": {
+        "name": { "type": "text" },
+        "description": { "type": "text" },
+        "casebase": { "type": "text" },
+        "hasCasebase": { "type": "boolean" },
+        "retainDuplicateCases": { "type": "boolean" },
+        "attributes": {
+        "type": "nested",
+        "properties": {
+            "name": { "type": "keyword" },
+            "type": { "type": "keyword" },
+            "similarity": { "type": "keyword" }
+        }
+        }
+    }
+    }
+  }
+  return pmap
+
+
 def getMappingFrag(attrType, simMetric):
   """
   Generate mapping fragment for indexing document fields using Elasticsearch Reference v7.6.
@@ -48,47 +71,3 @@ def getMappingFrag(attrType, simMetric):
   else:
     res['type'] = "keyword"
   return res
-
-
-def getByUniqueField(es, index, field, value):
-  """
-  Retrieve an item from specified index using a unique field
-  """
-  result = {}
-  # retrieve if ES index does exist
-  query = {}
-  query['query'] = {}
-  query['query']['terms'] = {}
-  query['query']['terms'][field] = []
-  query['query']['terms'][field].append(value)
-  print(query)
-  res = es.search(index=index, body=query)
-  if (res['hits']['total']['value'] > 0):
-    entry = res['hits']['hits'][0]['_source']
-    entry['id__'] = res['hits']['hits'][0]['_id']
-    result = entry
-  return result
-
-
-def getProjectMapping():
-  pmap = {
-    "mappings": {
-    "properties": {
-        "name": { "type": "text" },
-        "description": { "type": "text" },
-        "casebase": { "type": "text" },
-        "hasCasebase": { "type": "boolean" },
-        "retainDuplicateCases": { "type": "boolean" },
-        "attributes": {
-        "type": "nested",
-        "properties": {
-            "name": { "type": "keyword" },
-            "type": { "type": "keyword" },
-            "similarity": { "type": "keyword" }
-        }
-        }
-    }
-    }
-  }
-  return pmap
-

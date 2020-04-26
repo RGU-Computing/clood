@@ -38,3 +38,23 @@ def createOrUpdateGlobalConfig(es, projects_db="projects", config_db="config", g
         res4 = es.update(index=projects_db, id=cid, body=source_to_update)
         result = False if not res4['_id'] else True
   return result
+
+
+def getByUniqueField(es, index, field, value):
+  """
+  Retrieve an item from specified index using a unique field
+  """
+  result = {}
+  # retrieve if ES index does exist
+  query = {}
+  query['query'] = {}
+  query['query']['terms'] = {}
+  query['query']['terms'][field] = []
+  query['query']['terms'][field].append(value)
+  print(query)
+  res = es.search(index=index, body=query)
+  if (res['hits']['total']['value'] > 0):
+    entry = res['hits']['hits'][0]['_source']
+    entry['id__'] = res['hits']['hits'][0]['_id']
+    result = entry
+  return result

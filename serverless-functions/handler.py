@@ -55,7 +55,7 @@ def getESConn():
   return esconn
 
 
-# main function of your lambda
+# The functions below are also exposed through the API (as specified in 'serverless.yml')
 
 def all_projects(event, context=None):
   """
@@ -88,7 +88,7 @@ def get_project(event, context=None):
   """
   pid = event['pathParameters']['id']
   # retrieve if ES index does exist
-  result = project.getByUniqueField(getESConn(), projects_db, "_id", pid)
+  result = utility.getByUniqueField(getESConn(), projects_db, "_id", pid)
   
   response = {
     "statusCode": 200,
@@ -162,7 +162,7 @@ def delete_project(event, context=None):
   pid = event['pathParameters']['id'] # project id
   es = getESConn()
   # delete casebase
-  proj = project.getByUniqueField(es, projects_db, "_id", pid) # get project
+  proj = utility.getByUniqueField(es, projects_db, "_id", pid) # get project
   casebase = proj['casebase']
   es.indices.delete(index=casebase, ignore=[400, 404])  # delete index if it exists
   # delete project
@@ -185,7 +185,7 @@ def save_case_list(event, context=None):
   doc_list = json.loads(event['body']) # parameters in request body
   es = getESConn()
   pid = event['pathParameters']['id']
-  proj = project.getByUniqueField(es, projects_db, "_id", pid) # project
+  proj = utility.getByUniqueField(es, projects_db, "_id", pid) # project
   index_name = proj['casebase']
   # create index with mapping if it does not exist already
   project.indexMapping(es, proj)
@@ -223,7 +223,7 @@ def create_project_index(event, context=None):
   """
   es = getESConn()
   pid = event['pathParameters']['id']
-  proj = project.getByUniqueField(es, projects_db, "_id", pid) # project
+  proj = utility.getByUniqueField(es, projects_db, "_id", pid) # project
   index_name = proj['casebase']
   res = project.indexMapping(es, proj)
   
