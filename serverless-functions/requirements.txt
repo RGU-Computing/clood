@@ -1,4 +1,4 @@
-requests
-elasticsearch
-requests_aws4auth
-numpy
+requests==2.23.0
+elasticsearch>=7.0.0,<8.0.0
+requests_aws4auth==0.9
+numpy==1.18.3
