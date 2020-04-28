@@ -5,7 +5,7 @@ def indexHasDocWithFieldVal(es, index, field, value):
   return res['hits']['total']['value'] > 0
   
 
-def createOrUpdateGlobalConfig(es, projects_db="projects", config_db="config", globalConfig=None):
+def createOrUpdateGlobalConfig(es, config_db="config", globalConfig=None):
   """
   Create or update the global configuration. The configuration resides in its own index and is the only document in it.
   The document's id is not tracked since it's the only document in the index and will not be updated often.
@@ -35,7 +35,7 @@ def createOrUpdateGlobalConfig(es, projects_db="projects", config_db="config", g
         source_to_update = {}
         source_to_update['doc'] = globalConfig 
         print(source_to_update)
-        res4 = es.update(index=projects_db, id=cid, body=source_to_update)
+        res4 = es.update(index=config_db, id=cid, body=source_to_update)
         result = False if not res4['_id'] else True
   return result
 

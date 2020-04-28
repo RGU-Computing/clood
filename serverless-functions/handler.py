@@ -111,7 +111,7 @@ def new_project(event, context=None):
     project_mapping = project.getProjectMapping()
     es.indices.create(index=projects_db, body=project_mapping)
     # create config db if it does not exist
-    utility.createOrUpdateGlobalConfig(es, projects_db=projects_db, config_db=config_db)
+    utility.createOrUpdateGlobalConfig(es, config_db=config_db)
     
   if 'casebase' not in proj or "" == proj['casebase'] or "" == proj['name']:
     result = "A new project has to specify a name and a casebase."
@@ -249,8 +249,8 @@ def get_config(event, context=None):
   # get config. configuration index has 1 document
   result = []
   es = getESConn()
-  if es.indices.exists(index=config_db): # create config db if it does not exist
-    utility.createOrUpdateGlobalConfig(es, projects_db=projects_db, config_db=config_db)
+  if not es.indices.exists(index=config_db): # create config db if it does not exist
+    utility.createOrUpdateGlobalConfig(es, config_db=config_db)
   query = { "query": retrieve.MatchAll() }
   res = es.search(index=config_db, body=query) 
   if (res['hits']['total']['value'] > 0):
@@ -267,7 +267,7 @@ def update_config(event, context=None):
   """
   End-point: Updates configuration
   """
-  res = utility.createOrUpdateGlobalConfig(getESConn(), projects_db=projects_db, config_db=config_db, globalConfig=json.loads(event['body']))
+  res = utility.createOrUpdateGlobalConfig(getESConn(), config_db=config_db, globalConfig=json.loads(event['body']))
   msg = "Configuration updated" if res else "Configuration not updated"
   body = {
     "result": res,
