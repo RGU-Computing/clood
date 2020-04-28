@@ -1,3 +1,5 @@
+# Retrieve functions
+
 def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs):
   """
   Determine query function to use base on attribute specification and retrieval features.
