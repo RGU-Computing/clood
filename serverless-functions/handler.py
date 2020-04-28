@@ -3,6 +3,7 @@ import os
 import json
 import copy
 import requests
+import time
 from timeit import default_timer as timer
 from elasticsearch import Elasticsearch, helpers, RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
@@ -111,7 +112,7 @@ def new_project(event, context=None):
     project_mapping = project.getProjectMapping()
     es.indices.create(index=projects_db, body=project_mapping)
     # create config db if it does not exist
-    utility.createOrUpdateGlobalConfig(es, projects_db=projects_db, config_db=config_db)
+    utility.createOrUpdateGlobalConfig(es, config_db=config_db)
     
   if 'casebase' not in proj or "" == proj['casebase'] or "" == proj['name']:
     result = "A new project has to specify a name and a casebase."
@@ -122,7 +123,7 @@ def new_project(event, context=None):
   else:
     proj['attributes'] = []
     proj['hasCasebase'] = False
-    print(proj)
+    # print(proj)
     result = es.index(index=projects_db, body=proj)
     
   response = {
@@ -142,10 +143,10 @@ def update_project(event, context=None):
   body.pop('id__', None) # remove id__ (was added to dict to use a plain structure)
   source_to_update = {}
   source_to_update['doc'] = body  # parameters in request body
-  print(source_to_update)
+  # print(source_to_update)
   es = getESConn()
   res = es.update(index=projects_db, id=pid, body=source_to_update)
-  print(res)
+  # print(res)
   
   response = {
     "statusCode": 201,
@@ -191,19 +192,19 @@ def save_case_list(event, context=None):
   project.indexMapping(es, proj)
   
   # Add documents to created index
-  print("Adding a hash field to each case for duplicate-checking")
+  # print("Adding a hash field to each case for duplicate-checking")
   for x in doc_list: # generate a hash after ordering dict by key
     x['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(x.items()))).encode('utf-8')).digest())
-  print("Attempting to index the list of docs using helpers.bulk()")
+  # print("Attempting to index the list of docs using helpers.bulk()")
   resp = helpers.bulk(es, doc_list, index=proj['casebase'], doc_type="_doc")
   
   # Indicate that the project has a casebase
-  print("Casebase added. Attempting to update project detail. Set hasCasebase => True")
+  # print("Casebase added. Attempting to update project detail. Set hasCasebase => True")
   proj['hasCasebase'] = True
   source_to_update = { 'doc': proj }
-  print(source_to_update)
+  # print(source_to_update)
   res = es.update(index=projects_db, id=pid, body=source_to_update)
-  print(res)
+  # print(res)
   
   response = {
     "statusCode": 201,
@@ -228,11 +229,11 @@ def create_project_index(event, context=None):
   res = project.indexMapping(es, proj)
   
   # Indicate that the project has a casebase (empty)
-  print("Casebase added. Attempting to update project detail. Set hasCasebase => True")
+  # print("Casebase added. Attempting to update project detail. Set hasCasebase => True")
   proj['hasCasebase'] = True
   source_to_update = { 'doc': proj }
   res = es.update(index=projects_db, id=pid, body=source_to_update)
-  print(res)
+  # print(res)
   
   response = {
     "statusCode": 201,
@@ -249,8 +250,9 @@ def get_config(event, context=None):
   # get config. configuration index has 1 document
   result = []
   es = getESConn()
-  if es.indices.exists(index=config_db): # create config db if it does not exist
-    utility.createOrUpdateGlobalConfig(es, projects_db=projects_db, config_db=config_db)
+  if not es.indices.exists(index=config_db): # create config db if it does not exist
+    utility.createOrUpdateGlobalConfig(es, config_db=config_db)
+    time.sleep(0.3) # 0.3 sec wait to allow time for created index to be ready
   query = { "query": retrieve.MatchAll() }
   res = es.search(index=config_db, body=query) 
   if (res['hits']['total']['value'] > 0):
@@ -267,7 +269,7 @@ def update_config(event, context=None):
   """
   End-point: Updates configuration
   """
-  res = utility.createOrUpdateGlobalConfig(getESConn(), projects_db=projects_db, config_db=config_db, globalConfig=json.loads(event['body']))
+  res = utility.createOrUpdateGlobalConfig(getESConn(), config_db=config_db, globalConfig=json.loads(event['body']))
   msg = "Configuration updated" if res else "Configuration not updated"
   body = {
     "result": res,
@@ -290,7 +292,7 @@ def cbr_retrieve(event, context=None):
   # query['query']['bool']['should'].append(queryFnc)
   queryAdded = False
   params = json.loads(event['body'])  # parameters in request body
-  print(params)
+  # print(params)
   queryFeatures = params['data']
   proj = params['project']
   globalSim = params['globalSim']
@@ -312,7 +314,7 @@ def cbr_retrieve(event, context=None):
 
   if not queryAdded: # retrieval all (up to k) if not query was added
     query['query']['bool']['should'].append(retrieve.MatchAll())
-  print(query)
+  # print(query)
   # perform retrieval
   counter = 0
   es = getESConn()
@@ -393,7 +395,7 @@ def cbr_retain(event, context=None):
   # retain logic here
   statusCode = 201
   params = json.loads(event['body'])  # parameters in request body
-  print(params)
+  # print(params)
   new_case = params['data']
   new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
   proj = params['project']

@@ -6,18 +6,18 @@ def indexMapping(es, project):
   index_name = project['casebase']
   res = 'Index already created or could not create index'
   if not es.indices.exists(index=index_name):
-    print("Casebase does not exist. Creating casebase index mapping...")
+    # print("Casebase does not exist. Creating casebase index mapping...")
     mapping = {} # create mapping
     mapping['mappings'] = {}
     mapping['mappings']['properties'] = {}
     for attrib in project['attributes']:
       mapping['mappings']['properties'].update({ attrib['name'] : getMappingFrag(attrib['type'], attrib['similarity']) })
     mapping['mappings']['properties'].update({ 'hash__' : { 'type': 'keyword' } }) # keeps hash of entry
-    print(mapping)
-    print("Creating casebase index...")
+    # print(mapping)
+    # print("Creating casebase index...")
     res = es.indices.create(index=index_name, body=mapping)
-    if res['acknowledged']: # update project to indicate that a casebase has been created (ES can add but not update mappings)
-      print("Index created for casebase, " + project['name'])
+    # if res['acknowledged']: # update project to indicate that a casebase has been created (ES can add but not update mappings)
+    #   print("Index created for casebase, " + project['name'])
   return res
 
 
