@@ -196,27 +196,6 @@ angular.module('cloodApp.config', [])
         });
   };
 
-  // $scope.setModel = function (model) {
-  //   $scope.useModel = model;
-  // };
-  //
-  // $scope.getVectors = function(txt) {
-  //   console.log(txt);
-  //   $scope.useModel.embed(txt).then(embeddings => {
-  //     embeddings.array().then(function(d) {
-  //       $scope.vec = JSON.stringify(d);
-  //       $scope.$apply();
-  //       return JSON.stringify(d);
-  //     });
-  //   });
-  // };
-  //
-  // use.load().then(model => {
-  //   $scope.setModel(model);
-  // });
-
-
-
   $scope.getAllProjects();
   // $scope.getGlobalConfig();
   $state.transitionTo('config.attributes');
