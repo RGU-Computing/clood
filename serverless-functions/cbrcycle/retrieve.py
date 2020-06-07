@@ -17,7 +17,7 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs)
     maxValue = 100.0 # TO BE REPLACED WITH SUPPLIED maxValue
     return McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight)
   elif simMetric == "INRECA More":
-    jump = 0.0 # TO BE REPLACED WITH SUPPLIED jump
+    jump = 1.0 # TO BE REPLACED WITH SUPPLIED jump
     return InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight)
   elif simMetric == "INRECA Less":
     jump = 1.0 # TO BE REPLACED WITH SUPPLIED jump

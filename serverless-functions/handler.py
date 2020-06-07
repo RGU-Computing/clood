@@ -400,7 +400,7 @@ def cbr_retain(event, context=None):
   new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
   proj = params['project']
   es = getESConn()
-  if not proj['retainDuplicateCases'] and project.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__', value=new_case['hash__']):
+  if not proj['retainDuplicateCases'] and utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__', value=new_case['hash__']):
     result = "The case already exists in the casebase"
     statusCode = 400
   else:
