@@ -5,3 +5,6 @@ aws = {
     "access_key":   '',
     "secret_key": ''
 }
+
+# Third-party APIs
+use_vectoriser = None # "https://link-to-endpoint-that-returns-vectors"

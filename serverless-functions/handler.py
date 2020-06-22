@@ -55,6 +55,35 @@ def getESConn():
   )
   return esconn
 
+def add_vector_fields(attributes, data):
+  """
+  Expand data values to include vector fields.
+  Transforms "x: val" to "x: {name: val, rep: vector(val)}"
+  """
+  for attrib in attributes:
+    if attrib['similarity'] == 'Semantic USE':
+        value = data.get(attrib['name'])
+        if value is not None:
+          newVal = {}
+          newVal['name'] = value
+          newVal['rep'] = retrieve.getVectors(value)
+          data[attrib['name']] = newVal
+  return data
+
+
+def remove_vector_fields(attributes, data):
+  """
+  Flatten data values to remove vector fields.
+  Transforms "x: {name: val, rep: vector(val)}" to "x: val"
+  """
+  for attrib in attributes:
+    if attrib['similarity'] == 'Semantic USE':
+        value = data.get(attrib['name'])
+        if value is not None:
+          newVal['name'] = value['name']
+          doc[attrib['name']] = newVal
+  return data
+
 
 # The functions below are also exposed through the API (as specified in 'serverless.yml')
 
@@ -194,6 +223,7 @@ def save_case_list(event, context=None):
   # Add documents to created index
   # print("Adding a hash field to each case for duplicate-checking")
   for x in doc_list: # generate a hash after ordering dict by key
+    x = add_vector_fields(proj['attributes'], x) # add vectors to Semantic USE fields
     x['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(x.items()))).encode('utf-8')).digest())
   # print("Attempting to index the list of docs using helpers.bulk()")
   resp = helpers.bulk(es, doc_list, index=proj['casebase'], doc_type="_doc")
@@ -322,6 +352,7 @@ def cbr_retrieve(event, context=None):
   for hit in res['hits']['hits']:
     entry = hit['_source']
     entry.pop('hash__', None) # remove hash field and value
+    entry = remove_vector_fields(proj['attributes'], entry) # remove vectors from Semantic USE fields
     if counter == 0:
       result['recommended'] = copy.deepcopy(entry)
     # entry['id__'] = hit['_id'] # using 'id__' to track this case (this is removed during an update operation)
@@ -395,10 +426,12 @@ def cbr_retain(event, context=None):
   # retain logic here
   statusCode = 201
   params = json.loads(event['body'])  # parameters in request body
+  proj = params['project']
   # print(params)
   new_case = params['data']
+  new_case = add_vector_fields(proj['attributes'], new_case) # add vectors to Semantic USE fields
   new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
-  proj = params['project']
+  
   es = getESConn()
   if not proj['retainDuplicateCases'] and utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__', value=new_case['hash__']):
     result = "The case already exists in the casebase"

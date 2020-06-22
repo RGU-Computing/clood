@@ -1,4 +1,16 @@
 # Retrieve functions
+import requests
+import config as cfg
+
+
+def getVector(text):
+  """
+  Calls an external service to get the 512 dimensional vector representation of a piece of text.
+  """
+  url = cfg.use_vectoriser
+  res = requests.post(url, json = {'text': text})
+  return res['vectors']
+
 
 def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs):
   """
@@ -17,7 +29,7 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs)
     maxValue = 100.0 # TO BE REPLACED WITH SUPPLIED maxValue
     return McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight)
   elif simMetric == "INRECA More":
-    jump = 1.0 # TO BE REPLACED WITH SUPPLIED jump
+    jump = 0.0 # TO BE REPLACED WITH SUPPLIED jump
     return InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight)
   elif simMetric == "INRECA Less":
     jump = 1.0 # TO BE REPLACED WITH SUPPLIED jump
@@ -25,6 +37,9 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs)
   elif simMetric == "Equal":
     interval = 2.0 # TO BE REPLACED WITH SUPPLIED interval
     return Interval(caseAttrib, queryValue, interval, weight)
+  elif simMetric == "Semantic USE" and cfg.use_vectoriser is not None:
+    print('Using vector-based similarity (USE)')
+    return USE(caseAttrib, getVector(queryValue), weight)
   else:
     return MostSimilar(caseAttrib, queryValue, weight)
 
@@ -276,6 +291,32 @@ def ClosestDate(caseAttrib, queryValue, weight, maxDate, minDate): # format 'dd-
 		    },
 		    "_name": "closestdate"
 		}
+  }
+  return queryFnc
+
+
+def USE(caseAttrib, queryValue, weight):
+  """
+  Returns the similarity of two numbers using their vector representation.
+  """
+  # build query string
+  queryFnc = {
+    "function_score": {
+      "query": {
+        "match_all": {}
+      },
+      "script_score": {
+        "script": {
+          "params": {
+            "query_vector": queryValue,
+            "attrib": caseAttrib + '.rep'
+          },
+          "source": "cosineSimilarity(params.query_vector, doc[attrib].value) + 1.0"
+        }
+      },
+      "boost": weight,
+      "_name": "USE"
+    }
   }
   return queryFnc
 
