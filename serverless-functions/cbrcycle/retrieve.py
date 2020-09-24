@@ -35,7 +35,7 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs)
 	elif simMetric == "INRECA Less":
 		jump = 1.0  # TO BE REPLACED WITH SUPPLIED jump
 		return InrecaLessIsBetter(caseAttrib, queryValue, jump, weight)
-	elif simMetric == "Equal":
+	elif simMetric == "Interval":
 		interval = 2.0  # TO BE REPLACED WITH SUPPLIED interval
 		return Interval(caseAttrib, queryValue, interval, weight)
 	elif simMetric == "Semantic USE" and cfg.use_vectoriser is not None:

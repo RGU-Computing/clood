@@ -327,12 +327,17 @@ def cbr_retrieve(event, context=None):
   """
 	start = timer()  # start timer
 	result = {'recommended': {}, 'bestK': []}
+	es = getESConn()  # es connection
 	# query["query"]["bool"]["should"].append(queryFnc)
 	queryAdded = False
 	params = json.loads(event['body'])  # parameters in request body
 	# print(params)
 	queryFeatures = params['data']
-	proj = params['project']
+	proj = params.get('project', None)
+	if proj is None:
+		projId = params.get('projectId', None)  # name of casebase
+		proj = utility.getByUniqueField(es, projects_db, "casebase", projId)
+		
 	proj_attributes = proj['attributes']
 	globalSim = params['globalSim']
 	k = params['topk']
@@ -359,7 +364,6 @@ def cbr_retrieve(event, context=None):
 	print(type(proj_attributes))
 	# perform retrieval
 	counter = 0
-	es = getESConn()
 	res = es.search(index=proj['casebase'], body=query)
 	for hit in res['hits']['hits']:
 		entry = hit['_source']
