@@ -446,13 +446,16 @@ def cbr_retain(event, context=None):
 	# retain logic here
 	statusCode = 201
 	params = json.loads(event['body'])  # parameters in request body
-	proj = params['project']
+	proj = params.get('project', None)
+	es = getESConn()
+	if proj is None:
+		projId = params.get('projectId', None)  # name of casebase
+		proj = utility.getByUniqueField(es, projects_db, "casebase", projId)
 	# print(params)
 	new_case = params['data']
 	new_case = add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
 	new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
 	
-	es = getESConn()
 	if not proj['retainDuplicateCases'] and utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__',
 																																					value=new_case['hash__']):
 		result = "The case already exists in the casebase"
