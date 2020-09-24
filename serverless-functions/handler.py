@@ -255,6 +255,30 @@ def save_case_list(event, context=None):
 # except:
 #   print("An error occurred while trying to index updated cases")
 
+def remove_case(event, context=None):
+	"""
+  End-point: Update operation for an existing case.
+  """
+	statusCode = 200
+	params = json.loads(event['body'])  # parameters in request body
+	casebase = params.get('projectId', None)  # name of casebase
+	case = params.get('caseId', None)
+	
+	if casebase is None or case is None:
+		result = "Details of the case to be removed are missing."
+		statusCode = 400
+	else:
+		es = getESConn()
+		result = es.delete(index=casebase, id=case)
+	
+	response = {
+		"statusCode": statusCode,
+		"headers": headers,
+		"body": json.dumps(result)
+	}
+	return response
+	
+
 
 def create_project_index(event, context=None):
 	"""
@@ -440,7 +464,7 @@ def cbr_revise(event, context=None):
 
 def cbr_retain(event, context=None):
 	"""
-  End-point: Completes the Retain step of the CBR cycle.
+  End-point: Completes the Retain step of the CBR cycle. Note: If the new case have id of an existing case, the new case will replace the existing entry.
   """
 	result = {}
 	# retain logic here
