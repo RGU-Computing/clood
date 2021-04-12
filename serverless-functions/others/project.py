@@ -4,7 +4,7 @@ def indexMapping(es, project):
     Creates mapping for a project's casebase.
     """
     index_name = project['casebase']
-    res = 'Index already created or could not create index'
+    res = { 'acknowledged' : False }
     if not es.indices.exists(index=index_name):
         # print("Casebase does not exist. Creating casebase index mapping...")
         mapping = {}  # create mapping

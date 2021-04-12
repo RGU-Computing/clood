@@ -282,7 +282,6 @@ def ClosestDate(caseAttrib, queryValue, weight, maxDate, minDate):  # format 'dd
 	"""
   Find the documents whose attribute values have the closest date to the query date. The date field field is indexed as 'keyword' to enable use of this similarity metric.
   """
-	queryValue = float(queryValue)
 	# build query string
 	queryFnc = {
 		"script_score": {
