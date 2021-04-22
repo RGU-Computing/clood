@@ -4,11 +4,18 @@ service: clood-cbr
 
 provider:
   name: aws
-  runtime: python3.8
+  runtime: python3.7
   region: eu-west-2
   stage: dev
 
 functions:
+  home:
+    handler: handler.home
+    events:
+      - http:
+          path: /
+          method: get
+          cors: true
   all_projects:
     handler: handler.all_projects
     events:
@@ -58,6 +65,13 @@ functions:
           path: case/{id}/list
           method: post
           cors: true
+  remove_case:
+    handler: handler.remove_case
+    events:
+      - http:
+          path: remove
+          method: post
+          cors: true
   get_config:
     handler: handler.get_config
     events:
@@ -77,6 +91,20 @@ functions:
     events:
       - http:
           path: retrieve
+          method: post
+          cors: true
+  reuse:
+    handler: handler.cbr_reuse
+    events:
+      - http:
+          path: reuse
+          method: post
+          cors: true
+  revise:
+    handler: handler.cbr_revise
+    events:
+      - http:
+          path: revise
           method: post
           cors: true
   retain:
