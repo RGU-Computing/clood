@@ -56,7 +56,7 @@ npm install
 
 ```python
 aws = {
-    "host": 'ELASTIC SEARCH AWS URL',
+    "host": 'ELASTIC SEARCH AWS URL', # domain.eu-west-1.es.amazonaws.com
     "region": 'eu-west-1',
     "access_key":   '',
     "secret_key": ''
@@ -67,6 +67,8 @@ aws = {
 ```
 serverless deploy
 ```
+
+* Make sure that [docker](https://docs.docker.com/get-docker/) is running in your computer when deploying (it is required to package the python dependencies)
 
 ### Client Dashboard
 <img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/screenshots/client_projects.png">
