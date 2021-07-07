@@ -12,6 +12,18 @@ Case-based Reasoning (CBR) applications have been deployed in a wide range of se
 
 [CloodCBR Presentation and Demo from ICCBR 2020](https://www.dropbox.com/s/i4vadj9c0dkwrsn/Clood%20CBR%20Final%20-%20ICCBR%202020.mp4?dl=0) ▶️ 
 
+### Cite CloodCBR
+```bib
+@inproceedings{cloodcbr,
+  title={Clood CBR: Towards Microservices Oriented Case-Based Reasoning},
+  author={Nkisi-Orji, Ikechukwu and Wiratunga, Nirmalie and Palihawadana, Chamath and Recio-Garc{\'\i}a, Juan A and Corsar, David},
+  booktitle={International Conference on Case-Based Reasoning},
+  pages={129--143},
+  year={2020},
+  organization={Springer}
+}
+```
+
 ## Project Components
 
 ### Implementation Architecture
