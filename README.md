@@ -37,14 +37,10 @@ Case-based Reasoning (CBR) applications have been deployed in a wide range of se
 
 ### Serverless Functions
 
-Project is available in the ```serverless-functions``` folder
+Project is available in the ```serverless-functions``` folder of the repository.
 
 ### Elasticsearch
 For the Clood implementation we have used [AWS Elasticsearch service](https://aws.amazon.com/elasticsearch-service/).
-
-### Dashboard
-Project is available in the ```dashboard``` folder. 
-
 
 ## Start Using Clood? 🚀
 
@@ -81,8 +77,28 @@ serverless deploy
 ```
 
 * Make sure that [docker](https://docs.docker.com/get-docker/) is running in your computer when deploying (it is required to package the python dependencies)
+=======
+
+### API endpoints
+
+End-point | Request Method | Description
+--- | --- | ---
+/project | HTTP GET | Retrieves all the CBR projects
+/project/{id} | HTTP GET | Retrieves a specific CBR project with specified id
+/project | HTTP POST | Creates a new CBR project. The details of the project are included as a JSON object in the request body
+/project/{id} | HTTP PUT | Updates the details of a CBR project. Modifications are included as a JSON object in the request body
+/project/{id} | HTTP DELETE | Removes a CBR project with specified id
+/case/{id}/list | HTTP POST | Bulk addition of cases to the casebase of the project with specified id. Cases are included in the request body as an array of objects
+/retrieve | HTTP POST | Performs the case retrieve task
+/retain | HTTP POST | Performs the case retain task
+/config | HTTP GET | Retrieves the system configuration
+/config | HTTP POST | Adds or updates the system configuration
+
 
 ### Client Dashboard
+
+The Client Dashboard demonstrates the use of Clood through API calls to create and configure projects and perform CBR tasks. Project is available in the ```dashboard``` folder of the repository. The readme at ```dashboard``` describes how to instal the client dashboard.
+
 <img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/screenshots/client_projects.png">
 
 Guide to install and use the Clood Dashboard is available in the /dashboard folder. [Clood Dashboard](https://github.com/RGU-Computing/clood/tree/master/dashboard)
