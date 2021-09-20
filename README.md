@@ -83,7 +83,7 @@ End-point | Request Method | Description
 
 ### Client Dashboard
 
-The Client Dashboard demonstrates the use of Clood through API calls to create and configure projects and perform CBR tasks. Project is available in the ```dashboard``` folder of the repository.
+The Client Dashboard demonstrates the use of Clood through API calls to create and configure projects and perform CBR tasks. Project is available in the ```dashboard``` folder of the repository. The readme at ```dashboard``` describes how to instal the client dashboard.
 
 <img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/screenshots/client_projects.png">
 
