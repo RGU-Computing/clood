@@ -77,7 +77,6 @@ serverless deploy
 ```
 
 * Make sure that [docker](https://docs.docker.com/get-docker/) is running in your computer when deploying (it is required to package the python dependencies)
-=======
 
 ### API endpoints
 
