@@ -1,9 +1,9 @@
 # Add configuration and rename as config.py
 aws = {
-    "host": '',
-    "region": '',
-    "access_key":   '',
-    "secret_key": ''
+    "host": 'domain.eu-west-1.es.amazonaws.com',
+    "region": 'eu-west-1',
+    "access_key":   'ACCESS_KEY',
+    "secret_key": 'SECRET_KEY_HERE'
 }
 
 # Third-party APIs

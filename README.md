@@ -12,6 +12,18 @@ Case-based Reasoning (CBR) applications have been deployed in a wide range of se
 
 [CloodCBR Presentation and Demo from ICCBR 2020](https://www.dropbox.com/s/i4vadj9c0dkwrsn/Clood%20CBR%20Final%20-%20ICCBR%202020.mp4?dl=0) ▶️ 
 
+### Cite CloodCBR
+```bib
+@inproceedings{cloodcbr,
+  title={Clood CBR: Towards Microservices Oriented Case-Based Reasoning},
+  author={Nkisi-Orji, Ikechukwu and Wiratunga, Nirmalie and Palihawadana, Chamath and Recio-Garc{\'\i}a, Juan A and Corsar, David},
+  booktitle={International Conference on Case-Based Reasoning},
+  pages={129--143},
+  year={2020},
+  organization={Springer}
+}
+```
+
 ## Project Components
 
 ### Implementation Architecture
@@ -52,7 +64,7 @@ npm install
 
 ```python
 aws = {
-    "host": 'ELASTIC SEARCH AWS URL',
+    "host": 'ELASTIC SEARCH AWS URL', # domain.eu-west-1.es.amazonaws.com
     "region": 'eu-west-1',
     "access_key":   '',
     "secret_key": ''
@@ -64,6 +76,8 @@ aws = {
 serverless deploy
 ```
 
+* Make sure that [docker](https://docs.docker.com/get-docker/) is running in your computer when deploying (it is required to package the python dependencies)
+=======
 
 ### API endpoints
 
@@ -92,7 +106,7 @@ Guide to install and use the Clood Dashboard is available in the /dashboard fold
 
 ## License
 
-<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><a property="dct:title" rel="cc:attributionURL" href="https://github.com/RGU-Computing/clood">Clood CBR: Towards Microservices Oriented Case-Based Reasoning</a> by <span property="cc:attributionName">Nkisi-Orji, Ikechukwu; Wiratunga, Nirmalie; Palihawadana, Chamath; Recio-García, Juan A.; Corsar, David; Robert Gordon University Aberdeen</span> is licensed under <a href="http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">Attribution 4.0 International<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1"></a></p>
+<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><a property="dct:title" rel="cc:attributionURL" href="https://github.com/RGU-Computing/clood">Clood CBR: Towards Microservices Oriented Case-Based Reasoning</a> by <span property="cc:attributionName">Nkisi-Orji, Ikechukwu; Wiratunga, Nirmalie; Palihawadana, Chamath; Recio-García, Juan A.; Corsar, David; Robert Gordon University Aberdeen</span> is licensed under <a href="http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">Attribution 4.0 International<br><img width="22px" style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1"><img width="22px" style="width:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1"></a></p>
 
 ----
 Repo Maintained by [Ikechukwu Nkisi-Orji (RGU)](https://github.com/ike01) and [Chamath Palihawadana (RGU)](https://github.com/chamathpali)
