@@ -41,6 +41,14 @@
                       <div ng-if="field.type=='Boolean'" class="form-group">
                         <input class="form-check-input" type="checkbox" ng-model="requests.current.data[$index].value">
                       </div>
+                      <!-- Date type -->
+                      <div ng-if="field.type=='Date'" class="form-group">
+                        <input type="date" class="form-control" ng-init="model=(datenow | date:'dd-MM-yyyy')" ng-model="requests.current.data[$index].value">
+                      </div>
+                      <!-- Location type -->
+                      <div ng-if="field.type=='Location'" class="form-group">
+                        <input type="text" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }} as 'lat,lon'">
+                      </div>
                     </td>
                     <!-- Weight -->
                     <td>

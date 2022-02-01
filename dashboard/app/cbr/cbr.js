@@ -34,6 +34,7 @@ angular.module('cloodApp.cbr', [])
 }])
 
 .controller('CBRCtrl', ['$scope', '$http', '$state', 'ENV_CONST', function($scope, $http, $state, ENV_CONST) {
+  $scope.datenow = new Date();  // current date for any date field selection
   $scope.menu.active = $scope.menu.items[2]; // ui active menu tag
   $scope.selected = {};
   $scope.requests = { current:  { data: [], topk: 10, globalSim: "Weighted Sum" }, previous: [], response: null };
