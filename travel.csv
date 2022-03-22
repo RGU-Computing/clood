@@ -1,0 +1,19 @@
+caseId,HolidayType,Price,NumberOfPersons,Region,Transportation,Duration,Season,Accommodation,Hotel
+Journey1,Bathing,2498,2,Egypt,Plane,14,April,TwoStars,Hotel White House-Egypt
+Journey2,Bathing,3066,3,Egypt,Plane,21,May,TwoStars,Hotel White House-Egypt
+Journey3,Adventure,2778,2,Egypt,Plane,14,June,TwoStars,Hotel Geisum-Egypt
+Journey4,Bathing,3195,3,Egypt,Plane,7,July,ThreeStars,Hotel Al Mashrabia-Egypt
+Journey5,Bathing,3158,2,Egypt,Plane,14,September,ThreeStars,Hotel Al Mashrabia-Egypt
+Journey6,Adventure,3318,2,Egypt,Plane,14,October,ThreeStars,Hotel Al Mashrabia-Egypt
+Journey7,Bathing,2458,2,Egypt,Plane,14,June,FourStars,Hotel Winter Palace-Egypt
+Journey8,Adventure,2649,3,Egypt,Plane,7,July,FourStars,Hotel Winter Palace-Egypt
+Journey9,Education,4638,2,Egypt,Plane,21,April,FourStars,Anlage Arabia Beach-Egypt
+Journey10,Education,3738,2,Egypt,Plane,14,October,FourStars,Anlage Arabia Beach-Egypt
+Journey11,City,1978,2,Cairo,Plane,7,April,ThreeStars,Hotel Victoria-Cairo
+Journey12,City,1898,2,Cairo,Plane,7,May,ThreeStars,Hotel Victoria-Cairo
+Journey13,City,2158,2,Cairo,Plane,14,June,ThreeStars,Hotel Victoria-Cairo
+Journey14,City,1898,2,Cairo,Plane,7,September,ThreeStars,Hotel Victoria-Cairo
+Journey15,City,1154,1,Cairo,Plane,7,October,ThreeStars,Hotel New Marwa Palace-Cairo
+Journey16,City,2308,2,Cairo,Plane,7,April,ThreeStars,Hotel New Marwa Palace-Cairo
+Journey17,Adventure,2658,2,Cairo,Plane,7,May,ThreeStars,Hotel New Marwa Palace-Cairo
+Journey18,City,1269,1,Cairo,Plane,14,July,ThreeStars,Hotel New Marwa Palace-Cairo
