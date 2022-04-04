@@ -33,6 +33,8 @@ region = cfg.aws['region']  # e.g. eu-west-2
 access_key = cfg.aws['access_key']
 secret_key = cfg.aws['secret_key']
 
+is_dev = cfg.is_dev
+
 # dbs
 projects_db = "projects"
 config_db = "config"
@@ -49,6 +51,18 @@ def getESConn():
   Get connection to Amazon Elasticsearch service (the casebase).
   Can be modified to point to any other Elasticsearch cluster.
   """
+
+  if(is_dev):
+    return OpenSearch(
+        hosts = [{'host': 'clood-opensearch', 'port': 9200}],
+        http_compress = True, # enables gzip compression for request bodies
+        http_auth = ('kibanaserver','kibanaserver'),
+        use_ssl = False,
+        verify_certs = False,
+        ssl_assert_hostname = False,
+        ssl_show_warn = False,
+    )
+
   esconn = OpenSearch(
     hosts=[{'host': host, 'port': 443}],
     http_auth=AWS4Auth(access_key, secret_key, region, 'es'),
@@ -523,4 +537,5 @@ def home(event, context):
     "headers": headers,
     "body": json.dumps(body)
   }
+  
   return response

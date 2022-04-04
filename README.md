@@ -44,7 +44,31 @@ For the Clood implementation we have used [AWS Elasticsearch service](https://aw
 
 ## Start Using Clood? 🚀
 
-### Elasticsearch 
+### Local Development
+
+We have simplified the entire CloodCBR development environment. You can easily start developing Clood CBR using the containarised environment now. Make sure you have [Docker](https://docs.docker.com/get-docker/)  installed.
+
+Once cloned this repo you just have to run the following commands
+
+Copy the default Configuration files:
+```
+cp dashboard/app/env.sample.js dashboard/app/env.js && cp serverless-functions/config.sample.py serverless-functions/config.py
+```
+
+Create the docker containers and run
+```
+docker compose up --build
+```
+
+Development Ports
+
+- CloodCBR Dashboard - [http://localhost:8000/](http://localhost:8000/)
+- CloodCBR API - [http://localhost:3000/](http://localhost:3000/)
+- OpenSearch Dashboard - [http://localhost:5601/](http://localhost:5601/)
+- OpenSearch API - [http://localhost:9200/](http://localhost:9200/)
+
+### Deployment
+### OpenSearch (Formerly ElasticSearch in AWS) 
 Follow the guide [Here](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html) on getting started with Elasticsearch in AWS. All you need next is the ES url and the AWS access keys.
 
 ### Serverless functions (API)
@@ -64,7 +88,7 @@ npm install
 
 ```python
 aws = {
-    "host": 'ELASTIC SEARCH AWS URL', # domain.eu-west-1.es.amazonaws.com
+    "host": 'CLOUDSEARCH AWS URL', # domain.eu-west-1.es.amazonaws.com
     "region": 'eu-west-1',
     "access_key":   '',
     "secret_key": ''

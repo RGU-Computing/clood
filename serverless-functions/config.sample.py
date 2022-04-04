@@ -6,6 +6,10 @@ aws = {
     "secret_key": 'SECRET_KEY_HERE'
 }
 
+# For Local Development Use the docker-compose up command
+# Make sure this is set to True for local development
+is_dev = True
+
 # Third-party APIs
 # use_vectoriser end-point should be callable using post request 
 # with body "{'text': text}" and should return a 512-dimensional vector representation of the text
