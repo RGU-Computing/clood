@@ -116,6 +116,9 @@ functions:
           cors: true
 plugins:
   - serverless-python-requirements
+  - serverless-offline
 custom:
+  serverless-offline: 
+    useChildProcesses: true
   pythonRequirements:
     dockerizePip: true
