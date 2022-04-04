@@ -70,10 +70,11 @@ def getMappingFrag(attrType, simMetric):
         res['type'] = "keyword"
     elif attrType == "Date":
         res['type'] = "date"
-        res['format'] = "dd-MM-yyyy||dd-MM-yyyy HH:mm:ss||yyyy-MM-dd||yyyy-MM-dd HH:mm:ss||epoch_millis"
+        res['format'] = "dd/MM/yyyy||dd/MM/yyyy'T'HH:mm:ss.SSSZ||dd-MM-yyyy||dd-MM-yyyy HH:mm:ss||dd-MM-yyyy'T'HH:mm:ss.SSSZ||yyyy-MM-dd||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd'T'HH:mm:ss.SSSZ||epoch_millis"
     elif attrType == "Autocomplete":
         res['type'] = "search_as_you_type"
     elif attrType == "Location":
+        # lat-lon string e.g. "41.12,-71.34" , array/list [ -71.34, 41.12 ]or point "POINT (-71.34 41.12)"
         res['type'] = "geo_point"
     else:
         res['type'] = "keyword"
