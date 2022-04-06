@@ -72,6 +72,13 @@ functions:
           path: remove
           method: post
           cors: true
+  re_create_config:
+    handler: handler.re_create_config
+    events:
+      - http:
+          path: config/create
+          method: get
+          cors: true
   get_config:
     handler: handler.get_config
     events:

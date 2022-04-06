@@ -14,13 +14,57 @@ def getVector(text):
   return res_dictionary['vectors']
 
 
+def add_vector_fields(attributes, data):
+  """
+  Expand data values to include vector fields.
+  Transforms "x: val" to "x: {name: val, rep: vector(val)}"
+  """
+  for attrib in attributes:
+    if attrib['similarity'] == 'Semantic USE':
+      value = data.get(attrib['name'])
+      if value is not None:
+        newVal = {}
+        newVal['name'] = value
+        newVal['rep'] = getVector(value)
+        data[attrib['name']] = newVal
+  return data
+
+
+def remove_vector_fields(attributes, data):
+  """
+  Flatten data values to remove vector fields.
+  Transforms "x: {name: val, rep: vector(val)}" to "x: val"
+  """
+  for attrib in attributes:
+    if attrib['similarity'] == 'Semantic USE':
+      print('data: ')
+      print(data)
+      value = data.get(attrib['name'])
+      if value is not None:
+        data[attrib['name']] = value['name']
+  return data
+
+
+def add_lowercase_fields(attributes, data):
+  """
+  Change values for fields of EqualIgnoreCase to lowercase.
+  Transforms "x: Val" to "x: val"
+  """
+  for attrib in attributes:
+    if attrib['similarity'] == 'EqualIgnoreCase':
+      value = data.get(attrib['name'])
+      if value is not None:
+        data[attrib['name']] = value.lower()
+  return data
+
+
 def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs):
   """
   Determine query function to use base on attribute specification and retrieval features.
   Add new query functions in the if..else statement as elif.
   """
   # minVal = kwargs.get('minVal', None) # optional parameter, minVal (name 'minVal' in function params when calling function e.g. minVal=5)
-  if simMetric == "Equal":
+  if simMetric == "Equal" or simMetric == "EqualIgnoreCase":
     return Exact(caseAttrib, queryValue, weight)
   elif simMetric == "McSherry More":
     minValue = 0.0  # TO BE REPLACED WITH SUPPLIED minValue
@@ -43,8 +87,6 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs)
     print('Using vector-based similarity (USE)')
     return USE(caseAttrib, getVector(queryValue), weight)
   elif simMetric == "Nearest Date":
-    minDate = '2010-01-01'
-    maxDate = '2030-01-01'
     return ClosestDate(caseAttrib, queryValue, weight)
   elif simMetric == "Nearest Number":
     return ClosestNumber(caseAttrib, queryValue, weight)
