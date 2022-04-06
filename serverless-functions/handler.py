@@ -73,37 +73,6 @@ def getESConn():
   return esconn
 
 
-def add_vector_fields(attributes, data):
-  """
-  Expand data values to include vector fields.
-  Transforms "x: val" to "x: {name: val, rep: vector(val)}"
-  """
-  for attrib in attributes:
-    if attrib['similarity'] == 'Semantic USE':
-      value = data.get(attrib['name'])
-      if value is not None:
-        newVal = {}
-        newVal['name'] = value
-        newVal['rep'] = retrieve.getVector(value)
-        data[attrib['name']] = newVal
-  return data
-
-
-def remove_vector_fields(attributes, data):
-  """
-  Flatten data values to remove vector fields.
-  Transforms "x: {name: val, rep: vector(val)}" to "x: val"
-  """
-  for attrib in attributes:
-    if attrib['similarity'] == 'Semantic USE':
-      print('data: ')
-      print(data)
-      value = data.get(attrib['name'])
-      if value is not None:
-        data[attrib['name']] = value['name']
-  return data
-
-
 # The functions below are also exposed through the API (as specified in 'serverless.yml')
 
 def all_projects(event, context=None):
@@ -236,15 +205,15 @@ def save_case_list(event, context=None):
   es = getESConn()
   pid = event['pathParameters']['id']
   proj = utility.getByUniqueField(es, projects_db, "_id", pid)  # project
-  index_name = proj['casebase']
   # create index with mapping if it does not exist already
   project.indexMapping(es, proj)
 
   # Add documents to created index
   # print("Adding a hash field to each case for duplicate-checking")
   for x in doc_list:  # generate a hash after ordering dict by key
-    x = add_vector_fields(proj['attributes'], x)  # add vectors to Semantic USE fields
-    x['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(x.items()))).encode('utf-8')).digest())
+    x = retrieve.add_vector_fields(proj['attributes'], x)  # add vectors to Semantic USE fields
+    x = retrieve.add_lowercase_fields(proj['attributes'], x)  # use lowercase values for EqualIgnoreCase fields
+    x['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(x.items()))).encode('utf-8')).digest())  # case hash for easy detection of duplicates
   # print("Attempting to index the list of docs using helpers.bulk()")
   resp = helpers.bulk(es, doc_list, index=proj['casebase'], doc_type="_doc")
 
@@ -405,13 +374,15 @@ def cbr_retrieve(event, context=None):
     if ('value' in entry) and entry['value'] is not None and "" != entry['value'] and int(
             entry.get('weight', 0)) > 0 and entry['similarityType'] != "None":
       queryAdded = True
+      similarityType = entry['similarityType']
       field = entry['field']
       # fieldType = entry['type']
-      value = entry['value']
+      # use lowercase when field is specified as case-insensitive
+      value = entry['value'].lower() if similarityType == 'EqualIgnoreCase' else entry['value']
       weight = entry['weight']
       # isProblem = entry['unknown']
       # strategy = entry['strategy']
-      similarityType = entry['similarityType']
+
       qfnc = retrieve.getQueryFunction(field, value, weight, similarityType)
       query["query"]["bool"]["should"].append(qfnc)
 
@@ -423,7 +394,7 @@ def cbr_retrieve(event, context=None):
   for hit in res['hits']['hits']:
     entry = hit['_source']
     entry.pop('hash__', None)  # remove hash field and value
-    entry = remove_vector_fields(proj_attributes, entry)  # remove vectors from Semantic USE fields
+    entry = retrieve.remove_vector_fields(proj_attributes, entry)  # remove vectors from Semantic USE fields
     if counter == 0:
       result['recommended'] = copy.deepcopy(entry)
     # entry['id__'] = hit['_id'] # using 'id__' to track this case (this is removed during an update operation)
@@ -506,7 +477,7 @@ def cbr_retain(event, context=None):
     proj = utility.getByUniqueField(es, projects_db, "casebase", projId)
   # print(params)
   new_case = params['data']
-  new_case = add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
+  new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
   new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
 
   if not proj['retainDuplicateCases'] and utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__',
