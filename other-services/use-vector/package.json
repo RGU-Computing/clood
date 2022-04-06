@@ -1,0 +1,22 @@
+{
+  "name": "use-vector",
+  "version": "0.1.0",
+  "description": "Generate and return the vector representation of any piece of text using the Universal Sentence Encoder.",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "serverless-offline": "^8.5.0",
+    "serverless-plugin-include-dependencies": "^4.1.0"
+  },
+  "dependencies": {
+    "@tensorflow-models/universal-sentence-encoder": "^1.2.2",
+    "@tensorflow/tfjs": "^2.0.0",
+    "@tensorflow/tfjs-converter": "^1.7.4",
+    "@tensorflow/tfjs-core": "^1.7.4",
+    "compute-cosine-similarity": "^1.0.0"
+  }
+}
