@@ -52,7 +52,7 @@ Once cloned this repo you just have to run the following commands
 
 Copy the default Configuration files:
 ```
-cp dashboard/app/env.sample.js dashboard/app/env.js && cp serverless-functions/config.sample.py serverless-functions/config.py
+cp dashboard/app/env.sample.js dashboard/app/env.js && cp api/config.sample.py api/config.py
 ```
 
 Create the docker containers and run
@@ -66,6 +66,7 @@ Development Ports
 - CloodCBR API - [http://localhost:3000/](http://localhost:3000/)
 - OpenSearch Dashboard - [http://localhost:5601/](http://localhost:5601/)
 - OpenSearch API - [http://localhost:9200/](http://localhost:9200/)
+- Clood USE Vectoriser API - [http://localhost:4100/](http://localhost:4100/)
 
 ### Deployment
 ### OpenSearch (Formerly ElasticSearch in AWS) 

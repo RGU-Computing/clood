@@ -1,0 +1,54 @@
+service: use-vector
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: eu-west-2
+  stage: dev
+
+# package:
+#  exclude:
+#    - node_modules/**
+
+functions:
+  home:
+    handler: handler.home
+    events:
+      - http:
+          path: /
+          method: get
+          cors: true
+  vectorise:
+    handler: handler.vectorise
+    timeout: 10 # optional, in seconds, default is 6
+    events:
+      - http:
+          path: vectorise
+          method: post
+          cors: true
+  vectoriseInPath:
+    handler: handler.vectoriseInPath
+    timeout: 10 # optional, in seconds, default is 6
+    events:
+      - http:
+          path: /{text}/vector
+          method: get
+          cors: true
+  similarity:
+    handler: handler.similarity
+    timeout: 15 # optional, in seconds, default is 6
+    events:
+      - http:
+          path: similarity
+          method: post
+          cors: true
+
+plugins:
+  - serverless-plugin-include-dependencies
+  - serverless-offline
+custom:
+  serverless-offline:
+    httpPort: 4100
+#   webpackIncludeModules:
+#     forceInclude:
+#       - @tensorflow/tfjs
+#       - @tensorflow-models/universal-sentence-encoder
