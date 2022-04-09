@@ -76,14 +76,14 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
   # minVal = kwargs.get('minVal', None) # optional parameter, minVal (name 'minVal' in function params when calling function e.g. minVal=5)
   if simMetric == "Equal" or simMetric == "EqualIgnoreCase":
     return Exact(caseAttrib, queryValue, weight)
-  elif simMetric == "McSherry More":
-    minValue = 0.0  # TO BE REPLACED WITH SUPPLIED minValue
-    maxValue = 100.0  # TO BE REPLACED WITH SUPPLIED maxValue
-    return McSherryMoreIsBetter(caseAttrib, queryValue, maxValue, minValue, weight)
-  elif simMetric == "McSherry Less":
-    minValue = 0.0  # TO BE REPLACED WITH SUPPLIED minValue
-    maxValue = 100.0  # TO BE REPLACED WITH SUPPLIED maxValue
-    return McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight)
+  elif simMetric == "McSherry More":  # does not use the query value
+    maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
+    minValue = options.get('min', 0.0) if options is not None else 0.0  # use 0 if no supplied min
+    return McSherryMoreIsBetter(caseAttrib, maxValue, minValue, weight)
+  elif simMetric == "McSherry Less":  # does not use the query value
+    maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
+    minValue = options.get('min', 0.0) if options is not None else 0.0  # use 0 if no supplied min
+    return McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight)
   elif simMetric == "INRECA More":
     jump = 0.0  # TO BE REPLACED WITH SUPPLIED jump
     return InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight)
@@ -114,12 +114,11 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
 # Each similarity function returns a Painless script for Elasticsearch. 
 # Each function requires field name and set of functions-specific parameters.
 
-def McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
+def McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight):
   """
   Returns the similarity of two numbers following the McSherry - Less is better formula. queryVal is not used!
   """
   try:
-    queryValue = float(queryValue)
     # build query string
     queryFnc = {
       "function_score": {
@@ -128,7 +127,7 @@ def McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
         },
         "script_score": {
           "script": {
-            "source": "(params.max - doc[params.attrib].value) / (params.max - params.min)",
+            "source": "(float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min)",
             "params": {
               "max": maxValue,
               "min": minValue,
@@ -146,12 +145,11 @@ def McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
     print("McSherryLessIsBetter() is only applicable to numbers")
 
 
-def McSherryMoreIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
+def McSherryMoreIsBetter(caseAttrib, maxValue, minValue, weight):
   """
-  Returns the similarity of two numbers following the McSherry - More is better formula. queryVal is not used!
+  Returns the similarity of two numbers following the McSherry - More is better formula.
   """
   try:
-    queryValue = float(queryValue)
     # build query string
     queryFnc = {
       "function_score": {
@@ -160,7 +158,7 @@ def McSherryMoreIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
         },
         "script_score": {
           "script": {
-            "source": "1 - ( (params.max - doc[params.attrib].value) / (params.max - params.min) )",
+            "source": "1 - ( (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min) )",
             "params": {
               "max": maxValue,
               "min": minValue,
