@@ -100,7 +100,6 @@ angular.module('cloodApp.config', [])
 
   // specify additional parameters for attribute with interval similarity
   $scope.configIntervalAttribute = function(idx, item) {
-  console.log('here...')
     // for modals
     var $ctrl = this;
 	  $ctrl.data = item;
@@ -192,6 +191,37 @@ angular.module('cloodApp.config', [])
 	  };
     console.log('opening lg modal...');
     $ctrl.open('lg');
+  };
+
+  // specify additional parameters for attribute with mchsherry similarity
+  $scope.configMcSherryAttribute = function(idx, item) {
+    // for modals
+    var $ctrl = this;
+	  $ctrl.data = item;
+	  $ctrl.open = function (size) {
+	    var modalInstance = $uibModal.open({
+	      animation: true,
+	      backdrop: false,  // prevents closing modal by clicking outside it
+	      ariaLabelledBy: 'modal-title',
+	      ariaDescribedBy: 'modal-body',
+	      templateUrl: 'config/views/modalviews/mcsherry_similarity.html',
+	      controller: 'ModalMcSherryInstanceCtrl',
+	      controllerAs: '$ctrl',
+	      size: size,
+	      resolve: {
+	        data: function () {
+	          return $ctrl.data;
+	        }
+	      }
+	    });
+
+	    modalInstance.result.then(function (res) {
+	      console.log("Interval modal closed");
+	      $scope.changeAttribute(idx, res);
+	    });
+	  };
+    console.log('opening sm modal...');
+    $ctrl.open('sm');
   };
 
  // Removes attribute from project attributes list if it exists
@@ -338,7 +368,7 @@ angular.module('cloodApp.config', [])
   $scope.cancel = function() {
     //{...}
     alert("Changes will not be saved.");
-    $scope.data = angular.copy(data);
+    // $scope.data = angular.copy(data); // restore unchanged data
     $uibModalInstance.dismiss('cancel');
   };
 }])
@@ -430,7 +460,7 @@ angular.module('cloodApp.config', [])
   $scope.cancel = function() {
     //{...}
     alert("Changes will not be saved.");
-    $scope.data = angular.copy(data);
+    //$scope.data = angular.copy(data);
     $uibModalInstance.dismiss('cancel');
   };
 }])
@@ -449,7 +479,26 @@ angular.module('cloodApp.config', [])
   $scope.cancel = function() {
     //{...}
     alert("Changes will not be saved.");
-    $scope.data = angular.copy(data);
+    //$scope.data = angular.copy(data);
+    $uibModalInstance.dismiss('cancel');
+  };
+}])
+.controller('ModalMcSherryInstanceCtrl', ['$uibModalInstance', 'data', '$scope', function($uibModalInstance, data, $scope) {
+  $scope.data = angular.copy(data);
+  if ($scope.data.options === undefined) { // initialise
+  // option is: interval (range of possible values)
+    $scope.data.options = {'min': 0.0, 'max': 100.0};
+  }
+
+  $scope.save = function() {
+    //{...}
+    $uibModalInstance.close($scope.data);
+  };
+
+  $scope.cancel = function() {
+    //{...}
+    alert("Changes will not be saved.");
+    //$scope.data = angular.copy(data);
     $uibModalInstance.dismiss('cancel');
   };
 }]);
