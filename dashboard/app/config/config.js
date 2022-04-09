@@ -415,7 +415,7 @@ angular.module('cloodApp.config', [])
 	// updates the sim grid according to values
   $scope.updateGrid = function() {
     // initialise sim grid wherever it is undefined
-    if ($scope.data.options.values.length > 0) {
+    if ($scope.data.options.values !== undefined && $scope.data.options.values.length > 0) {
 			//console.log($scope.data.options.values);
       angular.forEach($scope.data.options.values, function(value1){
         angular.forEach($scope.data.options.values, function(value2){

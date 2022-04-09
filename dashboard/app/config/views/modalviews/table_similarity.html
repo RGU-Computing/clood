@@ -2,13 +2,13 @@
     <h3 class="modal-title" id="modal-title">Set Parameters</h3>
 </div>
 <div class="modal-body" id="modal-body">
-    <p class="lead">Specify comma-separate values and the pairwise similarity measures for {{ data.name }}.</p>
+    <p class="lead">Specify comma-separate values and the Table similarity measures for {{ data.name }}.</p>
     <form name="paramsForm">
         <div class="form-group">
             <label for="tableValuesInput">Values</label>
             <textarea class="form-control" id="tableValuesInput" name="valuesInput" ng-model="data.options.values" ng-change="updateGrid()" ng-list rows="3" placeholder="Enter comma-separated values" required></textarea>
             <span role="alert">
-            <span class="error" ng-show="paramsForm.valuesInput.$error.required">
+            <span class="error" ng-show="paramsForm.valuesInput.$dirty && paramsForm.valuesInput.$error.required">
                 Required!</span>
             </span>
         </div>
@@ -40,6 +40,6 @@
     </form>
 </div>
 <div class="modal-footer">
-    <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="!paramsForm.$valid">Continue</button>
+    <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="paramsForm.$invalid">Continue</button>
     <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
 </div>

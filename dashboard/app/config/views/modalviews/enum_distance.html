@@ -8,13 +8,13 @@
             <label for="enumValuesInput">Values</label>
             <textarea class="form-control" id="enumValuesInput" name="valuesInput" ng-model="data.options.values" ng-list rows="3" placeholder="Enter comma-separated ordered values" required></textarea>
             <span role="alert">
-            <span class="error" ng-show="paramsForm.valuesInput.$error.required">
+            <span class="error" ng-show="paramsForm.valuesInput.$dirty && paramsForm.valuesInput.$error.required">
                 Required!</span>
             </span>
         </div>
     </form>
 </div>
 <div class="modal-footer">
-    <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="!paramsForm.$valid">Continue</button>
+    <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="paramsForm.$invalid">Continue</button>
     <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
 </div>
