@@ -37,8 +37,8 @@ def remove_vector_fields(attributes, data):
   """
   for attrib in attributes:
     if attrib['similarity'] == 'Semantic USE':
-      print('data: ')
-      print(data)
+      # print('data: ')
+      # print(data)
       value = data.get(attrib['name'])
       if value is not None:
         data[attrib['name']] = value['name']
@@ -58,7 +58,17 @@ def add_lowercase_fields(attributes, data):
   return data
 
 
-def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs):
+def get_attribute_by_name(attributes, attributeName):
+  """
+  Retrieves an attribute by name from list of attributes.
+  """
+  for attrib in attributes:
+    if attrib['name'] == attributeName:
+      return attrib
+  return None
+
+
+def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
   """
   Determine query function to use base on attribute specification and retrieval features.
   Add new query functions in the if..else statement as elif.
@@ -81,7 +91,7 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs)
     jump = 1.0  # TO BE REPLACED WITH SUPPLIED jump
     return InrecaLessIsBetter(caseAttrib, queryValue, jump, weight)
   elif simMetric == "Interval":
-    interval = 2.0  # TO BE REPLACED WITH SUPPLIED interval
+    interval = options.get('interval', 100.0) if options is not None else 100.0  # use 100 if no supplied interval
     return Interval(caseAttrib, queryValue, interval, weight)
   elif simMetric == "Semantic USE" and cfg.use_vectoriser is not None:
     print('Using vector-based similarity (USE)')
@@ -92,6 +102,10 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs)
     return ClosestNumber(caseAttrib, queryValue, weight)
   elif simMetric == "Nearest Location":
     return ClosestLocation(caseAttrib, queryValue, weight)
+  elif simMetric == "Table":
+    return TableSimilarity(caseAttrib, queryValue, weight, options)
+  elif simMetric == "EnumDistance":
+    return EnumDistance(caseAttrib, queryValue, weight, options)
   else:
     return MostSimilar(caseAttrib, queryValue, weight)
 
@@ -262,13 +276,12 @@ def Interval(caseAttrib, queryValue, interval, weight):
 
 
 # NOT TESTED
-def EnumDistance(caseAttrib, queryValue, arrayList, weight):  # stores enum as array
+def EnumDistance(caseAttrib, queryValue, weight, options):  # stores enum as array
   """
   Implements EnumDistance local similarity function. 
   Returns the similarity of two enum values as their distance sim(x,y) = |ord(x) - ord(y)|.
   """
   try:
-    queryValue = float(queryValue)
     # build query string
     queryFnc = {
       "function_score": {
@@ -278,15 +291,15 @@ def EnumDistance(caseAttrib, queryValue, arrayList, weight):  # stores enum as a
         "script_score": {
           "script": {
             "params": {
-              "lst": arrayList,
+              "lst": options.get('values'),
               "attrib": caseAttrib,
               "queryValue": queryValue
             },
-            "source": "1 - ( Math.abs(lst.indexOf(params.queryValue) - lst.indexOf(doc[params.attrib].value)) / lst.length )"
+            "source": "1 - ( Math.abs(params.lst.indexOf(params.queryValue) - params.lst.indexOf(doc[params.attrib].value)) / params.lst.length )"
           }
         },
         "boost": weight,
-        "_name": "interval"
+        "_name": "enumdistance"
       }
     }
     return queryFnc
@@ -466,6 +479,38 @@ def ClosestLocation(caseAttrib, queryValue, weight):
     }
   }
   return queryFnc
+
+
+def TableSimilarity(caseAttrib, queryValue, weight, options):  # stores enum as array
+  """
+  Implements Table local similarity function.
+  Returns the similarity of two categorical values as specified in a similarity table.
+  """
+  try:
+    # build query string
+    queryFnc = {
+      "function_score": {
+        "query": {
+          "match_all": {}
+        },
+        "script_score": {
+          "script": {
+            "params": {
+              "attrib": caseAttrib,
+              "queryValue": queryValue,
+              "sim_grid": options.get('sim_grid')
+            },
+            "source": "params.sim_grid[params.queryValue][doc[params.attrib].value]"
+          }
+        },
+        "boost": weight,
+        "_name": "table"
+      }
+    }
+    return queryFnc
+
+  except ValueError:
+    print("Interval() is only applicable to numbers")
 
 
 def MatchAll():
