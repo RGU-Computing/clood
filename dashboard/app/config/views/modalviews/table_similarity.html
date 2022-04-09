@@ -1,0 +1,45 @@
+<div class="modal-header">
+    <h3 class="modal-title" id="modal-title">Set Parameters</h3>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Specify comma-separate values and the pairwise similarity measures for {{ data.name }}.</p>
+    <form name="paramsForm">
+        <div class="form-group">
+            <label for="tableValuesInput">Values</label>
+            <textarea class="form-control" id="tableValuesInput" name="valuesInput" ng-model="data.options.values" ng-change="updateGrid()" ng-list rows="3" placeholder="Enter comma-separated values" required></textarea>
+            <span role="alert">
+            <span class="error" ng-show="paramsForm.valuesInput.$error.required">
+                Required!</span>
+            </span>
+        </div>
+
+        <div class="form-group" ng-show="data.options.values.length>0">
+            <label class="radio-inline"><input type="radio" name="optradio" ng-model="data.options.is_symmetric" ng-value="true">Symmetric</label>
+            <label class="radio-inline"><input type="radio" name="optradio" ng-model="data.options.is_symmetric" ng-value="false">Asymmetric</label>
+        </div>
+        <div class="table-responsive-lg">
+            <table class="table table-bordered" ng-show="data.options.values.length>0">
+                <tr>
+                    <th scope="col"></th>
+                    <th scope="col" style="min-width:90px" ng-repeat="val1 in data.options.values">{{ val1 }}</th>
+                </tr>
+                <tr ng-repeat="val2 in data.options.values">
+                    <th scope="row">{{ val2 }}</th>
+                    <td ng-repeat="val3 in data.options.values">
+                        <input type="number" class="form-control" ng-model="sim_grid[val2][val3]" ng-change="makeSymmetric()" min="0.0" max="1.0" required step="0.01" ng-disabled="checkDisable($parent.$index,$index)">
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+<!--        <tt>values = {{data.options.values}}</tt><br/>-->
+<!--        <tt>paramsForm.valuesInput.$valid = {{paramsForm.valuesInput.$valid}}</tt><br/>-->
+<!--        <tt>paramsForm.valuesInput.$error = {{paramsForm.valuesInput.$error}}</tt><br/>-->
+<!--        <tt>paramsForm.$valid = {{paramsForm.$valid}}</tt><br/>-->
+<!--        <tt>paramsForm.$error.required = {{!!paramsForm.$error.required}}</tt><br/>-->
+    </form>
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="!paramsForm.$valid">Continue</button>
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

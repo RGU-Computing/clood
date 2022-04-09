@@ -107,3 +107,15 @@ body {
 .disabled {
   cursor: not-allowed;
 }
+
+/*
+ * ui.boostrap
+ */
+.nav, .pagination, .carousel, .panel-title a { cursor: pointer; }
+
+
+/* Important part */
+
+.modal-body{
+    overflow: auto;
+}
