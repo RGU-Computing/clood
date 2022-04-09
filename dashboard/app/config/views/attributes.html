@@ -69,6 +69,7 @@
             <button ng-show="attrib.similarity == 'Table'" ng-click="configTableAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
             <button ng-show="attrib.similarity == 'EnumDistance'" ng-click="configEnumAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
             <button ng-show="attrib.similarity == 'McSherry Less' || attrib.similarity == 'McSherry More'" ng-click="configMcSherryAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
+            <button ng-show="attrib.similarity == 'INRECA Less' || attrib.similarity == 'INRECA More'" ng-click="configInrecaAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
           </td>
           <td>
             <button ng-click="selectAttribute($index, attrib)" class="btn" ng-disabled="selected.hasCasebase">

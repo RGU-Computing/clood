@@ -216,7 +216,38 @@ angular.module('cloodApp.config', [])
 	    });
 
 	    modalInstance.result.then(function (res) {
-	      console.log("Interval modal closed");
+	      console.log("McSherry modal closed");
+	      $scope.changeAttribute(idx, res);
+	    });
+	  };
+    console.log('opening sm modal...');
+    $ctrl.open('sm');
+  };
+
+  // specify additional parameters for attribute with INRECA similarity
+  $scope.configInrecaAttribute = function(idx, item) {
+    // for modals
+    var $ctrl = this;
+	  $ctrl.data = item;
+	  $ctrl.open = function (size) {
+	    var modalInstance = $uibModal.open({
+	      animation: true,
+	      backdrop: false,  // prevents closing modal by clicking outside it
+	      ariaLabelledBy: 'modal-title',
+	      ariaDescribedBy: 'modal-body',
+	      templateUrl: 'config/views/modalviews/inreca_similarity.html',
+	      controller: 'ModalInrecaInstanceCtrl',
+	      controllerAs: '$ctrl',
+	      size: size,
+	      resolve: {
+	        data: function () {
+	          return $ctrl.data;
+	        }
+	      }
+	    });
+
+	    modalInstance.result.then(function (res) {
+	      console.log("INRECA modal closed");
 	      $scope.changeAttribute(idx, res);
 	    });
 	  };
@@ -488,6 +519,25 @@ angular.module('cloodApp.config', [])
   if ($scope.data.options === undefined) { // initialise
   // option is: interval (range of possible values)
     $scope.data.options = {'min': 0.0, 'max': 100.0};
+  }
+
+  $scope.save = function() {
+    //{...}
+    $uibModalInstance.close($scope.data);
+  };
+
+  $scope.cancel = function() {
+    //{...}
+    alert("Changes will not be saved.");
+    //$scope.data = angular.copy(data);
+    $uibModalInstance.dismiss('cancel');
+  };
+}])
+.controller('ModalInrecaInstanceCtrl', ['$uibModalInstance', 'data', '$scope', function($uibModalInstance, data, $scope) {
+  $scope.data = angular.copy(data);
+  if ($scope.data.options === undefined) { // initialise
+  // option is: interval (range of possible values)
+    $scope.data.options = {'jump': 1.0, 'max': 100.0};
   }
 
   $scope.save = function() {
