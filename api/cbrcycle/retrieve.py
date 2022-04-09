@@ -85,11 +85,12 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
     minValue = options.get('min', 0.0) if options is not None else 0.0  # use 0 if no supplied min
     return McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight)
   elif simMetric == "INRECA More":
-    jump = 0.0  # TO BE REPLACED WITH SUPPLIED jump
+    jump = options.get('jump', 1.0) if options is not None else 1.0  # use 1 if no supplied jump
     return InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight)
   elif simMetric == "INRECA Less":
-    jump = 1.0  # TO BE REPLACED WITH SUPPLIED jump
-    return InrecaLessIsBetter(caseAttrib, queryValue, jump, weight)
+    jump = options.get('jump', 1.0) if options is not None else 1.0  # use 1 if no supplied jump
+    maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
+    return InrecaLessIsBetter(caseAttrib, queryValue, maxValue, jump, weight)
   elif simMetric == "Interval":
     interval = options.get('interval', 100.0) if options is not None else 100.0  # use 100 if no supplied interval
     return Interval(caseAttrib, queryValue, interval, weight)
@@ -190,10 +191,10 @@ def InrecaLessIsBetter(caseAttrib, queryValue, maxValue, jump, weight):
         },
         "script_score": {
           "script": {
-            "source": "if (doc[params.attrib].value <= params.queryValue) { return 1 } if (doc[params.attrib].value >= params.maxValue) { return 0 } return params.jump * (params.maxValue - doc[params.attrib].value) / (params.maxValue - params.queryValue)",
+            "source": "if (doc[params.attrib].value <= params.queryValue) { return 1.0 } if (doc[params.attrib].value >= params.max) { return 0 } return params.jump * (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.queryValue)",
             "params": {
               "jump": jump,
-              "maxValue": maxValue,
+              "max": maxValue,
               "attrib": caseAttrib,
               "queryValue": queryValue
             }
@@ -223,7 +224,7 @@ def InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight):
         },
         "script_score": {
           "script": {
-            "source": "if (doc[params.attrib].value <= params.queryValue) { return 1 } return params.jump * (1 - ((params.queryValue - doc[params.attrib].value) / params.queryValue))",
+            "source": "if (doc[params.attrib].value >= params.queryValue) { return 1.0 } return params.jump * (1 - ((float)(params.queryValue - doc[params.attrib].value) / (float)params.queryValue))",
             "params": {
               "jump": jump,
               "attrib": caseAttrib,
@@ -260,7 +261,7 @@ def Interval(caseAttrib, queryValue, interval, weight):
               "attrib": caseAttrib,
               "queryValue": queryValue
             },
-            "source": "1 - ( Math.abs(params.queryValue - doc[params.attrib].value) / params.interval )"
+            "source": "1 - (float)( Math.abs(params.queryValue - doc[params.attrib].value) / (float)params.interval )"
           }
         },
         "boost": weight,
@@ -273,7 +274,7 @@ def Interval(caseAttrib, queryValue, interval, weight):
     print("Interval() is only applicable to numbers")
 
 
-# NOT TESTED
+
 def EnumDistance(caseAttrib, queryValue, weight, options):  # stores enum as array
   """
   Implements EnumDistance local similarity function. 
