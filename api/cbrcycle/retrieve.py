@@ -294,7 +294,7 @@ def EnumDistance(caseAttrib, queryValue, weight, options):  # stores enum as arr
               "attrib": caseAttrib,
               "queryValue": queryValue
             },
-            "source": "1 - ( Math.abs(params.lst.indexOf(params.queryValue) - params.lst.indexOf(doc[params.attrib].value)) / params.lst.length )"
+            "source": "1 - ( (float) Math.abs(params.lst.indexOf(params.queryValue) - params.lst.indexOf(doc[params.attrib].value)) / (float)params.lst.length )"
           }
         },
         "boost": weight,
