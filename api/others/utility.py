@@ -31,14 +31,15 @@ def createOrUpdateGlobalConfig(es, config_db="config", globalConfig=None):
                                      'similarityTypes': ['Equal', 'Nearest Number', 'McSherry More', 'McSherry Less',
                                                          'INRECA More', 'INRECA Less', 'Interval', 'None'],
                                      'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median']})
+  config['attributeOptions'].append({'type': 'Categorical',
+                                     'similarityTypes': ['Equal', 'EqualIgnoreCase', 'Table', 'EnumDistance', 'None'],
+                                     'reuseStrategy': ['Best Match']})
   config['attributeOptions'].append({'type': 'Boolean', 'similarityTypes': ['Equal', 'None'],
                                      'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median']})
   config['attributeOptions'].append(
     {'type': 'Date', 'similarityTypes': ['Nearest Date', 'None'], 'reuseStrategy': ['Best Match']})
   config['attributeOptions'].append(
     {'type': 'Location', 'similarityTypes': ['Nearest Location', 'None'], 'reuseStrategy': ['Best Match']})
-  config['attributeOptions'].append(
-    {'type': 'Enum', 'similarityTypes': ['EnumDistance', 'None'], 'reuseStrategy': ['Best Match']})
   # print(config)
   res2 = es.index(index=config_db, body=config)
   result = False if not res2['_id'] else True

@@ -37,8 +37,8 @@ def remove_vector_fields(attributes, data):
   """
   for attrib in attributes:
     if attrib['similarity'] == 'Semantic USE':
-      print('data: ')
-      print(data)
+      # print('data: ')
+      # print(data)
       value = data.get(attrib['name'])
       if value is not None:
         data[attrib['name']] = value['name']
@@ -58,7 +58,17 @@ def add_lowercase_fields(attributes, data):
   return data
 
 
-def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs):
+def get_attribute_by_name(attributes, attributeName):
+  """
+  Retrieves an attribute by name from list of attributes.
+  """
+  for attrib in attributes:
+    if attrib['name'] == attributeName:
+      return attrib
+  return None
+
+
+def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
   """
   Determine query function to use base on attribute specification and retrieval features.
   Add new query functions in the if..else statement as elif.
@@ -66,22 +76,23 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs)
   # minVal = kwargs.get('minVal', None) # optional parameter, minVal (name 'minVal' in function params when calling function e.g. minVal=5)
   if simMetric == "Equal" or simMetric == "EqualIgnoreCase":
     return Exact(caseAttrib, queryValue, weight)
-  elif simMetric == "McSherry More":
-    minValue = 0.0  # TO BE REPLACED WITH SUPPLIED minValue
-    maxValue = 100.0  # TO BE REPLACED WITH SUPPLIED maxValue
-    return McSherryMoreIsBetter(caseAttrib, queryValue, maxValue, minValue, weight)
-  elif simMetric == "McSherry Less":
-    minValue = 0.0  # TO BE REPLACED WITH SUPPLIED minValue
-    maxValue = 100.0  # TO BE REPLACED WITH SUPPLIED maxValue
-    return McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight)
+  elif simMetric == "McSherry More":  # does not use the query value
+    maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
+    minValue = options.get('min', 0.0) if options is not None else 0.0  # use 0 if no supplied min
+    return McSherryMoreIsBetter(caseAttrib, maxValue, minValue, weight)
+  elif simMetric == "McSherry Less":  # does not use the query value
+    maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
+    minValue = options.get('min', 0.0) if options is not None else 0.0  # use 0 if no supplied min
+    return McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight)
   elif simMetric == "INRECA More":
-    jump = 0.0  # TO BE REPLACED WITH SUPPLIED jump
+    jump = options.get('jump', 1.0) if options is not None else 1.0  # use 1 if no supplied jump
     return InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight)
   elif simMetric == "INRECA Less":
-    jump = 1.0  # TO BE REPLACED WITH SUPPLIED jump
-    return InrecaLessIsBetter(caseAttrib, queryValue, jump, weight)
+    jump = options.get('jump', 1.0) if options is not None else 1.0  # use 1 if no supplied jump
+    maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
+    return InrecaLessIsBetter(caseAttrib, queryValue, maxValue, jump, weight)
   elif simMetric == "Interval":
-    interval = 2.0  # TO BE REPLACED WITH SUPPLIED interval
+    interval = options.get('interval', 100.0) if options is not None else 100.0  # use 100 if no supplied interval
     return Interval(caseAttrib, queryValue, interval, weight)
   elif simMetric == "Semantic USE" and cfg.use_vectoriser is not None:
     print('Using vector-based similarity (USE)')
@@ -92,6 +103,10 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs)
     return ClosestNumber(caseAttrib, queryValue, weight)
   elif simMetric == "Nearest Location":
     return ClosestLocation(caseAttrib, queryValue, weight)
+  elif simMetric == "Table":
+    return TableSimilarity(caseAttrib, queryValue, weight, options)
+  elif simMetric == "EnumDistance":
+    return EnumDistance(caseAttrib, queryValue, weight, options)
   else:
     return MostSimilar(caseAttrib, queryValue, weight)
 
@@ -100,12 +115,11 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, *args, **kwargs)
 # Each similarity function returns a Painless script for Elasticsearch. 
 # Each function requires field name and set of functions-specific parameters.
 
-def McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
+def McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight):
   """
   Returns the similarity of two numbers following the McSherry - Less is better formula. queryVal is not used!
   """
   try:
-    queryValue = float(queryValue)
     # build query string
     queryFnc = {
       "function_score": {
@@ -114,7 +128,7 @@ def McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
         },
         "script_score": {
           "script": {
-            "source": "(params.max - doc[params.attrib].value) / (params.max - params.min)",
+            "source": "(float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min)",
             "params": {
               "max": maxValue,
               "min": minValue,
@@ -132,12 +146,11 @@ def McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
     print("McSherryLessIsBetter() is only applicable to numbers")
 
 
-def McSherryMoreIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
+def McSherryMoreIsBetter(caseAttrib, maxValue, minValue, weight):
   """
-  Returns the similarity of two numbers following the McSherry - More is better formula. queryVal is not used!
+  Returns the similarity of two numbers following the McSherry - More is better formula.
   """
   try:
-    queryValue = float(queryValue)
     # build query string
     queryFnc = {
       "function_score": {
@@ -146,7 +159,7 @@ def McSherryMoreIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
         },
         "script_score": {
           "script": {
-            "source": "1 - ( (params.max - doc[params.attrib].value) / (params.max - params.min) )",
+            "source": "1 - ( (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min) )",
             "params": {
               "max": maxValue,
               "min": minValue,
@@ -178,10 +191,10 @@ def InrecaLessIsBetter(caseAttrib, queryValue, maxValue, jump, weight):
         },
         "script_score": {
           "script": {
-            "source": "if (doc[params.attrib].value <= params.queryValue) { return 1 } if (doc[params.attrib].value >= params.maxValue) { return 0 } return params.jump * (params.maxValue - doc[params.attrib].value) / (params.maxValue - params.queryValue)",
+            "source": "if (doc[params.attrib].value <= params.queryValue) { return 1.0 } if (doc[params.attrib].value >= params.max) { return 0 } return params.jump * (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.queryValue)",
             "params": {
               "jump": jump,
-              "maxValue": maxValue,
+              "max": maxValue,
               "attrib": caseAttrib,
               "queryValue": queryValue
             }
@@ -211,7 +224,7 @@ def InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight):
         },
         "script_score": {
           "script": {
-            "source": "if (doc[params.attrib].value <= params.queryValue) { return 1 } return params.jump * (1 - ((params.queryValue - doc[params.attrib].value) / params.queryValue))",
+            "source": "if (doc[params.attrib].value >= params.queryValue) { return 1.0 } return params.jump * (1 - ((float)(params.queryValue - doc[params.attrib].value) / (float)params.queryValue))",
             "params": {
               "jump": jump,
               "attrib": caseAttrib,
@@ -248,7 +261,7 @@ def Interval(caseAttrib, queryValue, interval, weight):
               "attrib": caseAttrib,
               "queryValue": queryValue
             },
-            "source": "1 - ( Math.abs(params.queryValue - doc[params.attrib].value) / params.interval )"
+            "source": "1 - (float)( Math.abs(params.queryValue - doc[params.attrib].value) / (float)params.interval )"
           }
         },
         "boost": weight,
@@ -261,14 +274,13 @@ def Interval(caseAttrib, queryValue, interval, weight):
     print("Interval() is only applicable to numbers")
 
 
-# NOT TESTED
-def EnumDistance(caseAttrib, queryValue, arrayList, weight):  # stores enum as array
+
+def EnumDistance(caseAttrib, queryValue, weight, options):  # stores enum as array
   """
   Implements EnumDistance local similarity function. 
   Returns the similarity of two enum values as their distance sim(x,y) = |ord(x) - ord(y)|.
   """
   try:
-    queryValue = float(queryValue)
     # build query string
     queryFnc = {
       "function_score": {
@@ -278,15 +290,15 @@ def EnumDistance(caseAttrib, queryValue, arrayList, weight):  # stores enum as a
         "script_score": {
           "script": {
             "params": {
-              "lst": arrayList,
+              "lst": options.get('values'),
               "attrib": caseAttrib,
               "queryValue": queryValue
             },
-            "source": "1 - ( Math.abs(lst.indexOf(params.queryValue) - lst.indexOf(doc[params.attrib].value)) / lst.length )"
+            "source": "1 - ( (float) Math.abs(params.lst.indexOf(params.queryValue) - params.lst.indexOf(doc[params.attrib].value)) / (float)params.lst.length )"
           }
         },
         "boost": weight,
-        "_name": "interval"
+        "_name": "enumdistance"
       }
     }
     return queryFnc
@@ -466,6 +478,38 @@ def ClosestLocation(caseAttrib, queryValue, weight):
     }
   }
   return queryFnc
+
+
+def TableSimilarity(caseAttrib, queryValue, weight, options):  # stores enum as array
+  """
+  Implements Table local similarity function.
+  Returns the similarity of two categorical values as specified in a similarity table.
+  """
+  try:
+    # build query string
+    queryFnc = {
+      "function_score": {
+        "query": {
+          "match_all": {}
+        },
+        "script_score": {
+          "script": {
+            "params": {
+              "attrib": caseAttrib,
+              "queryValue": queryValue,
+              "sim_grid": options.get('sim_grid')
+            },
+            "source": "params.sim_grid[params.queryValue][doc[params.attrib].value]"
+          }
+        },
+        "boost": weight,
+        "_name": "table"
+      }
+    }
+    return queryFnc
+
+  except ValueError:
+    print("Interval() is only applicable to numbers")
 
 
 def MatchAll():

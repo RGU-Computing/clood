@@ -14,4 +14,4 @@ is_dev = True
 # use_vectoriser end-point should be callable using post request 
 # with body "{'text': text}" and should return a 512-dimensional vector representation of the text
 # use_vectoriser = None # for non USE
-use_vectoriser = "cloodcbr-other-use:4100/dev/vectorise"
+use_vectoriser = "http://cloodcbr-other-use:4100/dev/vectorise"
