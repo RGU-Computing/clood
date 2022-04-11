@@ -49,6 +49,10 @@
                       <div ng-if="field.type=='Location'" class="form-group">
                         <input type="text" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }} as 'lat,lon'">
                       </div>
+                      <!-- Categorical type -->
+                      <div ng-if="field.type=='Categorical'" class="form-group">
+                        <select class="form-control" ng-model="requests.current.data[$index].value" ng-options="val as val for val in field.options.values" placeholder="{{ field.name }}"></select>
+                      </div>
                     </td>
                     <!-- Weight -->
                     <td>

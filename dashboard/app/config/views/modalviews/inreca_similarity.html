@@ -1,0 +1,20 @@
+<div class="modal-header">
+    <h3 class="modal-title" id="modal-title">Set Parameters</h3>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Specify the INRECA jump and maximum values for the similarity measure of {{ data.name }}.</p>
+    <form name="paramsForm">
+        <div class="form-group">
+            <label for="inrecajumpattribinterval">Interval</label>
+            <input id="inrecajumpattribinterval" type="number" class="form-control" ng-model="data.options.jump" min="0" required>
+        </div>
+        <div class="form-group">
+            <label for="inrecajmaxattribinterval">Maximum value</label>
+            <input id="inrecajmaxattribinterval" type="number" class="form-control" ng-model="data.options.max" min="0.001" required>
+        </div>
+    </form>
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="paramsForm.$invalid">Continue</button>
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

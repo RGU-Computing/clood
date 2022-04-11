@@ -374,8 +374,10 @@ def cbr_retrieve(event, context=None):
     if ('value' in entry) and entry['value'] is not None and "" != entry['value'] and int(
             entry.get('weight', 0)) > 0 and entry['similarityType'] != "None":
       queryAdded = True
-      similarityType = entry['similarityType']
       field = entry['field']
+      similarityType = entry['similarityType']
+      options = retrieve.get_attribute_by_name(proj['attributes'], field).get('options', None)
+      # print(options)
       # fieldType = entry['type']
       # use lowercase when field is specified as case-insensitive
       value = entry['value'].lower() if similarityType == 'EqualIgnoreCase' else entry['value']
@@ -383,7 +385,7 @@ def cbr_retrieve(event, context=None):
       # isProblem = entry['unknown']
       # strategy = entry['strategy']
 
-      qfnc = retrieve.getQueryFunction(field, value, weight, similarityType)
+      qfnc = retrieve.getQueryFunction(field, value, weight, similarityType, options)
       query["query"]["bool"]["should"].append(qfnc)
 
   if not queryAdded:  # retrieval all (up to k) if not query was added

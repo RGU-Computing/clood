@@ -1,0 +1,16 @@
+<div class="modal-header">
+    <h3 class="modal-title" id="modal-title">Set Parameters</h3>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Specify the interval value (range of possible values) for the similarity for {{ data.name }}.</p>
+    <form name="paramsForm">
+        <div class="form-group">
+            <label for="intervalattribinterval">Interval</label>
+            <input id="intervalattribinterval" type="number" class="form-control" ng-model="data.options.interval" min="0.001" required>
+        </div>
+    </form>
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="paramsForm.$invalid">Continue</button>
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>
