@@ -14,10 +14,6 @@
             <input type="text" id="projName" class="form-control" ng-model="newProj.name" placeholder="Name" required>
           </div>
           <div class="form-group">
-            <label for="projCasebase">Casebase name</label>
-            <input id="projCasebase" type="text" class="form-control" ng-model="newProj.casebase" placeholder="Casebase name (No spaces)" ng-disabled="newProj.id__" required disallow-spaces>
-          </div>
-          <div class="form-group">
             <label for="projDescription">Project description</label>
             <textarea id="projDescription" class="form-control" ng-model="newProj.description" placeholder="Enter a brief description" rows="3" cols="80" maxlength="150"></textarea>
           </div>
@@ -27,7 +23,7 @@
           </div>
 
           <div class="col-sm-4" ng-if="!newProj.id__">
-            <button type="button" ng-click="newProject()" class="btn btn-primary btn-block" ng-disabled="!(newProj.name.length>0 && newProj.casebase.length>0)">
+            <button type="button" ng-click="newProject()" class="btn btn-primary btn-block" ng-disabled="!newProj.name.length>0">
               Create New
             </button>
           </div>
