@@ -4,6 +4,21 @@
 
 ### Preload API
 
+```json
+{
+    "ontologyId": "pizza",
+    "sources": [
+        {
+            "source": "https://protege.stanford.edu/ontologies/pizza/pizza.owl",
+            "format": "xml"
+        }
+    ],
+    "root_node": (OPTIONAL) "http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaBase",
+    "relation_type": (OPTIONAL) "rdfs:subClassOf"
+}
+```
+Request
+
 ```
 curl --location --request POST 'http://localhost:4200/dev/preload' \
 --header 'Content-Type: application/json' \

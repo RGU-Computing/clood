@@ -200,34 +200,6 @@ def wup(graph, x, y, root=None):
 
 
 
-# The functions below are also exposed through the API (as specified in 'serverless.yml')
-
-def all_projects(event, context=None):
-  """
-  End-point: Retrieves all projects. Each project is separate CBR application.
-  """
-  result = []
-  # retrieve if ES index does exist
-  es = getESConn()
-  if es.indices.exists(index=projects_db):
-    query = {}
-    query['query'] = retrieve.MatchAll()
-
-    res = es.search(index=projects_db, body=query)
-    for hit in res['hits']['hits']:
-      entry = hit['_source']
-      entry['id__'] = hit['_id']
-      result.append(entry)
-
-  response = {
-    "statusCode": 200,
-    "headers": headers,
-    "body": json.dumps(result)
-  }
-  return response
-
-
-
 def getOntologyMapping():
     """
     Mapping for ontologies.
@@ -256,9 +228,12 @@ def preload(event, context=None):
   ontologyId = params.get('ontologyId', None)
   sources     = params.get('sources', None)
 
+  root_node = params.get('root_node', None)
+  relation_type = params.get('relation_type', "rdfs:subClassOf")
+
   graph = load_graphs(sources)
   #2. extract unique list of concepts in the graph
-  concepts = all_nodes(graph)  # can specify a root node or a relation type to use
+  concepts = all_nodes(graph,relation_type=relation_type, root=root_node)  # can specify a root node or a relation type to use
   #3. compute pairwise similarity values of concepts (there can be different similarity metrics to choose from)
   similarity_grid = []
   for c1 in concepts:
