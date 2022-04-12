@@ -1,0 +1,49 @@
+
+
+service: clood-cbr-ontology-sim
+
+provider:
+  name: aws
+  runtime: python3.7
+  region: eu-west-2
+  stage: dev
+
+functions:
+  home:
+    handler: handler.home
+    events:
+      - http:
+          path: /
+          method: get
+          cors: true
+  preload:
+    handler: handler.preload
+    events:
+      - http:
+          path: preload
+          method: post
+          cors: true
+  
+  query:
+    handler: handler.query_ontology
+    events:
+      - http:
+          path: query
+          method: post
+          cors: true
+  check_status:
+    handler: handler.check_status
+    events:
+      - http:
+          path: status
+          method: post
+          cors: true
+  
+plugins:
+  - serverless-python-requirements
+  - serverless-offline
+custom:
+  serverless-offline: 
+    useChildProcesses: true
+  pythonRequirements:
+    dockerizePip: true

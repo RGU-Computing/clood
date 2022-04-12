@@ -52,7 +52,7 @@ Once cloned this repo you just have to run the following commands
 
 Copy the default Configuration files:
 ```
-cp dashboard/app/env.sample.js dashboard/app/env.js && cp api/config.sample.py api/config.py
+cp dashboard/app/env.sample.js dashboard/app/env.js && cp api/config.sample.py api/config.py && cp other-services/ontology-sim/config.sample.py other-services/ontology-sim/config.py
 ```
 
 Create the docker containers and run
