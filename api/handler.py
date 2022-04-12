@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import copy
+import uuid
 import requests
 import time
 from timeit import default_timer as timer
@@ -125,6 +126,8 @@ def new_project(event, context=None):
   proj = json.loads(event['body'])  # parameters in request body
   # create ES index for Projects if it does not exist
   es = getESConn()
+  proj_id = uuid.uuid4().hex
+  proj['casebase'] = proj_id + '_casebase'
   if not es.indices.exists(index=projects_db):
     project_mapping = project.getProjectMapping()
     es.indices.create(index=projects_db, body=project_mapping)
@@ -142,7 +145,7 @@ def new_project(event, context=None):
     proj['attributes'] = []
     proj['hasCasebase'] = False
     # print(proj)
-    result = es.index(index=projects_db, body=proj)
+    result = es.index(index=projects_db, body=proj, id=proj_id)
 
   response = {
     "statusCode": statusCode,
