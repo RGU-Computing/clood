@@ -53,3 +53,13 @@ curl --location --request POST 'http://localhost:4200/dev/status' \
     "ontologyId": "pizza"
 }'
 ```
+
+### Delete an Ontology API
+
+```
+curl --location --request POST 'http://localhost:4200/dev/delete' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "ontologyId": "pizza"
+}'
+```

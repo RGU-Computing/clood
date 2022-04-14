@@ -342,6 +342,28 @@ def check_status(event, context=None):
   }
   return response
 
+
+def delete(event, context=None):
+  """
+  End-point: Delete an Ontology index
+  """
+  statusCode = 200
+  params = json.loads(event['body'])
+  ontologyId = params.get('ontologyId', None)
+
+  es = getESConn()
+
+  if es.indices.exists(index=ontologyId):
+    es.indices.delete(index=ontologyId)
+
+  response = {
+      "statusCode": statusCode,
+      "headers": headers,
+      "body": json.dumps({"message":"Succesfully Deleted"})
+    }
+  return response
+
+
 def home(event, context):
   """
   End-point: To check API reachability.

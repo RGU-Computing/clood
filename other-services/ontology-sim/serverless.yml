@@ -38,6 +38,13 @@ functions:
           path: status
           method: post
           cors: true
+  delete:
+    handler: handler.delete
+    events:
+      - http:
+          path: delete
+          method: post
+          cors: true
   
 plugins:
   - serverless-python-requirements
