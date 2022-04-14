@@ -70,8 +70,11 @@ def load_graphs(list_of_source_dicts):
     
     graph = rdflib.Graph()
     for source_dict in list_of_source_dicts:
-        graph.parse(source_dict['source'], format=source_dict['format'], DEBUG=False)
-        
+      if('format' in source_dict):
+        graph.parse(source_dict['source'], format=source_dict['format'])
+      else:
+        graph.parse(source_dict['source'],  format='xml')
+
     return graph
 
 
