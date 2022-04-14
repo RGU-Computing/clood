@@ -265,6 +265,113 @@ def preload(event, context=None):
     }
   return response
 
+def query_cache(event, context=None):
+  """
+  End-point: Cache Ontology based on Query
+  """
+  statusCode = 200
+  params = json.loads(event['body'])
+  ontologyId = params.get('ontologyId', None)
+  sources     = params.get('sources', None)
+  key = str(params.get('key', None))
+  root_node = params.get('root_node', None)
+  relation_type = params.get('relation_type', "rdfs:subClassOf")
+  
+  es = getESConn()
+
+  if not es.indices.exists(index=ontologyId):
+    ont_mapping = getOntologyMapping()
+    es.indices.create(index=ontologyId, body=ont_mapping)
+
+  # retrieve if ES index does exist
+  result = getByUniqueField(es, ontologyId, "key", key)
+
+  # If existing in the index already return the value
+  if(result):
+    response = {
+      "statusCode": 200,
+      "headers": headers,
+      "body": json.dumps(result)
+    }
+    return response
+
+  graph = load_graphs(sources)
+  #2. extract unique list of concepts in the graph
+  concepts = all_nodes(graph,relation_type=relation_type, root=root_node)  # can specify a root node or a relation type to use
+  
+  #3. compute pairwise similarity values of concepts (there can be different similarity metrics to choose from)
+  similarity_grid = []
+  for c1 in concepts:
+      if str(c1) != key:
+        continue
+      res = {}
+      for c2 in concepts:
+          if str(c1) == str(c2): # no need to compute for same values
+              res.update({str(c2): 1.0})
+          else:
+              res.update({str(c2): wup(graph, c1, c2)})
+      similarity_grid.append({"key" : str(c1) , "map" : res})
+
+  resp = helpers.bulk(es, similarity_grid, index=ontologyId, doc_type="_doc")
+
+  if len(similarity_grid) > 0:
+    response = {
+        "statusCode": statusCode,
+        "headers": headers,
+        "body": json.dumps(similarity_grid[0])
+      }
+  else: 
+    response = {
+        "statusCode": statusCode,
+        "headers": headers,
+        "body": json.dumps({})
+      }
+  return response
+
+
+def query_not_cache(event, context=None):
+  """
+  End-point: Non-Cached Ontology based on Query
+  """
+  statusCode = 200
+  params = json.loads(event['body'])
+  ontologyId = params.get('ontologyId', None)
+  sources     = params.get('sources', None)
+  key = str(params.get('key', None))
+  root_node = params.get('root_node', None)
+  relation_type = params.get('relation_type', "rdfs:subClassOf")
+  
+  graph = load_graphs(sources)
+  #2. extract unique list of concepts in the graph
+  concepts = all_nodes(graph,relation_type=relation_type, root=root_node)  # can specify a root node or a relation type to use
+  
+  #3. compute pairwise similarity values of concepts (there can be different similarity metrics to choose from)
+  similarity_grid = []
+  for c1 in concepts:
+      if str(c1) != key:
+        continue
+      res = {}
+      for c2 in concepts:
+          if str(c1) == str(c2): # no need to compute for same values
+              res.update({str(c2): 1.0})
+          else:
+              res.update({str(c2): wup(graph, c1, c2)})
+      similarity_grid.append({"key" : str(c1) , "map" : res})
+
+  if len(similarity_grid) > 0:
+    response = {
+        "statusCode": statusCode,
+        "headers": headers,
+        "body": json.dumps(similarity_grid[0])
+      }
+  else: 
+    response = {
+        "statusCode": statusCode,
+        "headers": headers,
+        "body": json.dumps({})
+      }
+  return response
+
 def getByUniqueField(es, index, field, value):
   """
   Retrieve an item from specified index using a unique field
