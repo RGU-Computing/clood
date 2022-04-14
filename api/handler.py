@@ -160,7 +160,8 @@ def update_project(event, context=None):
   End-point: Updates a project
   """
   pid = event['pathParameters']['id']
-  body = json.loads(event['body'])
+  proj_old = utility.getByUniqueField(getESConn(), projects_db, "_id", pid)  # get previous version of project
+  body = json.loads(event['body'])  # get to-update project from request body
   body.pop('id__', None)  # remove id__ (was added to dict to use a plain structure)
   source_to_update = {}
   source_to_update['doc'] = body  # parameters in request body
@@ -168,6 +169,16 @@ def update_project(event, context=None):
   es = getESConn()
   res = es.update(index=projects_db, id=pid, body=source_to_update)
   # print(res)
+
+  # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
+  if body['hasCasebase']:  # check that the casebase has been created since similarity is computed when the casebase is created
+    for attrib in body['attributes']:  # for each project casebase attribute
+      if attrib['type'] == "Ontology Concept" and attrib.get('options', None) is not None and \
+              attrib['options']:  # check that the attribute is ontology based
+        old_onto_attrib = next((item for item in proj_old['attributes'] if item['name'] == attrib['name']), None)  # get the pre project update version of the attribute
+        if old_onto_attrib is not None and attrib != old_onto_attrib:  # update ontology similarity measures if there are changes
+          retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None),
+                                   root_node=attrib['options'].get('root', None))
 
   response = {
     "statusCode": 201,
@@ -227,6 +238,11 @@ def save_case_list(event, context=None):
   # print(source_to_update)
   res = es.update(index=projects_db, id=pid, body=source_to_update)
   # print(res)
+
+  # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
+  for attrib in proj['attributes']:
+    if attrib['type'] == "Ontology Concept" and attrib.get('options', None) is not None and retrieve.checkOntoSimilarity(attrib['options'].get('id'))['statusCode'] != 200:
+      retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None), root_node=attrib['options'].get('root', None))
 
   response = {
     "statusCode": 201,
@@ -349,6 +365,40 @@ def update_config(event, context=None):
     "body": json.dumps(body)
   }
   return response
+
+
+def check_ontology_sim(event, context=None):
+  """
+  End-point: Check if the similarity measures of an ontology's concepts exist.
+  """
+  ontology_id = event['pathParameters']['ontology_id']
+  res = retrieve.checkOntoSimilarity(ontology_id)
+  body = {
+    "result": res
+  }
+  response = {
+    "statusCode": 201,
+    "headers": headers,
+    "body": json.dumps(body)
+  }
+  return response
+
+
+# def update_ontology_sim(event, context=None):
+#   """
+#   End-point: Computes and persists the similarity measures of an ontology's concepts using its hierarchical structure.
+#   """
+#   attrib = json.loads(event['body'])
+#   res = retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None), root_node=attrib['options'].get('root', None))
+#   body = {
+#     "result": res
+#   }
+#   response = {
+#     "statusCode": 201,
+#     "headers": headers,
+#     "body": json.dumps(body)
+#   }
+#   return response
 
 
 def cbr_retrieve(event, context=None):

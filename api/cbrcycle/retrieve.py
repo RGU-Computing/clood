@@ -1,6 +1,7 @@
 # Retrieve functions
 import dateutil.parser
 import requests
+import json
 import config as cfg
 
 
@@ -12,6 +13,39 @@ def getVector(text):
   res = requests.post(url, json={'text': text})
   res_dictionary = res.json()
   return res_dictionary['vectors']
+
+
+def checkOntoSimilarity(ontology_id):
+  """
+  Calls an external service to check if an ontology based similarity measures exist.
+  """
+  url = cfg.ontology_sim + '/status'
+  res = requests.post(url, json={'ontologyId': ontology_id})
+  return res.json()  #res['statusCode'] = 200 if ontology exists and 404 otherwise
+
+
+def getOntoSimilarity(ontology_id, key):
+  """
+  Calls an external service to get ontology based similarity values for concept comparisons.
+  """
+  url = cfg.ontology_sim + '/query'
+  res = requests.post(url, json={'ontologyId': ontology_id, 'key': key})
+  res_dictionary = res.json()
+  return res_dictionary['map']
+
+
+def setOntoSimilarity(ontology_id, ontology_sources, relation_type=None, root_node=None):
+  """
+  Calls an external service to create ontology based similarity values for concept comparisons.
+  """
+  url = cfg.ontology_sim + '/preload'
+  body = {'ontologyId': ontology_id, 'sources': ontology_sources}
+  if relation_type is not None and len(relation_type) > 0:
+    body['relation_type'] = relation_type
+  if root_node is not None and len(root_node) > 0:
+    body['root_node'] = root_node
+  res = requests.post(url, json=body)
+  return res.json()
 
 
 def add_vector_fields(attributes, data):
@@ -95,7 +129,6 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
     interval = options.get('interval', 100.0) if options is not None else 100.0  # use 100 if no supplied interval
     return Interval(caseAttrib, queryValue, interval, weight)
   elif simMetric == "Semantic USE" and cfg.use_vectoriser is not None:
-    print('Using vector-based similarity (USE)')
     return USE(caseAttrib, getVector(queryValue), weight)
   elif simMetric == "Nearest Date":
     return ClosestDate(caseAttrib, queryValue, weight)
@@ -107,6 +140,10 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
     return TableSimilarity(caseAttrib, queryValue, weight, options)
   elif simMetric == "EnumDistance":
     return EnumDistance(caseAttrib, queryValue, weight, options)
+  elif simMetric == "Wu-Palmer":
+    sim_grid = getOntoSimilarity(options['id'], queryValue)
+    print(sim_grid)
+    return WuPalmer(caseAttrib, queryValue, weight, sim_grid)
   else:
     return MostSimilar(caseAttrib, queryValue, weight)
 
@@ -272,7 +309,6 @@ def Interval(caseAttrib, queryValue, interval, weight):
 
   except ValueError:
     print("Interval() is only applicable to numbers")
-
 
 
 def EnumDistance(caseAttrib, queryValue, weight, options):  # stores enum as array
@@ -485,31 +521,55 @@ def TableSimilarity(caseAttrib, queryValue, weight, options):  # stores enum as 
   Implements Table local similarity function.
   Returns the similarity of two categorical values as specified in a similarity table.
   """
-  try:
-    # build query string
-    queryFnc = {
-      "function_score": {
-        "query": {
-          "match_all": {}
-        },
-        "script_score": {
-          "script": {
-            "params": {
-              "attrib": caseAttrib,
-              "queryValue": queryValue,
-              "sim_grid": options.get('sim_grid')
-            },
-            "source": "params.sim_grid[params.queryValue][doc[params.attrib].value]"
-          }
-        },
-        "boost": weight,
-        "_name": "table"
-      }
+  # build query string
+  queryFnc = {
+    "function_score": {
+      "query": {
+        "match_all": {}
+      },
+      "script_score": {
+        "script": {
+          "params": {
+            "attrib": caseAttrib,
+            "queryValue": queryValue,
+            "sim_grid": options.get('sim_grid')
+          },
+          "source": "params.sim_grid[params.queryValue][doc[params.attrib].value]"
+        }
+      },
+      "boost": weight,
+      "_name": "table"
     }
-    return queryFnc
+  }
+  return queryFnc
 
-  except ValueError:
-    print("Interval() is only applicable to numbers")
+
+def WuPalmer(caseAttrib, queryValue, weight, sim_grid):
+  """
+  Implements ontology based relatedness using the Wu & Palmer algorithm.
+  Returns the similarity of two ontology concepts as specified in a pre-computed similarity grid.
+  """
+  # build query string
+  queryFnc = {
+    "function_score": {
+      "query": {
+        "match_all": {}
+      },
+      "script_score": {
+        "script": {
+          "params": {
+            "attrib": caseAttrib,
+            "queryValue": queryValue,
+            "sim_grid": sim_grid
+          },
+          "source": "params.sim_grid[doc[params.attrib].value]"
+        }
+      },
+      "boost": weight,
+      "_name": "wupalmer"
+    }
+  }
+  return queryFnc
 
 
 def MatchAll():
