@@ -30,7 +30,7 @@
                     <!-- Value -->
                     <td ng-init="requests.current.data[$index].similarityType = field.similarity">
                       <!-- String type -->
-                      <div ng-if="field.type=='String'" class="form-group">
+                      <div ng-if="field.type=='String' || field.type=='Ontology Concept'" class="form-group">
                         <input type="text" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }}">
                       </div>
                       <!-- Numeric type -->
@@ -106,6 +106,6 @@
     </div>
   </div>
   <div ng-if="!selected.hasCasebase">
-    <p>The CBR project does not have a casebase.</p>
+    <p class="lead">The CBR project does not have a casebase.</p>
   </div>
 </div>

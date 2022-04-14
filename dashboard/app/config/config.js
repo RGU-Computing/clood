@@ -81,8 +81,6 @@ angular.module('cloodApp.config', [])
   };
 
   $scope.selectAttribute = function(idx, item) {
-    console.log(idx);
-    console.log(item);
     $scope.editing.status = true;
     $scope.editing.index = idx;
     $scope.newAttrib = item;
@@ -253,6 +251,39 @@ angular.module('cloodApp.config', [])
 	  };
     console.log('opening sm modal...');
     $ctrl.open('sm');
+  };
+
+  // specify additional parameters for attribute with ontology-based similarity
+  $scope.configOntologyAttribute = function(idx, item) {
+    // for modals
+    var $ctrl = this;
+	  $ctrl.data = [item, $scope.selected];
+	  $ctrl.open = function (size) {
+	    var modalInstance = $uibModal.open({
+	      animation: true,
+	      backdrop: false,  // prevents closing modal by clicking outside it
+	      ariaLabelledBy: 'modal-title',
+	      ariaDescribedBy: 'modal-body',
+	      templateUrl: 'config/views/modalviews/ontology_similarity.html',
+	      controller: 'ModalOntologyInstanceCtrl',
+	      controllerAs: '$ctrl',
+	      size: size,
+	      resolve: {
+	        data: function () {
+	          return $ctrl.data;
+	        }
+	      }
+	    });
+
+	    modalInstance.result.then(function (res) {
+	      console.log("Ontology modal closed");
+//	      res.options.id = $scope.selected.id__ + "_ontology_" + item.name.toLowerCase();
+	      console.log(res);
+	      $scope.changeAttribute(idx, res);
+	    });
+	  };
+    console.log('opening sm modal...');
+    $ctrl.open('lg');
   };
 
  // Removes attribute from project attributes list if it exists
@@ -498,7 +529,7 @@ angular.module('cloodApp.config', [])
 .controller('ModalEnumInstanceCtrl', ['$uibModalInstance', 'data', '$scope', function ($uibModalInstance, data, $scope) {
 	$scope.data = angular.copy(data);
   if ($scope.data.options === undefined) { // initialise options variables if undefined
-    // options are: attribute value options, symmetric or not, similarity grid values for attribute values
+    // option is the attribute value options
     $scope.data.options = {'values':[]};
   }
 
@@ -517,7 +548,7 @@ angular.module('cloodApp.config', [])
 .controller('ModalMcSherryInstanceCtrl', ['$uibModalInstance', 'data', '$scope', function($uibModalInstance, data, $scope) {
   $scope.data = angular.copy(data);
   if ($scope.data.options === undefined) { // initialise
-  // option is: interval (range of possible values)
+    // options initialised with default values
     $scope.data.options = {'min': 0.0, 'max': 100.0};
   }
 
@@ -536,9 +567,59 @@ angular.module('cloodApp.config', [])
 .controller('ModalInrecaInstanceCtrl', ['$uibModalInstance', 'data', '$scope', function($uibModalInstance, data, $scope) {
   $scope.data = angular.copy(data);
   if ($scope.data.options === undefined) { // initialise
-  // option is: interval (range of possible values)
+    // options initialised with default values
     $scope.data.options = {'jump': 1.0, 'max': 100.0};
   }
+
+  $scope.save = function() {
+    //{...}
+    $uibModalInstance.close($scope.data);
+  };
+
+  $scope.cancel = function() {
+    //{...}
+    alert("Changes will not be saved.");
+    //$scope.data = angular.copy(data);
+    $uibModalInstance.dismiss('cancel');
+  };
+}])
+.controller('ModalOntologyInstanceCtrl', ['$uibModalInstance', 'data', '$scope', '$http', 'ENV_CONST', function($uibModalInstance, data, $scope, $http, ENV_CONST) {
+  $scope.data = angular.copy(data[0]);
+  $scope.project_has_casebase = data[1]['hasCasebase'];
+  var proj_id = data[1]['id__'];
+  if ($scope.data.options === undefined) { // initialise
+    $scope.data.options = {'id': proj_id + "_ontology_" + $scope.data.name.toLowerCase(), 'sources': []};
+  }
+
+  // add an ontology source to attribute options
+  $scope.addSource = function(item) {
+    $scope.data.options.sources.push(angular.copy(item));
+    $scope.newSource = {}; //reset
+  };
+
+  // Removes attribute from project attributes list if it exists
+  $scope.removeSource = function(item) {
+    for (var i = 0; i < $scope.data.options.sources.length; i++) {
+      if ($scope.data.options.sources[i].source === item.source) {
+        $scope.data.options.sources.splice(i,1);
+        break;
+      }
+    }
+  };
+
+//	$scope.ontology_relatedness_created = false;
+//  $scope.checkStatus = function() {
+//    //generates pairwise similarity measures for all the concepts in the ontology.
+//    //can be a lengthy operation for mid to large ontologies.
+//    $http.get(ENV_CONST.base_api_url + '/ontology_sim/' + $scope.data.options.id)
+//      .then(function(res) {
+//          $scope.ontology_relatedness_created = true;
+//          console.log(res);
+//        })
+//        .catch(function(err) {
+//          console.log(err);
+//        });
+//  };
 
   $scope.save = function() {
     //{...}
