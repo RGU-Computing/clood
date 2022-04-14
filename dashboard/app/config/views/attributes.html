@@ -3,103 +3,111 @@
   <li role="presentation"><a class="btn" ng-click="$state.go('config.add_data')"><i class="fas fa-database"></i> Add Data</a></li>
 </ul>
 
-<!-- Set attributes, data types and similarity metrics -->
-<div class="row">
-  <h4 align="center">Specify casebase attributes</h4>
-  <br />
-  <form id="attributesForm">
-    <div class="form-group col-sm-4">
-      <label for="newAttribName">Name</label>
-      <input id="newAttribName" type="text" name="name" class="form-control" ng-model="newAttrib.name" placeholder="Attribute name">
-    </div>
-    <div class="form-group  col-sm-2" ng-init="newAttrib.type=globalConfig.attributeOptions[0].type">
-      <label for="newAttribType">Type</label>
-      <select id="newAttribType" class="form-control" ng-options="item.type as item.type for item in globalConfig.attributeOptions" ng-model="newAttrib.type"></select>
-    </div>
-    <div class="form-group col-sm-3" ng-init="newAttrib.similarity=getSimilarityTypes(newAttrib.type)[0]">
-      <label for="newAttribSimilarity">Local similarity</label>
-      <select id="newAttribSimilarity" class="form-control" ng-options="sim as sim for sim in getSimilarityTypes(newAttrib.type)" ng-model="newAttrib.similarity"></select>
-    </div>
+<p ng-show="(selected | json) == '{}'" class="lead">Create a project before specifying case attributes.</p>
 
-    <div class="form-group col-sm-3">
-      <label for="newAttribSubmit"></label>
-      <button ng-hide="editing.status" id="newAttribSubmit" type="button" name="button" class="btn btn-block" ng-click="addAttribute(newAttrib)" ng-disabled="!(newAttrib.name.length>0 && newAttrib.type.length>0 && newAttrib.similarity.length>0)">
-        Add Attribute
-      </button>
-      <button ng-show="editing.status" id="editAttribSubmit" type="button" name="button" class="btn btn-block" ng-click="changeAttribute(index, newAttrib)" ng-disabled="!(newAttrib.name.length>0 && newAttrib.type.length>0 && newAttrib.similarity.length>0)">
-        Add Changes
-      </button>
-    </div>
-  </form>
-</div>
-<!-- Display existing attributes -->
-<div class="col-lg-12">
-  <div class="text-center">
-    <h1 class="h4 text-gray-900 mb-4">Casebase Attributes</h1>
+<div ng-show="(selected | json) != '{}'">
+  <!-- Set attributes, data types and similarity metrics -->
+  <div class="row">
+    <h4 align="center">Specify casebase attributes</h4>
+    <br />
+    <form id="attributesForm">
+      <div class="form-group col-sm-4">
+        <label for="newAttribName">Name</label>
+        <input id="newAttribName" type="text" name="name" class="form-control" ng-model="newAttrib.name" placeholder="Attribute name">
+      </div>
+      <div class="form-group  col-sm-2" ng-init="newAttrib.type=globalConfig.attributeOptions[0].type">
+        <label for="newAttribType">Data type</label>
+        <select id="newAttribType" class="form-control" ng-options="item.type as item.type for item in globalConfig.attributeOptions" ng-model="newAttrib.type"></select>
+      </div>
+      <div class="form-group col-sm-3" ng-init="newAttrib.similarity=getSimilarityTypes(newAttrib.type)[0]">
+        <label for="newAttribSimilarity">Similarity type</label>
+        <select id="newAttribSimilarity" class="form-control" ng-options="sim as sim for sim in getSimilarityTypes(newAttrib.type)" ng-model="newAttrib.similarity"></select>
+      </div>
+
+      <div class="form-group col-sm-3">
+        <label for="newAttribSubmit"></label>
+        <button ng-hide="editing.status" id="newAttribSubmit" type="button" name="button" class="btn btn-block" ng-click="addAttribute(newAttrib)" ng-disabled="!(newAttrib.name.length>0 && newAttrib.type.length>0 && newAttrib.similarity.length>0)">
+          Add Attribute
+        </button>
+        <button ng-show="editing.status" id="editAttribSubmit" type="button" name="button" class="btn btn-block" ng-click="changeAttribute(index, newAttrib)" ng-disabled="!(selected.hasCasebase && newAttrib.name.length>0 && newAttrib.type.length>0 && newAttrib.similarity.length>0)">
+          Add Changes
+        </button>
+      </div>
+    </form>
   </div>
-  <div class="table-responsive" ng-if="selected.attributes.length > 0">
-    <table class="table table-striped table-bordered" id="attributesTable" width="100%" cellspacing="0">
-    <!-- <table class="table table-striped"> -->
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Data Type</th>
-          <th>Similarity Metric</th>
-          <th></th>
-          <th colspan="2"></th>
-        </tr>
-      </thead>
-      <tfoot>
-        <tr>
-          <th>Name</th>
-          <th>Data Type</th>
-          <th>Similarity Metric</th>
-          <th></th>
-          <th></th>
-          <th></th>
-        </tr>
-      </tfoot>
-      <tbody id="attributesTableBody">
-        <tr ng-repeat="attrib in selected.attributes">
-          <td>{{ attrib.name }}</td>
-          <td>{{ attrib.type }}</td>
-          <td>{{ attrib.similarity }}</td>
-          <td>
-            <button ng-show="attrib.similarity == 'Interval'" ng-click="configIntervalAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
-            <button ng-show="attrib.similarity == 'Table'" ng-click="configTableAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
-            <button ng-show="attrib.similarity == 'EnumDistance'" ng-click="configEnumAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
-            <button ng-show="attrib.similarity == 'McSherry Less' || attrib.similarity == 'McSherry More'" ng-click="configMcSherryAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
-            <button ng-show="attrib.similarity == 'INRECA Less' || attrib.similarity == 'INRECA More'" ng-click="configInrecaAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
-          </td>
-          <td>
-            <button ng-click="selectAttribute($index, attrib)" class="btn" ng-disabled="selected.hasCasebase">
-              Edit
-            </button>
-          </td>
-          <td>
-            <button ng-click="removeAttribute(attrib)" class="btn btn-warning" ng-disabled="selected.hasCasebase">
-              Remove
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- Display existing attributes -->
+  <div class="col-lg-12">
+    <div class="text-center">
+      <h1 class="h4 text-gray-900 mb-4">Casebase Attributes</h1>
+    </div>
+    <div>
+      <p class="lead">Attribute name and similarity type cannot be changed after cases are added to the casebase.</p>
+    </div>
+    <div class="table-responsive" ng-if="selected.attributes.length > 0">
+      <table class="table table-striped table-bordered" id="attributesTable" width="100%" cellspacing="0">
+      <!-- <table class="table table-striped"> -->
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Data Type</th>
+            <th>Similarity Metric</th>
+            <th></th>
+            <th colspan="2"></th>
+          </tr>
+        </thead>
+        <tfoot>
+          <tr>
+            <th>Name</th>
+            <th>Data Type</th>
+            <th>Similarity Metric</th>
+            <th></th>
+            <th></th>
+            <th></th>
+          </tr>
+        </tfoot>
+        <tbody id="attributesTableBody">
+          <tr ng-repeat="attrib in selected.attributes">
+            <td>{{ attrib.name }}</td>
+            <td>{{ attrib.type }}</td>
+            <td>{{ attrib.similarity }}</td>
+            <td>
+              <button ng-show="attrib.similarity == 'Interval'" ng-click="configIntervalAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
+              <button ng-show="attrib.similarity == 'Table'" ng-click="configTableAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
+              <button ng-show="attrib.similarity == 'EnumDistance'" ng-click="configEnumAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
+              <button ng-show="attrib.similarity == 'McSherry Less' || attrib.similarity == 'McSherry More'" ng-click="configMcSherryAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
+              <button ng-show="attrib.similarity == 'INRECA Less' || attrib.similarity == 'INRECA More'" ng-click="configInrecaAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
+              <button ng-show="attrib.type == 'Ontology Concept'" ng-click="configOntologyAttribute($index, attrib)" class="btn btn-default">Configure <span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
+            </td>
+            <td>
+              <button ng-click="selectAttribute($index, attrib)" class="btn" ng-disabled="selected.hasCasebase">
+                Edit
+              </button>
+            </td>
+            <td>
+              <button ng-click="removeAttribute(attrib)" class="btn btn-warning" ng-disabled="selected.hasCasebase">
+                Remove
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
 
-    <div class="row">
-      <div class="col-lg-6">
-        <div class="form-group col-sm-4">
-          <button type="button" name="button" class="btn btn-primary btn-block" ng-click="updateProject()" ng-disabled="!(selected.attributes.length>0)">
-            Save Changes
-          </button>
+      <div class="row">
+        <div class="col-lg-6">
+          <div class="form-group col-sm-4">
+            <button type="button" name="button" class="btn btn-primary btn-block" ng-click="updateProject()" ng-disabled="!(selected.attributes.length>0)">
+              Save Changes
+            </button>
+          </div>
         </div>
       </div>
+
     </div>
 
+    <p ng-if="!selected.attributes || selected.attributes.length < 1">
+      No attributes are defined for the casebase.
+    </p>
+
   </div>
-
-  <p ng-if="!selected.attributes || selected.attributes.length < 1">
-    No attributes are defined for the casebase.
-  </p>
-
 </div>

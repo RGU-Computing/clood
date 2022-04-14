@@ -1,0 +1,70 @@
+<div class="modal-header">
+    <h3 class="modal-title" id="modal-title">Set Parameters</h3>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Specify the ontology sources and root node (optional) for the similarity measure of {{ data.name }}.</p>
+    <div>
+        <form name="paramsForm">
+            <div class="form-group">
+                <label for="ontologyattribsource">Source</label>
+                <input id="ontologyattribsource" type="text" class="form-control" ng-model="newSource.source" placeholder="Link to ontology file" required>
+            </div>
+            <div class="form-row">
+                <div class="col-md-4 form-group">
+                    <label for="ontologyattribname">Name</label>
+                    <input id="ontologyattribname" type="text" class="form-control" ng-model="newSource.name" placeholder="Name">
+                </div>
+                <div class="col-md-4 form-group">
+                    <label for="ontologyattribformat">Format</label>
+                    <select id="ontologyattribformat" class="form-control" ng-model="newSource.format" ng-options="format for format in ['xml', 'ttl', 'n3', 'ntriples', 'trix', 'json-ld']" placeholder="File format">{{ format }}</select>
+                </div>
+                <div class="col-md-3 form-group">
+                    <label for="newSourceSubmit">&nbsp;</label>
+                    <button id="newSourceSubmit" type="button" name="button" class="btn btn-block" ng-click="addSource(newSource)" ng-disabled="paramsForm.$invalid">
+                        Add Source
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="row">
+        <p></p><p></p>
+    </div>
+
+    <p ng-if="(data.options.sources.length>0 && project_has_casebase)">Ontology-based semantic relatedness measures have been computed. Any changes to configuration will replace the previously computed measures. Ensure that the attribute values in the casebase use URIs from the ontology.</p>
+
+
+    <div class="table-responsive-lg" ng-show="data.options.sources.length>0">
+        <div class="form-group">
+            <label for="ontologyattribroot">Root Node</label>
+            <input id="ontologyattribroot" type="text" class="form-control" ng-model="data.options.root" placeholder="Specify root node URI (optional)">
+        </div>
+        <div class="form-group">
+            <label for="ontologyattribrelation">Subsumption Relation</label>
+            <input id="ontologyattribrelation" type="text" class="form-control" ng-model="data.options.relation_type" placeholder="Specify if different from rdfs:subClassOf">
+        </div>
+        <table class="table table-bordered">
+            <tr>
+                <th scope="col" width="25%">Name</th>
+                <th scope="col">Link</th>
+                <th scope="col" width="10%">Format</th>
+                <th scope="col" width="10%"></th>
+            </tr>
+            <tr ng-repeat="val in data.options.sources">
+                <td scope="row">{{ val.name }}</td>
+                <td scope="row">{{ val.source }}</td>
+                <td scope="row">{{ val.format }}</td>
+                <td>
+                    <button ng-click="removeSource(val)" class="btn btn-warning">
+                      Remove
+                    </button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="!data.options.sources.length>0">Save Changes</button>
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

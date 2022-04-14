@@ -39,6 +39,7 @@ functions:
           cors: true
   update_project:
     handler: handler.update_project
+    timeout: 900 # default is 6
     events:
       - http:
           path: project/{id}
@@ -60,6 +61,7 @@ functions:
           cors: true
   save_case_list:
     handler: handler.save_case_list
+    timeout: 900 # default is 6
     events:
       - http:
           path: case/{id}/list
@@ -92,6 +94,13 @@ functions:
       - http:
           path: config
           method: post
+          cors: true
+  check_ontology_sim:
+    handler: handler.check_ontology_sim
+    events:
+      - http:
+          path: ontology_sim/{ontology_id}
+          method: get
           cors: true
   retrieve:
     handler: handler.cbr_retrieve

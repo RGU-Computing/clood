@@ -11,7 +11,9 @@
   </div> -->
 </div>
 
-<div class="row">
+<p ng-show="(selected | json) == '{}'" class="lead">Create a project and specify case attributes before adding cases.</p>
+
+<div class="row" ng-show="(selected | json) != '{}'">
   <div class="table-responsive">
     <h2 align="center">Add cases to the casebase</h2>
     <p>
