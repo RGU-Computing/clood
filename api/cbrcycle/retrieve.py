@@ -31,7 +31,7 @@ def getOntoSimilarity(ontology_id, key):
   url = cfg.ontology_sim + '/query'
   res = requests.post(url, json={'ontologyId': ontology_id, 'key': key})
   res_dictionary = res.json()
-  return res_dictionary['map']
+  return res_dictionary.get('map', {})
 
 
 def setOntoSimilarity(ontology_id, ontology_sources, relation_type=None, root_node=None):
@@ -560,9 +560,10 @@ def WuPalmer(caseAttrib, queryValue, weight, sim_grid):
           "params": {
             "attrib": caseAttrib,
             "queryValue": queryValue,
-            "sim_grid": sim_grid
+            "sim_grid": sim_grid,
+            "grid_concepts": list(sim_grid)
           },
-          "source": "params.sim_grid[doc[params.attrib].value]"
+          "source": "if (params.grid_concepts.contains(doc[params.attrib].value)) { return params.sim_grid[doc[params.attrib].value] } return 0.0"
         }
       },
       "boost": weight,
