@@ -31,7 +31,7 @@ def getOntoSimilarity(ontology_id, key):
   url = cfg.ontology_sim + '/query'
   res = requests.post(url, json={'ontologyId': ontology_id, 'key': key})
   res_dictionary = res.json()
-  return res_dictionary['map']
+  return res_dictionary.get('map', {})
 
 
 def setOntoSimilarity(ontology_id, ontology_sources, relation_type=None, root_node=None):
@@ -330,7 +330,7 @@ def EnumDistance(caseAttrib, queryValue, weight, options):  # stores enum as arr
               "attrib": caseAttrib,
               "queryValue": queryValue
             },
-            "source": "1 - ( (float) Math.abs(params.lst.indexOf(params.queryValue) - params.lst.indexOf(doc[params.attrib].value)) / (float)params.lst.length )"
+            "source": "if (params.lst.contains(doc[params.attrib].value)) { return 1 - ( (float) Math.abs(params.lst.indexOf(params.queryValue) - params.lst.indexOf(doc[params.attrib].value)) / (float)params.lst.length ) }"
           }
         },
         "boost": weight,
@@ -379,7 +379,7 @@ def MostSimilar(caseAttrib, queryValue, weight):
 
 def ClosestDate_2(caseAttrib, queryValue, weight, maxDate, minDate):  # format 'dd-MM-yyyy' e.g. '01-02-2020'
   """
-  Find the documents whose attribute values have the closest date to the query date. The date field field is indexed as 'keyword' to enable use of this similarity metric.
+  Find the documents whose attribute values have the closest date to the query date. The date field is indexed as 'keyword' to enable use of this similarity metric.
   """
   # build query string
   queryFnc = {
@@ -397,7 +397,7 @@ def ClosestDate_2(caseAttrib, queryValue, weight, maxDate, minDate):  # format '
         },
         "source": "SimpleDateFormat sdf = new SimpleDateFormat('dd-MM-yyyy', Locale.ENGLISH); doc[params.attrib].size()==0 ? 0 : (1 - Math.abs(sdf.parse(doc[params.attrib].value).getTime() - sdf.parse(params.queryValue).getTime()) / ((sdf.parse(params.newestDate).getTime() - sdf.parse(params.oldestDate).getTime()) + 1)) * params.weight"
       },
-      "_name": "closestdate"
+      "_name": "closestdate2"
     }
   }
   return queryFnc
@@ -429,7 +429,7 @@ def ClosestDate(caseAttrib, queryValue, weight):  # format 'dd-MM-yyyy' e.g. '01
         }
       ],
       "boost": weight,
-      "_name": "closestdate2"
+      "_name": "closestdate"
     }
   }
   return queryFnc
@@ -532,9 +532,10 @@ def TableSimilarity(caseAttrib, queryValue, weight, options):  # stores enum as 
           "params": {
             "attrib": caseAttrib,
             "queryValue": queryValue,
-            "sim_grid": options.get('sim_grid')
+            "sim_grid": options.get('sim_grid'),
+            "grid_values": list(options.get('sim_grid', {}))
           },
-          "source": "params.sim_grid[params.queryValue][doc[params.attrib].value]"
+          "source": "if (params.grid_values.contains(doc[params.attrib].value)) { return params.sim_grid[params.queryValue][doc[params.attrib].value] } return 0.0"
         }
       },
       "boost": weight,
@@ -560,9 +561,10 @@ def WuPalmer(caseAttrib, queryValue, weight, sim_grid):
           "params": {
             "attrib": caseAttrib,
             "queryValue": queryValue,
-            "sim_grid": sim_grid
+            "sim_grid": sim_grid,
+            "grid_concepts": list(sim_grid)
           },
-          "source": "params.sim_grid[doc[params.attrib].value]"
+          "source": "if (params.grid_concepts.contains(doc[params.attrib].value)) { return params.sim_grid[doc[params.attrib].value] } return 0.0"
         }
       },
       "boost": weight,

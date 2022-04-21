@@ -54,11 +54,13 @@ def getMappingFrag(attrType, simMetric):
     Generate mapping fragment for indexing a variety of document fields using Elasticsearch Reference v7.6.
     """
     res = {}
-    if attrType == "String" and simMetric == "Semantic USE":
+    if simMetric == "Semantic USE":
         # dimension for universal sentence encoder. May require passing in as parameter if using vectors of a different dimension
         res['properties'] = {"name": {"type": "keyword"},
                              "rep": {"type": "knn_vector", "dimension": 512}}
-    elif attrType == "String" and not (simMetric == "Equal"):
+    elif simMetric == "Equal":
+        res['type'] = "keyword"
+    elif attrType == "String":
         res['type'] = "text"
     elif attrType == "Boolean":
         res['type'] = "boolean"
