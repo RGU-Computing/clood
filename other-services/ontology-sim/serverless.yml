@@ -45,7 +45,24 @@ functions:
           path: delete
           method: post
           cors: true
+  query_cache:
+    handler: handler.query_cache
+    events:
+      - http:
+          path: query_cache
+          method: post
+          cors: true
   
+  query_not_cache:
+    handler: handler.query_not_cache
+    events:
+      - http:
+          path: query_not_cache
+          method: post
+          cors: true
+  
+  
+
 plugins:
   - serverless-python-requirements
   - serverless-offline
