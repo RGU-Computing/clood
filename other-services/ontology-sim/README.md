@@ -33,7 +33,7 @@ curl --location --request POST 'http://localhost:4200/dev/preload' \
 }'
 ```
 
-### Query API
+### Query API - Preloaded
 
 ```
 curl --location --request POST 'http://localhost:4200/dev/query' \
@@ -42,6 +42,45 @@ curl --location --request POST 'http://localhost:4200/dev/query' \
     "ontologyId": "pizza",
     "key": "http://www.co-ode.org/ontologies/pizza/pizza.owl#PrinceCarlo"
 }'
+```
+
+### Query API - Cached
+
+```
+curl --location --request POST 'http://localhost:4200/dev/query_cache' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "key": "http://www.co-ode.org/ontologies/pizza/pizza.owl#Mushroom",
+    "ontologyId": "pizza",
+    "sources": [
+        {
+            "source": "https://protege.stanford.edu/ontologies/pizza/pizza.owl",
+            "format": "xml"
+        }
+    ],
+    "root_node": "http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza",
+    "relation_type": "rdfs:subClassOf"
+}'
+```
+
+### Query API - Uncached
+
+```
+curl --location --request POST 'http://localhost:4200/dev/query_not_cache' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "ontologyId": "pizza",
+    "key": "http://www.co-ode.org/ontologies/pizza/pizza.owl#PrinceCarlo",
+    "sources": [
+        {
+            "source": "https://protege.stanford.edu/ontologies/pizza/pizza.owl",
+            "format": "xml"
+        }
+    ],
+    "root_node": "http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza",
+    "relation_type": "rdfs:subClassOf"
+}'
+
 ```
 
 ### Count/Status Check API
