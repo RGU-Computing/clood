@@ -3,28 +3,31 @@
 </div>
 <div class="modal-body" id="modal-body">
     <p class="lead">Specify the ontology sources and root node (optional) for the similarity measure of {{ data.name }}.</p>
-    <div>
+    <div class="well">
         <form name="paramsForm">
-            <div class="form-group">
-                <label for="ontologyattribsource">Source</label>
-                <input id="ontologyattribsource" type="text" class="form-control" ng-model="newSource.source" placeholder="Link to ontology file" required>
-            </div>
-            <div class="form-row">
-                <div class="col-md-4 form-group">
-                    <label for="ontologyattribname">Name</label>
-                    <input id="ontologyattribname" type="text" class="form-control" ng-model="newSource.name" placeholder="Name">
+            <fieldset>
+                <legend>New ontology source</legend>
+                <div class="form-group">
+                    <label for="ontologyattribsource">Source</label>
+                    <input id="ontologyattribsource" type="text" class="form-control" ng-model="newSource.source" placeholder="Link to ontology file" required>
                 </div>
-                <div class="col-md-4 form-group">
-                    <label for="ontologyattribformat">Format</label>
-                    <select id="ontologyattribformat" class="form-control" ng-model="newSource.format" ng-options="format for format in ['xml', 'ttl', 'n3', 'ntriples', 'trix', 'json-ld']" placeholder="File format">{{ format }}</select>
+                <div class="form-row">
+                    <div class="col-md-4 form-group">
+                        <label for="ontologyattribname">Name</label>
+                        <input id="ontologyattribname" type="text" class="form-control" ng-model="newSource.name" placeholder="Name">
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label for="ontologyattribformat">Format</label>
+                        <select id="ontologyattribformat" class="form-control" ng-model="newSource.format" ng-options="format for format in ['xml', 'ttl', 'n3', 'ntriples', 'trix', 'json-ld']" placeholder="File format">{{ format }}</select>
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label for="newSourceSubmit">&nbsp;</label>
+                        <button id="newSourceSubmit" type="button" name="button" class="btn btn-block" ng-click="addSource(newSource)" ng-disabled="paramsForm.$invalid">
+                            Add Source
+                        </button>
+                    </div>
                 </div>
-                <div class="col-md-3 form-group">
-                    <label for="newSourceSubmit">&nbsp;</label>
-                    <button id="newSourceSubmit" type="button" name="button" class="btn btn-block" ng-click="addSource(newSource)" ng-disabled="paramsForm.$invalid">
-                        Add Source
-                    </button>
-                </div>
-            </div>
+            </fieldset>
         </form>
     </div>
 
@@ -56,8 +59,8 @@
                 <td scope="row">{{ val.source }}</td>
                 <td scope="row">{{ val.format }}</td>
                 <td>
-                    <button ng-click="removeSource(val)" class="btn btn-warning">
-                      Remove
+                    <button ng-click="removeSource(val)" class="btn btn-warning" title="Remove">
+                      <i class="fas fa-trash"></i>
                     </button>
                 </td>
             </tr>
