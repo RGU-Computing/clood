@@ -2,6 +2,7 @@ from distutils.debug import DEBUG
 import re
 import sys
 import os
+import math
 import json
 from timeit import default_timer as timer
 from requests_aws4auth import AWS4Auth
@@ -70,7 +71,7 @@ def load_graphs(list_of_source_dicts):
     
     graph = rdflib.Graph()
     for source_dict in list_of_source_dicts:
-      if('format' in source_dict):
+      if 'format' in source_dict:
         graph.parse(source_dict['source'], format=source_dict['format'])
       else:
         graph.parse(source_dict['source'],  format='xml')
@@ -85,17 +86,17 @@ def execute_query(graph, qry):
     return graph.query(qry, DEBUG=False)
 
 
-def mscs(graph, node1, node2):
+def mscs(graph, node1, node2, relation_type='rdfs:subClassOf'):
     """
     Finds the most specific common subsumer of two nodes in graph.
     """
     q = ("select ?lcs where {" +
-      "?lcs ^(rdfs:subClassOf*) <" + node1 + ">, <" + node2 + "> ;"+
+      "?lcs ^(" + relation_type + "*) <" + node1 + ">, <" + node2 + "> ;"+
            "a owl:Class ." +
       "filter not exists { "+
-        "?llcs ^(rdfs:subClassOf*) <" + node1 + ">, <" + node2 + "> ;"+
+        "?llcs ^(" + relation_type + "*) <" + node1 + ">, <" + node2 + "> ;"+
               "a owl:Class ;"+
-              "rdfs:subClassOf+ ?lcs ."+
+              relation_type + "+ ?lcs ."+
       "}"+
     "}")
     
@@ -105,44 +106,43 @@ def mscs(graph, node1, node2):
     return None
 
 
-def path_distance(graph, node1, node2):
+def path_distance(graph, node1, node2, relation_type='rdfs:subClassOf'):
     """
     Calculates the number of edges between two nodes of a graph.
     """
     q1 = ("select (count(?mid) as ?distance) where { " +
-      "<" + node1 + "> rdfs:subClassOf* ?mid ." +
-      "?mid rdfs:subClassOf+ <" + node2 + "> ." +
+      "<" + node1 + "> " + relation_type + "* ?mid ." +
+      "?mid " + relation_type + "+ <" + node2 + "> ." +
     "}")
     
     q2 = ("select (count(?mid) as ?distance) where { " +
-      "<" + node2 + "> rdfs:subClassOf* ?mid ." +
-      "?mid rdfs:subClassOf+ <" + node1 + "> ." +
+      "<" + node2 + "> " + relation_type + "* ?mid ." +
+      "?mid " + relation_type + "+ <" + node1 + "> ." +
     "}")
     dst = 0
     for row in execute_query(graph, q1):
         dst = int(row.distance)
         break
 
-    if dst == 0:
-        print('second attempt')
+    if dst == 0:  # try to measure from the other direction
         for row in execute_query(graph, q2):
             return int(row.distance)
     return dst
 
 
-def distance_to_root(graph, node, root=None):
+def distance_to_root(graph, node, relation_type='rdfs:subClassOf', root=None):
     """
     Calculates the number of edges between a node and the root node.
     Uses a specified root node if supplied.
     """
     if root is not None:
         return path_distance(graph, node, root)
-    q = ("select ?sub (count(?mid) as ?distance) {" +
-          "<" + node + "> rdfs:subClassOf* ?mid ."+
-          "?mid rdfs:subClassOf+ ?sub ." +
+    q = ("select ?sub (count(?mid) as ?distance) where {" +
+          "<" + node + "> " + relation_type + "* ?mid ."+
+          "?mid " + relation_type + "+ ?sub ." +
         "}"+
         "group by ?sub")
-    
+
     max_val = -1
     for row in execute_query(graph, q):
         #print(type(row.sub))
@@ -183,24 +183,59 @@ def all_nodes(graph, relation_type='rdfs:subClassOf', root=None):
     return list(res)
 
 
-def wup(graph, x, y, root=None):
+def all_ancestor_nodes(graph, node, relation_type='rdfs:subClassOf'):
+    """
+    Extracts all ancestors of a concept (upward reachable nodes) in an ontology using the specified relation type
+    to determine ontology structure.
+    Extracts from a node and upwards (inc. the query node).
+    """
+    res = set()
+
+    q = ("select ?sub where {" +
+         "<" + node + "> " + relation_type + "* ?mid ." +
+         "?mid " + relation_type + "+ ?sub ." +
+         "}")
+
+    res.add(str(node))  # include self
+    for row in execute_query(graph, q):
+        if type(row.sub) is rdflib.term.URIRef:
+            res.add(str(row.sub))
+
+    return list(res)
+
+
+def wup(graph, x, y, relation_type='rdfs:subClassOf', root=None):
     """
     Ontology-based similarity using the Wu & Palmer algorithm.
     """
     # find the most specific common subsumer
     lcs = mscs(graph, x, y)
-    if lcs is None:
-        print('No common subsumer found')
+    if lcs is None:  # No common subsumer found
         return 0
     # count edges in the shortest paths from x to mscs and y to mcsc
     c1 = path_distance(graph, x, lcs)
     c2 = path_distance(graph, y, lcs)
     # count edges from mscs to the root node, root
-    c3 = distance_to_root(graph, lcs, root) + 1
+    c3 = distance_to_root(graph, lcs, relation_type=relation_type, root=root) + 1
     
-    return (2 * c3) / (2* c3 + c1 + c2)
+    return round(((2 * c3) / ((2 * c3) + c1 + c2)), 3)
 
 
+def san(graph, x, y):
+    """
+    Ontology-based similarity using the Sanchez et al. dissimilarity algorithm.
+    """
+    # find the ancestors of each node
+    a = all_ancestor_nodes(graph, x)
+    b = all_ancestor_nodes(graph, y)
+
+    i = set(a).difference(set(b))  # a \ b
+    j = set(b).difference(set(a))  # b \ a
+    u = set(a).union(set(b))  # a U b
+
+    num = 1 + (float(len(i) + len(j)) / len(u))
+
+    return round((1 - math.log2(num)), 3)
 
 
 def getOntologyMapping():
@@ -233,20 +268,23 @@ def preload(event, context=None):
 
   root_node = params.get('root_node', None)
   relation_type = params.get('relation_type', "rdfs:subClassOf")
+  sim_method = params.get('similarity_method', "wup")
 
   graph = load_graphs(sources)
   #2. extract unique list of concepts in the graph
-  concepts = all_nodes(graph,relation_type=relation_type, root=root_node)  # can specify a root node or a relation type to use
+  concepts = all_nodes(graph, relation_type=relation_type, root=root_node)  # can specify a root node or a relation type to use
   #3. compute pairwise similarity values of concepts (there can be different similarity metrics to choose from)
   similarity_grid = []
   for c1 in concepts:
       res = {}
       for c2 in concepts:
-          if str(c1) == str(c2): # no need to compute for same values
+          if str(c1) == str(c2):  # no need to compute for same values
               res.update({str(c2): 1.0})
+          elif sim_method == 'san':
+              res.update({str(c2): san(graph, c1, c2)})
           else:
               res.update({str(c2): wup(graph, c1, c2)})
-      similarity_grid.append({"key" : str(c1) , "map" : res})
+      similarity_grid.append({"key": str(c1), "map": res})
 
   es = getESConn()
 
@@ -276,6 +314,7 @@ def query_cache(event, context=None):
   key = str(params.get('key', None))
   root_node = params.get('root_node', None)
   relation_type = params.get('relation_type', "rdfs:subClassOf")
+  sim_method = params.get('similarity_method', "wup")
   
   es = getESConn()
 
@@ -306,11 +345,13 @@ def query_cache(event, context=None):
         continue
       res = {}
       for c2 in concepts:
-          if str(c1) == str(c2): # no need to compute for same values
+          if str(c1) == str(c2):  # no need to compute for same values
               res.update({str(c2): 1.0})
+          elif sim_method == 'san':
+              res.update({str(c2): san(graph, c1, c2)})
           else:
               res.update({str(c2): wup(graph, c1, c2)})
-      similarity_grid.append({"key" : str(c1) , "map" : res})
+      similarity_grid.append({"key": str(c1), "map": res})
 
   resp = helpers.bulk(es, similarity_grid, index=ontologyId, doc_type="_doc")
 
@@ -340,10 +381,11 @@ def query_not_cache(event, context=None):
   key = str(params.get('key', None))
   root_node = params.get('root_node', None)
   relation_type = params.get('relation_type', "rdfs:subClassOf")
+  sim_method = params.get('similarity_method', "wup")
   
   graph = load_graphs(sources)
   #2. extract unique list of concepts in the graph
-  concepts = all_nodes(graph,relation_type=relation_type, root=root_node)  # can specify a root node or a relation type to use
+  concepts = all_nodes(graph, relation_type=relation_type, root=root_node)  # can specify a root node or a relation type to use
   
   #3. compute pairwise similarity values of concepts (there can be different similarity metrics to choose from)
   similarity_grid = []
@@ -352,11 +394,13 @@ def query_not_cache(event, context=None):
         continue
       res = {}
       for c2 in concepts:
-          if str(c1) == str(c2): # no need to compute for same values
+          if str(c1) == str(c2):  # no need to compute for same values
               res.update({str(c2): 1.0})
-          else:
+          elif sim_method == 'san':
+              res.update({str(c2): san(graph, c1, c2)})
+          else:  # wup default
               res.update({str(c2): wup(graph, c1, c2)})
-      similarity_grid.append({"key" : str(c1) , "map" : res})
+      similarity_grid.append({"key": str(c1), "map": res})
 
   if len(similarity_grid) > 0:
     response = {
@@ -407,7 +451,7 @@ def query_ontology(event, context=None):
     response = {
         "statusCode": 404,
         "headers": headers,
-        "body": json.dumps({"message":"Cannot find ontology"})
+        "body": json.dumps({"message": "Cannot find ontology"})
       }
     return response
 
@@ -435,7 +479,7 @@ def check_status(event, context=None):
     response = {
         "statusCode": 404,
         "headers": headers,
-        "body": json.dumps({"message":"Cannot find ontology"})
+        "body": json.dumps({"message": "Cannot find ontology"})
       }
     return response
 
@@ -469,7 +513,7 @@ def delete(event, context=None):
   response = {
       "statusCode": statusCode,
       "headers": headers,
-      "body": json.dumps({"message":"Succesfully Deleted"})
+      "body": json.dumps({"message": "Succesfully Deleted"})
     }
   return response
 
