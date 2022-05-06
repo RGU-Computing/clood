@@ -34,7 +34,7 @@ def getOntoSimilarity(ontology_id, key):
   return res_dictionary.get('map', {})
 
 
-def setOntoSimilarity(ontology_id, ontology_sources, relation_type=None, root_node=None):
+def setOntoSimilarity(ontology_id, ontology_sources, relation_type=None, root_node=None, similarity_method="wup"):
   """
   Calls an external service to create ontology based similarity values for concept comparisons.
   """
@@ -44,6 +44,19 @@ def setOntoSimilarity(ontology_id, ontology_sources, relation_type=None, root_no
     body['relation_type'] = relation_type
   if root_node is not None and len(root_node) > 0:
     body['root_node'] = root_node
+  body['similarity_method'] = similarity_method
+  res = requests.post(url, json=body)
+  return res.json()
+
+
+def removeOntoIndex(ontology_id):
+  """
+  Calls an external service to remove an ontology index of similarity measures.
+  """
+  url = cfg.ontology_sim + '/delete'
+  body = {
+    "ontologyId": ontology_id
+  }
   res = requests.post(url, json=body)
   return res.json()
 
@@ -140,10 +153,12 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
     return TableSimilarity(caseAttrib, queryValue, weight, options)
   elif simMetric == "EnumDistance":
     return EnumDistance(caseAttrib, queryValue, weight, options)
-  elif simMetric == "Wu-Palmer":
+  elif simMetric == "Path-based":
     sim_grid = getOntoSimilarity(options['id'], queryValue)
-    print(sim_grid)
-    return WuPalmer(caseAttrib, queryValue, weight, sim_grid)
+    return OntologySimilarity(caseAttrib, queryValue, weight, sim_grid)
+  elif simMetric == "Feature-based":
+    sim_grid = getOntoSimilarity(options['id'], queryValue)
+    return OntologySimilarity(caseAttrib, queryValue, weight, sim_grid)
   else:
     return MostSimilar(caseAttrib, queryValue, weight)
 
@@ -545,10 +560,10 @@ def TableSimilarity(caseAttrib, queryValue, weight, options):  # stores enum as 
   return queryFnc
 
 
-def WuPalmer(caseAttrib, queryValue, weight, sim_grid):
+def OntologySimilarity(caseAttrib, queryValue, weight, sim_grid):
   """
-  Implements ontology based relatedness using the Wu & Palmer algorithm.
-  Returns the similarity of two ontology concepts as specified in a pre-computed similarity grid.
+  Uses similarity values from an ontology-based measure such as the Wu & Palmer algorithm.
+  Returns the similarity of two ontology entities as specified in a similarity grid.
   """
   # build query string
   queryFnc = {
@@ -568,7 +583,7 @@ def WuPalmer(caseAttrib, queryValue, weight, sim_grid):
         }
       },
       "boost": weight,
-      "_name": "wupalmer"
+      "_name": "ontosim"
     }
   }
   return queryFnc

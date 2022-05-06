@@ -28,6 +28,7 @@ import reuse
 import revise
 import retain
 
+
 # For example, my-test-domain.us-east-1.es.amazonaws.com
 host = cfg.aws['host']
 region = cfg.aws['region']  # e.g. eu-west-2
@@ -176,9 +177,10 @@ def update_project(event, context=None):
       if attrib['type'] == "Ontology Concept" and attrib.get('options', None) is not None and \
               attrib['options']:  # check that the attribute is ontology based
         old_onto_attrib = next((item for item in proj_old['attributes'] if item['name'] == attrib['name']), None)  # get the pre project update version of the attribute
-        if old_onto_attrib is not None and attrib != old_onto_attrib:  # update ontology similarity measures if there are changes
+        if old_onto_attrib is not None and attrib['similarityType'] != 'None' and attrib != old_onto_attrib:  # update ontology similarity measures if there are changes
+          sim_method = 'san' if attrib['similarityType'] == 'Feature-based' else 'wup'
           retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None),
-                                   root_node=attrib['options'].get('root', None))
+                                   root_node=attrib['options'].get('root', None), similarity_method=sim_method)
 
   response = {
     "statusCode": 201,
@@ -198,6 +200,12 @@ def delete_project(event, context=None):
   proj = utility.getByUniqueField(es, projects_db, "_id", pid)  # get project
   casebase = proj['casebase']
   es.indices.delete(index=casebase, ignore=[400, 404])  # delete index if it exists
+  # delete any ontology indices that were created (if any)
+  for attrib in proj['attributes']:
+    if attrib['type'] == "Ontology Concept":
+      ontologyId = attrib['options'].get('id', None)
+      if ontologyId is not None:
+        retrieve.removeOntoIndex(ontologyId)
   # delete project
   res = es.delete(index=projects_db, id=pid)
 
@@ -241,8 +249,9 @@ def save_case_list(event, context=None):
 
   # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
   for attrib in proj['attributes']:
-    if attrib['type'] == "Ontology Concept" and attrib.get('options', None) is not None and retrieve.checkOntoSimilarity(attrib['options'].get('id'))['statusCode'] != 200:
-      retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None), root_node=attrib['options'].get('root', None))
+    if attrib['type'] == "Ontology Concept" and attrib['similarityType'] != 'None' and attrib.get('options', None) is not None and retrieve.checkOntoSimilarity(attrib['options'].get('id'))['statusCode'] != 200:
+      sim_method = 'san' if attrib['similarityType'] == 'Feature-based' else 'wup'
+      retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None), root_node=attrib['options'].get('root', None), similarity_method=sim_method)
 
   response = {
     "statusCode": 201,

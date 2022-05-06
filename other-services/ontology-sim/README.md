@@ -1,5 +1,11 @@
 # CloodCBR Ontology Based Similarity Support
 
+Ontology-based similarity measures.
+
+Currently, implementations are:
+1. Similarity based on Wu & Palmer algorithm (`similarity_method` = 'wup').
+2. Similarity based on Sanchez et al. dissimilarity algorithm (`similarity_method` = 'san').
+
 ## Endpoints
 
 ### Preload API
@@ -13,6 +19,7 @@
             "format": "xml"
         }
     ],
+    "similarity_method": (OPTIONAL) "wup",
     "root_node": (OPTIONAL) "http://www.co-ode.org/ontologies/pizza/pizza.owl#PizzaBase",
     "relation_type": (OPTIONAL) "rdfs:subClassOf"
 }
@@ -58,6 +65,7 @@ curl --location --request POST 'http://localhost:4200/dev/query_cache' \
             "format": "xml"
         }
     ],
+    "similarity_method": "wup",
     "root_node": "http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza",
     "relation_type": "rdfs:subClassOf"
 }'
@@ -77,6 +85,7 @@ curl --location --request POST 'http://localhost:4200/dev/query_not_cache' \
             "format": "xml"
         }
     ],
+    "similarity_method": "san",
     "root_node": "http://www.co-ode.org/ontologies/pizza/pizza.owl#Pizza",
     "relation_type": "rdfs:subClassOf"
 }'

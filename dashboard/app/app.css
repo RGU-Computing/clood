@@ -108,6 +108,10 @@ body {
   cursor: not-allowed;
 }
 
+legend {
+    padding: 3px 6px;
+}
+
 /*
  * ui.boostrap
  */
