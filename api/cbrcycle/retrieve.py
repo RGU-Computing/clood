@@ -49,6 +49,18 @@ def setOntoSimilarity(ontology_id, ontology_sources, relation_type=None, root_no
   return res.json()
 
 
+def removeOntoIndex(ontology_id):
+  """
+  Calls an external service to remove an ontology index of similarity measures.
+  """
+  url = cfg.ontology_sim + '/delete'
+  body = {
+    "ontologyId": ontology_id
+  }
+  res = requests.post(url, json=body)
+  return res.json()
+
+
 def add_vector_fields(attributes, data):
   """
   Expand data values to include vector fields.

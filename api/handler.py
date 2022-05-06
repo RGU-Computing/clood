@@ -200,6 +200,12 @@ def delete_project(event, context=None):
   proj = utility.getByUniqueField(es, projects_db, "_id", pid)  # get project
   casebase = proj['casebase']
   es.indices.delete(index=casebase, ignore=[400, 404])  # delete index if it exists
+  # delete any ontology indices that were created (if any)
+  for attrib in proj['attributes']:
+    if attrib['type'] == "Ontology Concept":
+      ontologyId = attrib['options'].get('id', None)
+      if ontologyId is not None:
+        retrieve.removeOntoIndex(ontologyId)
   # delete project
   res = es.delete(index=projects_db, id=pid)
 
