@@ -56,7 +56,7 @@
                     </td>
                     <!-- Weight -->
                     <td>
-                      <div class="form-group" ng-init="requests.current.data[$index].weight = 1">
+                      <div class="form-group" ng-init="requests.current.data[$index].weight = field.weight">
                         <input type="number" class="form-control" ng-model="requests.current.data[$index].weight" min="0" max="10">
                       </div>
                     </td>
@@ -106,6 +106,6 @@
     </div>
   </div>
   <div ng-if="!selected.hasCasebase">
-    <p class="lead">The CBR project does not have a casebase.</p>
+    <p class="lead">The CBR application does not have any cases. Add cases to the casebase before you can retrieve.</p>
   </div>
 </div>
