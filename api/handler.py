@@ -174,13 +174,13 @@ def update_project(event, context=None):
   # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
   if body['hasCasebase']:  # check that the casebase has been created since similarity is computed when the casebase is created
     for attrib in body['attributes']:  # for each project casebase attribute
-      if attrib['type'] == "Ontology Concept" and attrib.get('options', None) is not None and \
+      if attrib['type'] == "Ontology Concept" and attrib.get('options') is not None and \
               attrib['options']:  # check that the attribute is ontology based
         old_onto_attrib = next((item for item in proj_old['attributes'] if item['name'] == attrib['name']), None)  # get the pre project update version of the attribute
-        if old_onto_attrib is not None and attrib['similarityType'] != 'None' and attrib != old_onto_attrib:  # update ontology similarity measures if there are changes
+        if old_onto_attrib is not None and attrib.get('similarityType') is not None and attrib != old_onto_attrib:  # update ontology similarity measures if there are changes
           sim_method = 'san' if attrib['similarityType'] == 'Feature-based' else 'wup'
           retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None),
-                                   root_node=attrib['options'].get('root', None), similarity_method=sim_method)
+                                   root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
   response = {
     "statusCode": 201,
@@ -203,7 +203,7 @@ def delete_project(event, context=None):
   # delete any ontology indices that were created (if any)
   for attrib in proj['attributes']:
     if attrib['type'] == "Ontology Concept":
-      ontologyId = attrib['options'].get('id', None)
+      ontologyId = attrib['options'].get('id')
       if ontologyId is not None:
         retrieve.removeOntoIndex(ontologyId)
   # delete project
@@ -249,9 +249,9 @@ def save_case_list(event, context=None):
 
   # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
   for attrib in proj['attributes']:
-    if attrib['type'] == "Ontology Concept" and attrib['similarityType'] != 'None' and attrib.get('options', None) is not None and retrieve.checkOntoSimilarity(attrib['options'].get('id'))['statusCode'] != 200:
+    if attrib['type'] == "Ontology Concept" and attrib.get('similarityType') is not None and attrib.get('options') is not None and retrieve.checkOntoSimilarity(attrib['options'].get('id'))['statusCode'] != 200:
       sim_method = 'san' if attrib['similarityType'] == 'Feature-based' else 'wup'
-      retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None), root_node=attrib['options'].get('root', None), similarity_method=sim_method)
+      retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type'), root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
   response = {
     "statusCode": 201,
@@ -472,7 +472,7 @@ def cbr_retrieve(event, context=None):
       if not entry['unknown'] and ('value' in entry) and entry['value'] is not None and "" != entry[
         'value']:  # copy known values
         result['recommended'][entry['field']] = entry['value']
-      if entry['similarityType'] != "None" and entry['unknown'] and entry[
+      if entry.get('similarityType') is not None and entry['unknown'] and entry[
         'strategy'] != "Best Match":  # use reuse strategies for unknown fields
         if entry['strategy'] == "Maximum":
           result['recommended'][entry['field']] = max(d[entry['field']] for d in result['bestK'])
@@ -534,10 +534,10 @@ def cbr_retain(event, context=None):
   # retain logic here
   statusCode = 201
   params = json.loads(event['body'])  # parameters in request body
-  proj = params.get('project', None)
+  proj = params.get('project')
   es = getESConn()
   if proj is None:
-    projId = params.get('projectId', None)  # name of casebase
+    projId = params.get('projectId')  # name of casebase
     proj = utility.getByUniqueField(es, projects_db, "casebase", projId)
   # print(params)
   new_case = params['data']

@@ -23,13 +23,16 @@
         <label for="newAttribSimilarity">Similarity type</label>
         <select id="newAttribSimilarity" class="form-control" ng-options="sim as sim for sim in getSimilarityTypes(newAttrib.type)" ng-model="newAttrib.similarity"></select>
       </div>
+      <div class="form-group" ng-init="newAttrib.weight = newAttrib.weight || 1">
+        <input type="hidden" class="form-control" ng-model="newAttrib.weight">
+      </div>
 
       <div class="form-group col-sm-3">
         <label for="newAttribSubmit"></label>
         <button ng-hide="editing.status" id="newAttribSubmit" type="button" name="button" class="btn btn-block" ng-click="addAttribute(newAttrib)" ng-disabled="!(newAttrib.name.length>0 && newAttrib.type.length>0 && newAttrib.similarity.length>0)">
           Add Attribute
         </button>
-        <button ng-show="editing.status" id="editAttribSubmit" type="button" name="button" class="btn btn-block" ng-click="changeAttribute(index, newAttrib)" ng-disabled="!(selected.hasCasebase && newAttrib.name.length>0 && newAttrib.type.length>0 && newAttrib.similarity.length>0)">
+        <button ng-show="editing.status" id="editAttribSubmit" type="button" name="button" class="btn btn-block" ng-click="changeAttribute(index, newAttrib)" ng-disabled="(selected.hasCasebase && newAttrib.name.length>0 && newAttrib.type.length>0 && newAttrib.similarity.length>0)">
           Add Changes
         </button>
       </div>
@@ -51,6 +54,7 @@
             <th>Name</th>
             <th>Data Type</th>
             <th>Similarity Metric</th>
+            <th>Weight (default)</th>
             <th></th>
           </tr>
         </thead>
@@ -59,6 +63,7 @@
             <th>Name</th>
             <th>Data Type</th>
             <th>Similarity Metric</th>
+            <th>Weight (default)</th>
             <th></th>
           </tr>
         </tfoot>
@@ -67,6 +72,11 @@
             <td>{{ attrib.name }}</td>
             <td>{{ attrib.type }}</td>
             <td>{{ attrib.similarity }}</td>
+            <td>
+                <div class="form-group">
+                    <input type="number" class="form-control" ng-model="attrib.weight" min="0" max="10">
+                </div>
+            </td>
             <td align="right">
 <!--              Configure button according to type-->
               <button ng-show="attrib.similarity == 'Interval'" ng-click="configIntervalAttribute($index, attrib)" class="btn btn-default" title="Configure"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
