@@ -32,7 +32,7 @@ def createOrUpdateGlobalConfig(es, config_db="config", globalConfig=None):
                                                          'INRECA More', 'INRECA Less', 'Interval', 'None'],
                                      'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median']})
   config['attributeOptions'].append({'type': 'Categorical',
-                                     'similarityTypes': ['Equal', 'EqualIgnoreCase', 'Table', 'EnumDistance', 'None'],
+                                     'similarityTypes': ['Equal', 'EqualIgnoreCase', 'Table', 'EnumDistance', 'Query Intersection', 'None'],
                                      'reuseStrategy': ['Best Match']})
   config['attributeOptions'].append({'type': 'Boolean', 'similarityTypes': ['Equal', 'None'],
                                      'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median']})
