@@ -50,8 +50,12 @@
                         <input type="text" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }} as 'lat,lon'">
                       </div>
                       <!-- Categorical type -->
-                      <div ng-if="field.type=='Categorical'" class="form-group">
+                      <div ng-if="field.type=='Categorical' && field.similarity!='Query Intersection'" class="form-group">
                         <select class="form-control" ng-model="requests.current.data[$index].value" ng-options="val as val for val in field.options.values" placeholder="{{ field.name }}"></select>
+                      </div>
+
+                      <div ng-if="field.similarity=='Query Intersection'" class="form-group">
+                        <textarea class="form-control" ng-model="requests.current.data[$index].value" ng-list rows="1" placeholder="{{ field.name }}"></textarea>
                       </div>
                     </td>
                     <!-- Weight -->

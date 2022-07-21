@@ -153,6 +153,8 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
     return TableSimilarity(caseAttrib, queryValue, weight, options)
   elif simMetric == "EnumDistance":
     return EnumDistance(caseAttrib, queryValue, weight, options)
+  elif simMetric == "Query Intersection":
+    return QueryIntersection(caseAttrib, queryValue, weight)
   elif simMetric == "Path-based":
     sim_grid = getOntoSimilarity(options['id'], queryValue)
     return OntologySimilarity(caseAttrib, queryValue, weight, sim_grid)
@@ -555,6 +557,38 @@ def TableSimilarity(caseAttrib, queryValue, weight, options):  # stores enum as 
       },
       "boost": weight,
       "_name": "table"
+    }
+  }
+  return queryFnc
+
+
+def QueryIntersection(caseAttrib, queryValue, weight):
+  """
+  Implements Query Intersection local similarity function.
+  Returns the similarity between two sets as their intersect offset by the length of the query set.
+  If query set is q and case attribute value is a, returns |a∩q|/|q|
+  """
+  # build query string
+  queryFnc = {
+    "function_score": {
+      "query": {
+        "match_all": {}
+      },
+      "script_score": {
+        "script": {
+          "params": {
+            "attrib": caseAttrib,
+            "queryValue": list(queryValue)
+          },
+          "source": "double intersect = 0.0; "
+                    "if (doc[params.attrib].size() > 0 && doc[params.attrib].value.length() > 0) { "
+                    "for (item in doc[params.attrib]) { if (params.queryValue.contains(item)) { intersect = intersect + 1; } }"
+                    "return intersect/params.queryValue.length;} "
+                    "else { return 0;}"
+        }
+      },
+      "boost": weight,
+      "_name": "queryintersect"
     }
   }
   return queryFnc
