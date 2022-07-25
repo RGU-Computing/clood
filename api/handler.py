@@ -539,6 +539,12 @@ def cbr_retain(event, context=None):
   if proj is None:
     projId = params.get('projectId')  # name of casebase
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
+
+    if(not proj['hasCasebase']): # Update project status if only using retain API
+      proj['hasCasebase'] = True
+      source_to_update = {'doc': proj}
+      res = es.update(index=projects_db, id=projId, body=source_to_update)
+
   new_case = params['data']
   new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
   new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
