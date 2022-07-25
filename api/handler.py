@@ -425,7 +425,7 @@ def cbr_retrieve(event, context=None):
   proj = params.get('project', None)
   if proj is None:
     projId = params.get('projectId', None)  # name of casebase
-    proj = utility.getByUniqueField(es, projects_db, "casebase", projId)
+    proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
   proj_attributes = proj['attributes']
   globalSim = params['globalSim']
