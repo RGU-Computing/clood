@@ -86,6 +86,20 @@ angular.module('cloodApp.projects', [])
     })
   };
 
+  // Export Project
+  $scope.exportProject = function(item) {
+    let itemJSON = JSON.stringify(item);
+    let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(itemJSON);
+    let fileName = "clood-"+item.id__+'.json';
+
+    let downloadLink = document.createElement('a');
+    downloadLink.setAttribute('href', dataUri);
+    downloadLink.setAttribute('download', fileName);
+    downloadLink.click();
+
+    $scope.pop("success", null, "Project Exporting!");
+  };
+
   $scope.getAllProjects();
 
 }]);

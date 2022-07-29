@@ -64,6 +64,10 @@
             <span ng-if="!item.retainDuplicateCases">No</span>
           </td>
           <td align="right">
+            <button ng-click="exportProject(item)" class="btn btn-success" title="Export">
+              <i class="fas fa-download"></i>
+            </button>
+
             <button ng-click="viewProject(item)" class="btn btn-primary" title="View">
               <i class="fas fa-edit"></i>
             </button>
