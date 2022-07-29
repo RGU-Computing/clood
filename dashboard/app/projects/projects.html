@@ -58,6 +58,8 @@
             <th>Name</th>
             <th>Description</th>
             <th>Duplicates</th>
+            <th>Project ID</th>
+
             <th></th>
         </tr>
       </thead>
@@ -69,6 +71,7 @@
             <span ng-if="item.retainDuplicateCases">Yes</span>
             <span ng-if="!item.retainDuplicateCases">No</span>
           </td>
+          <td><code>{{ item.id__ }}</code></td>
           <td align="right">
             <button ng-click="exportProject(item)" class="btn btn-success" title="Export">
               <i class="fas fa-download"></i>
