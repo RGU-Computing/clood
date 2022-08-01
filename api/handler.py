@@ -148,10 +148,11 @@ def new_project(event, context=None):
     # print(proj)
     result = es.index(index=projects_db, body=proj, id=proj_id)
 
+  proj["id__"] = proj_id
   response = {
     "statusCode": statusCode,
     "headers": headers,
-    "body": json.dumps(result)
+    "body": json.dumps(proj)
   }
   return response
 
@@ -182,10 +183,11 @@ def update_project(event, context=None):
           retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None),
                                    root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
+  source_to_update['doc']['id__'] = pid
   response = {
     "statusCode": 201,
     "headers": headers,
-    "body": json.dumps(res)
+    "body": json.dumps(source_to_update['doc'])
   }
   return response
 
