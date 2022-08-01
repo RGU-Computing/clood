@@ -42,7 +42,13 @@
 
   <p></p><hr><p></p>
 
-  <h2 class="sub-header">Existing projects</h2>
+  <h2 class="sub-header">Existing projects 
+    <button class="btn" style="float: right;" title="Import" data-toggle="modal" data-target="#importModal">
+      <i class="fas fa-upload"></i>
+      Import Project
+    </button>
+  </h2>
+  
   <div class="table-responsive">
     <table ng-if="projects.length > 0" class="table table-striped table-bordered" id="projectsTable" width="100%" cellspacing="0">
     <!-- <table class="table table-striped"> -->
@@ -52,6 +58,8 @@
             <th>Name</th>
             <th>Description</th>
             <th>Duplicates</th>
+            <th>Project ID</th>
+
             <th></th>
         </tr>
       </thead>
@@ -63,7 +71,12 @@
             <span ng-if="item.retainDuplicateCases">Yes</span>
             <span ng-if="!item.retainDuplicateCases">No</span>
           </td>
+          <td><code>{{ item.id__ }}</code></td>
           <td align="right">
+            <button ng-click="exportProject(item)" class="btn btn-success" title="Export">
+              <i class="fas fa-download"></i>
+            </button>
+
             <button ng-click="viewProject(item)" class="btn btn-primary" title="View">
               <i class="fas fa-edit"></i>
             </button>
@@ -80,4 +93,27 @@
       No existing projects.
     </p>
   </div>
+
+<!-- Import Project Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="importModalLabel">Import Clood Project</h4>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="projName">Clood Exported JSON</label>
+          <input type="file" class="form-control" id="importFile" value="Import">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="importBtn" ng-click="importProject()" >Import Project</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div>
