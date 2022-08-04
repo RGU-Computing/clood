@@ -436,10 +436,10 @@ def cbr_retrieve(event, context=None):
   query["size"] = int(k)  # top k results
   for entry in queryFeatures:
     if ('value' in entry) and entry['value'] is not None and "" != entry['value'] and int(
-            entry.get('weight', 0)) > 0 and entry['similarityType'] != "None":
+            entry.get('weight', 0)) > 0 and entry['similarity'] != "None":
       queryAdded = True
-      field = entry['field']
-      similarityType = entry['similarityType']
+      field = entry['name']
+      similarityType = entry['similarity']
       options = retrieve.get_attribute_by_name(proj['attributes'], field).get('options', None)
       # print(options)
       # fieldType = entry['type']
@@ -473,19 +473,19 @@ def cbr_retrieve(event, context=None):
     for entry in queryFeatures:
       if not entry['unknown'] and ('value' in entry) and entry['value'] is not None and "" != entry[
         'value']:  # copy known values
-        result['recommended'][entry['field']] = entry['value']
-      if entry.get('similarityType') is not None and entry['unknown'] and entry[
+        result['recommended'][entry['name']] = entry['value']
+      if entry.get('similarity') is not None and entry['unknown'] and entry[
         'strategy'] != "Best Match":  # use reuse strategies for unknown fields
         if entry['strategy'] == "Maximum":
-          result['recommended'][entry['field']] = max(d[entry['field']] for d in result['bestK'])
+          result['recommended'][entry['name']] = max(d[entry['name']] for d in result['bestK'])
         if entry['strategy'] == "Minimum":
-          result['recommended'][entry['field']] = min(d[entry['field']] for d in result['bestK'])
+          result['recommended'][entry['name']] = min(d[entry['name']] for d in result['bestK'])
         if entry['strategy'] == "Mean":
-          result['recommended'][entry['field']] = np.mean([x[entry['field']] for x in result['bestK']])
+          result['recommended'][entry['name']] = np.mean([x[entry['name']] for x in result['bestK']])
         if entry['strategy'] == "Median":
-          result['recommended'][entry['field']] = np.median([x[entry['field']] for x in result['bestK']])
+          result['recommended'][entry['name']] = np.median([x[entry['name']] for x in result['bestK']])
         if entry['strategy'] == "Mode":
-          result['recommended'][entry['field']] = statistics.mode([x[entry['field']] for x in result['bestK']])
+          result['recommended'][entry['name']] = statistics.mode([x[entry['name']] for x in result['bestK']])
 
   end = timer()  # end timer
   result['retrieveTime'] = end - start

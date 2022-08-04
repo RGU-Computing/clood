@@ -24,11 +24,11 @@
                 <tbody>
                   <tr ng-repeat="field in selected.attributes">
                     <!-- Field -->
-                    <td ng-init="requests.current.data[$index].field = field.name">
+                    <td ng-init="requests.current.data[$index].name = field.name">
                       {{ field.name }} <span ng-init="requests.current.data[$index].type = field.type">({{ field.type }})</span>
                     </td>
                     <!-- Value -->
-                    <td ng-init="requests.current.data[$index].similarityType = field.similarity">
+                    <td ng-init="requests.current.data[$index].similarity = field.similarity">
                       <!-- String type -->
                       <div ng-if="field.type=='String' || field.type=='Ontology Concept'" class="form-group">
                         <input type="text" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }}">
