@@ -546,6 +546,8 @@ def cbr_retain(event, context=None):
       proj['hasCasebase'] = True
       source_to_update = {'doc': proj}
       res = es.update(index=projects_db, id=projId, body=source_to_update)
+      # create index with mapping if it does not exist already
+      project.indexMapping(es, proj)
 
   new_case = params['data']
   new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
