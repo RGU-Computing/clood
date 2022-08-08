@@ -191,7 +191,7 @@ def McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight):
           }
         },
         "boost": weight,
-        "_name": "mcsherryless"
+        "_name": caseAttrib
       }
     }
     return queryFnc
@@ -222,7 +222,7 @@ def McSherryMoreIsBetter(caseAttrib, maxValue, minValue, weight):
           }
         },
         "boost": weight,
-        "_name": "mcsherrymore"
+        "_name": caseAttrib
       }
     }
     return queryFnc
@@ -255,7 +255,7 @@ def InrecaLessIsBetter(caseAttrib, queryValue, maxValue, jump, weight):
           }
         },
         "boost": weight,
-        "_name": "inrecaless"
+        "_name": caseAttrib
       }
     }
     return queryFnc
@@ -287,7 +287,7 @@ def InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight):
           }
         },
         "boost": weight,
-        "_name": "inrecamore"
+        "_name": caseAttrib
       }
     }
     return queryFnc
@@ -319,7 +319,7 @@ def Interval(caseAttrib, queryValue, interval, weight):
           }
         },
         "boost": weight,
-        "_name": "interval"
+        "_name": caseAttrib
       }
     }
     return queryFnc
@@ -351,7 +351,7 @@ def EnumDistance(caseAttrib, queryValue, weight, options):  # stores enum as arr
           }
         },
         "boost": weight,
-        "_name": "enumdistance"
+        "_name": caseAttrib
       }
     }
     return queryFnc
@@ -370,7 +370,7 @@ def TermQuery(caseAttrib, queryValue, weight):
       caseAttrib: {
         "value": queryValue,
         "boost": weight,
-        "_name": "exact"
+        "_name": caseAttrib
       }
     }
   }
@@ -397,7 +397,7 @@ def Exact(caseAttrib, queryValue, weight):
         }
       },
       "boost": weight,
-      "_name": "exact"
+      "_name": caseAttrib
     }
   }
   return queryFnc
@@ -413,7 +413,7 @@ def MostSimilar(caseAttrib, queryValue, weight):
       caseAttrib: {
         "query": queryValue,
         "boost": weight,
-        "_name": "mostsimilar"
+        "_name": caseAttrib
       }
     }
   }
@@ -440,7 +440,7 @@ def ClosestDate_2(caseAttrib, queryValue, weight, maxDate, minDate):  # format '
         },
         "source": "SimpleDateFormat sdf = new SimpleDateFormat('dd-MM-yyyy', Locale.ENGLISH); doc[params.attrib].size()==0 ? 0 : (1 - Math.abs(sdf.parse(doc[params.attrib].value).getTime() - sdf.parse(params.queryValue).getTime()) / ((sdf.parse(params.newestDate).getTime() - sdf.parse(params.oldestDate).getTime()) + 1)) * params.weight"
       },
-      "_name": "closestdate2"
+      "_name": caseAttrib
     }
   }
   return queryFnc
@@ -472,7 +472,7 @@ def ClosestDate(caseAttrib, queryValue, weight):  # format 'dd-MM-yyyy' e.g. '01
         }
       ],
       "boost": weight,
-      "_name": "closestdate"
+      "_name": caseAttrib
     }
   }
   return queryFnc
@@ -498,7 +498,7 @@ def USE(caseAttrib, queryValue, weight):
         }
       },
       "boost": weight,
-      "_name": "USE"
+      "_name": caseAttrib
     }
   }
   return queryFnc
@@ -526,7 +526,7 @@ def ClosestNumber(caseAttrib, queryValue, weight):
         }
       ],
       "boost": weight,
-      "_name": "closestnumber"
+      "_name": caseAttrib
     }
   }
   return queryFnc
@@ -553,7 +553,7 @@ def ClosestLocation(caseAttrib, queryValue, weight):
         },
         "source": "decayGeoExp(params.origin, params.scale, params.offset, params.decay, doc[params.attrib].value) * params.weight",
       },
-      "_name": "closestlocation"
+      "_name": caseAttrib
     }
   }
   return queryFnc
@@ -582,7 +582,7 @@ def TableSimilarity(caseAttrib, queryValue, weight, options):  # stores enum as 
         }
       },
       "boost": weight,
-      "_name": "table"
+      "_name": caseAttrib
     }
   }
   return queryFnc
@@ -614,7 +614,7 @@ def QueryIntersection(caseAttrib, queryValue, weight):
         }
       },
       "boost": weight,
-      "_name": "queryintersect"
+      "_name": caseAttrib
     }
   }
   return queryFnc
@@ -643,7 +643,7 @@ def OntologySimilarity(caseAttrib, queryValue, weight, sim_grid):
         }
       },
       "boost": weight,
-      "_name": "ontosim"
+      "_name": caseAttrib
     }
   }
   return queryFnc
