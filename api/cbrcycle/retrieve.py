@@ -360,9 +360,9 @@ def EnumDistance(caseAttrib, queryValue, weight, options):  # stores enum as arr
     print("Interval() is only applicable to numbers")
 
 
-def Exact(caseAttrib, queryValue, weight):
+def TermQuery(caseAttrib, queryValue, weight):
   """
-  Exact matches for fields defined as equal. Attributes that use this are indexed using 'keyword'.
+  Matches query to equal field values using in-built method.
   """
   # build query string
   query = {
@@ -375,6 +375,32 @@ def Exact(caseAttrib, queryValue, weight):
     }
   }
   return query
+
+
+def Exact(caseAttrib, queryValue, weight):
+  """
+  Exact matches for fields defined as equal. Attributes that use this are indexed using 'keyword'.
+  """
+# build query string
+  queryFnc = {
+    "function_score": {
+      "query": {
+        "match_all": {}
+      },
+      "script_score": {
+        "script": {
+          "params": {
+            "attrib": caseAttrib,
+            "queryValue": queryValue,
+          },
+          "source": "if (params.queryValue == doc[params.attrib].value) { return 1.0 } return 0.0"
+        }
+      },
+      "boost": weight,
+      "_name": "exact"
+    }
+  }
+  return queryFnc
 
 
 def MostSimilar(caseAttrib, queryValue, weight):
