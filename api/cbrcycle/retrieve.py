@@ -482,31 +482,16 @@ def ClosestDate(caseAttrib, queryValue, weight):  # format 'dd-MM-yyyy' e.g. '01
   """
   Find the documents whose attribute values have the closest date to the query date. The date field field is indexed as 'keyword' to enable use of this similarity metric.
   """
-  format = "%d-%m-%Y"
-  qd = dateutil.parser.isoparse(queryValue)
-  queryValue = qd.strftime(format)   # enforce query conversion to a known date format
+  # format = "%d-%m-%Y"'T'"%H:%M:%SZ"
+  # qd = dateutil.parser.isoparse(queryValue)
+  # queryValue = qd.strftime(format)   # enforce query conversion to a known date format
+
   # build query string
   queryFnc = {
     "script_score": {
       "query": {
         "match_all": {}
       },
-<<<<<<< Updated upstream
-      "functions": [
-        {
-          "linear": {
-            caseAttrib: {
-              "origin": queryValue,
-              "scale": "365d",
-              "offset": "0",
-              "decay": 0.999
-            }
-          }
-        }
-      ],
-      "boost": weight,
-      "_name": "closestdate"
-=======
       "script": {
         "params": {
           "attrib": caseAttrib,
@@ -519,7 +504,6 @@ def ClosestDate(caseAttrib, queryValue, weight):  # format 'dd-MM-yyyy' e.g. '01
         "source": "decayDateLinear(params.origin, params.scale, params.offset, params.decay, doc[params.attrib].value) * params.weight",
       },
       "_name": caseAttrib
->>>>>>> Stashed changes
     }
   }
   return queryFnc
@@ -560,21 +544,6 @@ def ClosestNumber(caseAttrib, queryValue, weight):
       "query": {
         "match_all": {}
       },
-<<<<<<< Updated upstream
-      "functions": [
-        {
-          "linear": {
-            caseAttrib: {
-              "origin": queryValue,
-              "scale": 1,
-              "decay": 0.999
-            }
-          }
-        }
-      ],
-      "boost": weight,
-      "_name": "closestnumber"
-=======
       "script": {
         "params": {
           "attrib": caseAttrib,
@@ -587,7 +556,6 @@ def ClosestNumber(caseAttrib, queryValue, weight):
         "source": "decayNumericLinear(params.origin, params.scale, params.offset, params.decay, doc[params.attrib].value) * params.weight",
       },
       "_name": caseAttrib
->>>>>>> Stashed changes
     }
   }
   return queryFnc
