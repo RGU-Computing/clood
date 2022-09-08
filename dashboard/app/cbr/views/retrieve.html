@@ -82,13 +82,14 @@
                 </tbody>
               </table>
 
-              <!-- Top K cases to reuse -->
+
               <div class="form-group  col-sm-3">
+                <!-- Top K cases to reuse -->
                 <label for="topk">Best k cases</label>
                 <input id="topk" type="number" class="form-control" ng-model="requests.current.topk" min="1" max="50">
               </div>
-              <!-- Global similarity -->
-              <div class="form-group col-sm-3">
+              <div class="form-group  col-sm-3">
+                <!-- Global similarity -->
                 <label for="globalSim">Global similarity</label>
                 <select id="globalSim" class="form-control" ng-model="requests.current.globalSim" aria-label="Global similarity metric">
                   <option value="Weighted Sum">
@@ -97,9 +98,11 @@
                 </select>
               </div>
 
-              <div class="form-group col-sm-4">
+              <div class="form-group col-sm-3">
+                <label for="includeExp">Include explanations</label>
+                <input id="includeExp" class="form-check-input" type="checkbox" ng-model="requests.current.explanation">
                 <label for="retrieveCases"></label>
-                <button id="retrieveCases" type="button" name="button" class="btn btn-block btn-lg btn-primary" ng-click="retrieveCases()" ng-disabled="!requests.current.data.length>0">
+                <button id="retrieveCases" type="button" name="button" class="btn btn-block btn-primary" ng-click="retrieveCases()" ng-disabled="!requests.current.data.length>0">
                   Retrieve Cases
                 </button>
               </div>

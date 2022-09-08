@@ -423,14 +423,15 @@ def cbr_retrieve(event, context=None):
   queryAdded = False
   params = json.loads(event['body'])  # parameters in request body
   # print(params)
-  queryFeatures = params['data']
-  proj = params.get('project', None)
+  queryFeatures = params.get('data')
+  addExplanation = params.get('explanation')
+  proj = params.get('project')
   if proj is None:
-    projId = params.get('projectId', None)  # name of casebase
+    projId = params.get('projectId')  # name of casebase
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
   proj_attributes = proj['attributes']
-  globalSim = params['globalSim']
+  globalSim = params['globalSim']  # not used as default aggregation is a weighted sum of local similarity values
   k = params['topk']
   query = {"query": {"bool": {"should": []}}}
   query["size"] = int(k)  # top k results
@@ -456,8 +457,9 @@ def cbr_retrieve(event, context=None):
     query["query"]["bool"]["should"].append(retrieve.MatchAll())
   # perform retrieval
   counter = 0
-  res = es.search(index=proj['casebase'], body=query)
+  res = es.search(index=proj['casebase'], body=query, explain=addExplanation)
   for hit in res['hits']['hits']:
+    # print(hit)
     entry = hit['_source']
     entry.pop('hash__', None)  # remove hash field and value
     entry = retrieve.remove_vector_fields(proj_attributes, entry)  # remove vectors from Semantic USE fields
@@ -466,6 +468,9 @@ def cbr_retrieve(event, context=None):
     # entry['id__'] = hit['_id'] # using 'id__' to track this case (this is removed during an update operation)
     entry['score__'] = hit['_score']  # removed during an update operation
     result['bestK'].append(entry)
+    if addExplanation:  # if retrieval needs an explanation included
+      # entry['match_explanation'] = retrieve.explain_retrieval(es, proj['casebase'], query, hit['_id'], hit['matched_queries'])
+      entry['match_explanation'] = retrieve.get_explain_details(hit['_explanation'])
     counter += 1
 
   # Recommend: Get the recommended result using chosen reuse strategies for unknown attribute values and keep known attribute values supplied
@@ -564,6 +569,32 @@ def cbr_retain(event, context=None):
     "statusCode": statusCode,
     "headers": headers,
     "body": json.dumps(result)
+  }
+  return response
+
+
+def retrieve_explain(event, context):
+  """
+  End-point: Explain the scoring for a retrieved case.
+  """
+  res = {}
+  statusCode = 201
+  params = json.loads(event['body'])  # parameters in request body
+
+  proj = params.get('project')
+  query = params.get('query')
+  caseId = params.get('caseId')
+  es = getESConn()
+  if proj is None:
+    projId = params.get('projectId')  # name of casebase
+    proj = utility.getByUniqueField(es, projects_db, "_id", projId)
+
+  res = es.explain(index=proj['casebase'], body=query, id=caseId)
+
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(res)
   }
   return response
 

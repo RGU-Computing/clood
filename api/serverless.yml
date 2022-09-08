@@ -130,6 +130,13 @@ functions:
           path: retain
           method: post
           cors: true
+  explain:
+    handler: handler.retrieve_explain
+    events:
+      - http:
+          path: explain
+          method: post
+          cors: true
 plugins:
   - serverless-python-requirements
   - serverless-offline
