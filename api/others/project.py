@@ -78,6 +78,9 @@ def getMappingFrag(attrType, simMetric):
     elif attrType == "Location":
         # lat-lon string e.g. "41.12,-71.34" , array/list [ -71.34, 41.12 ]or point "POINT (-71.34 41.12)"
         res['type'] = "geo_point"
+    elif attrType == "Object":
+        res['type'] = "object"
+        res['enabled'] = False
     else:
         res['type'] = "keyword"
     return res
