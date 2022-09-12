@@ -180,7 +180,7 @@ def update_project(event, context=None):
         old_onto_attrib = next((item for item in proj_old['attributes'] if item['name'] == attrib['name']), None)  # get the pre project update version of the attribute
         if old_onto_attrib is not None and attrib.get('similarityType') is not None and attrib != old_onto_attrib:  # update ontology similarity measures if there are changes
           sim_method = 'san' if attrib['similarityType'] == 'Feature-based' else 'wup'
-          retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None),
+          retrieve.setOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None),
                                    root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
   source_to_update['doc']['id__'] = pid
@@ -253,7 +253,7 @@ def save_case_list(event, context=None):
   for attrib in proj['attributes']:
     if attrib['type'] == "Ontology Concept" and attrib.get('similarityType') is not None and attrib.get('options') is not None and retrieve.checkOntoSimilarity(attrib['options'].get('id'))['statusCode'] != 200:
       sim_method = 'san' if attrib['similarityType'] == 'Feature-based' else 'wup'
-      retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type'), root_node=attrib['options'].get('root'), similarity_method=sim_method)
+      retrieve.setOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type'), root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
   response = {
     "statusCode": 201,
@@ -555,6 +555,7 @@ def cbr_retain(event, context=None):
       project.indexMapping(es, proj)
 
   new_case = params['data']
+  case_id = new_case.get('id')  # check for optional id in case description
   new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
   new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
 
@@ -563,7 +564,10 @@ def cbr_retain(event, context=None):
     result = "The case already exists in the casebase"
     statusCode = 400
   else:
-    result = es.index(index=proj['casebase'], body=new_case)
+    if case_id is None:
+      result = es.index(index=proj['casebase'], body=new_case)
+    else:
+      result = es.index(index=proj['casebase'], body=new_case, id=case_id)
 
   response = {
     "statusCode": statusCode,

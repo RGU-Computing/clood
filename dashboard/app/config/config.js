@@ -588,7 +588,7 @@ angular.module('cloodApp.config', [])
   $scope.project_has_casebase = data[1]['hasCasebase'];
   var proj_id = data[1]['id__'];
   if ($scope.data.options === undefined) { // initialise
-    $scope.data.options = {'id': proj_id + "_ontology_" + $scope.data.name.toLowerCase(), 'sources': []};
+    $scope.data.options = {'name': $scope.data.name.toLowerCase(), 'sources': []};
   }
 
   // add an ontology source to attribute options

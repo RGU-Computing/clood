@@ -136,7 +136,7 @@ angular.module('cloodApp.projects', [])
                 $('#importModal').modal('hide');
             }, function (err) {
                 console.log(err);
-                $scope.pop("error", null, "Error imorting project details.");
+                $scope.pop("error", null, "Error importing project details.");
             });
         }, function (err) {
             console.log(err);
