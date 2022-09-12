@@ -550,6 +550,7 @@ def cbr_retain(event, context=None):
       project.indexMapping(es, proj)
 
   new_case = params['data']
+  case_id = new_case.get('_id')  # check for optional _id in case description
   new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
   new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
 
@@ -558,7 +559,10 @@ def cbr_retain(event, context=None):
     result = "The case already exists in the casebase"
     statusCode = 400
   else:
-    result = es.index(index=proj['casebase'], body=new_case)
+    if case_id is None:
+      result = es.index(index=proj['casebase'], body=new_case)
+    else:
+      result = es.index(index=proj['casebase'], body=new_case, id=case_id)
 
   response = {
     "statusCode": statusCode,
