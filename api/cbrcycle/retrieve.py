@@ -190,11 +190,17 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
   elif simMetric == "Semantic USE" and cfg.use_vectoriser is not None:
     return USE(caseAttrib, getVector(queryValue), weight)
   elif simMetric == "Nearest Date":
-    return ClosestDate(caseAttrib, queryValue, weight)
+    scale = options.get('dscale', '365d') if options is not None else '365d'
+    decay = options.get('ddecay', 0.999) if options is not None else 0.999
+    return ClosestDate(caseAttrib, queryValue, weight, scale, decay)
   elif simMetric == "Nearest Number":
-    return ClosestNumber(caseAttrib, queryValue, weight)
+    scale = int(options.get('nscale', 1)) if options is not None else 1
+    decay = options.get('ndecay', 0.999) if options is not None else 0.999
+    return ClosestNumber(caseAttrib, queryValue, weight, scale, decay)
   elif simMetric == "Nearest Location":
-    return ClosestLocation(caseAttrib, queryValue, weight)
+    scale = options.get('lscale', '10km') if options is not None else '10km'
+    decay = options.get('ldecay', 0.999) if options is not None else 0.999
+    return ClosestLocation(caseAttrib, queryValue, weight, scale, decay)
   elif simMetric == "Table":
     return TableSimilarity(caseAttrib, queryValue, weight, options)
   elif simMetric == "EnumDistance":
@@ -478,7 +484,7 @@ def ClosestDate_2(caseAttrib, queryValue, weight, maxDate, minDate):  # format '
   return queryFnc
 
 
-def ClosestDate(caseAttrib, queryValue, weight):  # format 'dd-MM-yyyy' e.g. '01-02-2020'
+def ClosestDate(caseAttrib, queryValue, weight, scale, decay):  # format 'dd-MM-yyyy' e.g. '01-02-2020'
   """
   Find the documents whose attribute values have the closest date to the query date. The date field field is indexed as 'keyword' to enable use of this similarity metric.
   """
@@ -496,12 +502,12 @@ def ClosestDate(caseAttrib, queryValue, weight):  # format 'dd-MM-yyyy' e.g. '01
         "params": {
           "attrib": caseAttrib,
           "origin": queryValue,
-          "scale": "365d",
+          "scale": scale,
           "offset": "0",
-          "decay": 0.999,
+          "decay": decay,
           "weight": weight,
         },
-        "source": "decayDateLinear(params.origin, params.scale, params.offset, params.decay, doc[params.attrib].value) * params.weight",
+        "source": "decayDateExp(params.origin, params.scale, params.offset, params.decay, doc[params.attrib].value) * params.weight",
       },
       "_name": caseAttrib
     }
@@ -534,7 +540,7 @@ def USE(caseAttrib, queryValue, weight):
   return queryFnc
 
 
-def ClosestNumber(caseAttrib, queryValue, weight):
+def ClosestNumber(caseAttrib, queryValue, weight, scale, decay):
   """
   Find the documents whose attribute values have the closest number to the query value.
   """
@@ -548,12 +554,12 @@ def ClosestNumber(caseAttrib, queryValue, weight):
         "params": {
           "attrib": caseAttrib,
           "origin": queryValue,
-          "scale": 1,
+          "scale": scale,
           "offset": 0,
-          "decay": 0.999,
+          "decay": decay,
           "weight": weight,
         },
-        "source": "decayNumericLinear(params.origin, params.scale, params.offset, params.decay, doc[params.attrib].value) * params.weight",
+        "source": "decayNumericExp(params.origin, params.scale, params.offset, params.decay, doc[params.attrib].value) * params.weight",
       },
       "_name": caseAttrib
     }
@@ -561,7 +567,7 @@ def ClosestNumber(caseAttrib, queryValue, weight):
   return queryFnc
 
 
-def ClosestLocation(caseAttrib, queryValue, weight):
+def ClosestLocation(caseAttrib, queryValue, weight, scale, decay):
   """
   Find the documents whose attribute values have the geo_point to the query value.
   """
@@ -575,9 +581,9 @@ def ClosestLocation(caseAttrib, queryValue, weight):
         "params": {
           "attrib": caseAttrib,
           "origin": queryValue,
-          "scale": "10km",
+          "scale": scale,
           "offset": "0km",
-          "decay": 0.999,
+          "decay": decay,
           "weight": weight,
         },
         "source": "decayGeoExp(params.origin, params.scale, params.offset, params.decay, doc[params.attrib].value) * params.weight",
