@@ -85,6 +85,7 @@
               <button ng-show="attrib.similarity == 'McSherry Less' || attrib.similarity == 'McSherry More'" ng-click="configMcSherryAttribute($index, attrib)" class="btn btn-default" title="Configure"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
               <button ng-show="attrib.similarity == 'INRECA Less' || attrib.similarity == 'INRECA More'" ng-click="configInrecaAttribute($index, attrib)" class="btn btn-default" title="Configure"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
               <button ng-show="attrib.type == 'Ontology Concept'" ng-click="configOntologyAttribute($index, attrib)" class="btn btn-default" title="Configure"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
+              <button ng-show="attrib.similarity == 'Nearest Number' || attrib.similarity == 'Nearest Date' || attrib.similarity == 'Nearest Location'" ng-click="configDecayFunctionAttribute($index, attrib)" class="btn btn-default" title="Configure"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
 <!--              Edit button-->
               <button ng-click="selectAttribute($index, attrib)" class="btn btn-primary" title="Edit" ng-disabled="selected.hasCasebase">
                 <i class="fas fa-edit"></i>

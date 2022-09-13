@@ -286,6 +286,37 @@ angular.module('cloodApp.config', [])
     $ctrl.open('lg');
   };
 
+  // specify additional parameters for attribute with Nearest Number similarity
+  $scope.configDecayFunctionAttribute = function(idx, item) {
+    // for modals
+    var $ctrl = this;
+	  $ctrl.data = item;
+	  $ctrl.open = function (size) {
+	    var modalInstance = $uibModal.open({
+	      animation: true,
+	      backdrop: false,  // prevents closing modal by clicking outside it
+	      ariaLabelledBy: 'modal-title',
+	      ariaDescribedBy: 'modal-body',
+	      templateUrl: 'config/views/modalviews/nearestnumber_similarity.html',
+	      controller: 'ModalNearestNumberInstanceCtrl',
+	      controllerAs: '$ctrl',
+	      size: size,
+	      resolve: {
+	        data: function () {
+	          return $ctrl.data;
+	        }
+	      }
+	    });
+
+	    modalInstance.result.then(function (res) {
+	      console.log("Decay function modal closed");
+	      $scope.changeAttribute(idx, res);
+	    });
+	  };
+    console.log('opening sm modal...');
+    $ctrl.open('lg');
+  };
+
  // Removes attribute from project attributes list if it exists
   $scope.removeAttribute = function(item) {
     for (var i = 0; i < $scope.selected.attributes.length; i++) {
@@ -588,7 +619,7 @@ angular.module('cloodApp.config', [])
   $scope.project_has_casebase = data[1]['hasCasebase'];
   var proj_id = data[1]['id__'];
   if ($scope.data.options === undefined) { // initialise
-    $scope.data.options = {'id': proj_id + "_ontology_" + $scope.data.name.toLowerCase(), 'sources': []};
+    $scope.data.options = {'name': $scope.data.name.toLowerCase(), 'sources': []};
   }
 
   // add an ontology source to attribute options
@@ -620,6 +651,31 @@ angular.module('cloodApp.config', [])
 //          console.log(err);
 //        });
 //  };
+
+  $scope.save = function() {
+    //{...}
+    $uibModalInstance.close($scope.data);
+  };
+
+  $scope.cancel = function() {
+    //{...}
+    alert("Changes will not be saved.");
+    //$scope.data = angular.copy(data);
+    $uibModalInstance.dismiss('cancel');
+  };
+}])
+.controller('ModalNearestNumberInstanceCtrl', ['$uibModalInstance', 'data', '$scope', function($uibModalInstance, data, $scope) {
+  $scope.data = angular.copy(data);
+  console.log($scope.data);
+  if ($scope.data.options === undefined) { // initialise
+    // options initialised with default values
+    if ($scope.data["similarity"] == "Nearest Number")
+      $scope.data.options = {'nscale': 1, 'ndecay': 0.999};
+    if ($scope.data["similarity"] == "Nearest Date")
+      $scope.data.options = {'dscale': '365d', 'ddecay': 0.999};
+    if ($scope.data["similarity"] == "Nearest Location")
+      $scope.data.options = {'lscale': '10km', 'ldecay': 0.999};
+  }
 
   $scope.save = function() {
     //{...}

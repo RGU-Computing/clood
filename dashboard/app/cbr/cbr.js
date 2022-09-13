@@ -37,7 +37,7 @@ angular.module('cloodApp.cbr', [])
   $scope.datenow = new Date();  // current date for any date field selection
   $scope.menu.active = $scope.menu.items[2]; // ui active menu tag
   $scope.selected = {};
-  $scope.requests = { current:  { data: [], topk: 10, globalSim: "Weighted Sum" }, previous: [], response: null };
+  $scope.requests = { current:  { data: [], topk: 5, globalSim: "Weighted Sum", explanation: false }, previous: [], response: null };
 
   // Retrieves all projects
   $scope.getAllProjects = function() {
@@ -59,7 +59,7 @@ angular.module('cloodApp.cbr', [])
     }
     // reset any previous selections
     $scope.editing = false;
-    $scope.requests = { current:  { data: [], topk: 10, globalSim: "Weighted Sum" }, previous: [], response: null };
+    $scope.requests = { current:  { data: [], topk: 5, globalSim: "Weighted Sum", explanation: false }, previous: [], response: null };
   };
 
   // retrieves cases from the casebase using specified request features

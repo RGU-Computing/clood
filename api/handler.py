@@ -180,7 +180,7 @@ def update_project(event, context=None):
         old_onto_attrib = next((item for item in proj_old['attributes'] if item['name'] == attrib['name']), None)  # get the pre project update version of the attribute
         if old_onto_attrib is not None and attrib.get('similarityType') is not None and attrib != old_onto_attrib:  # update ontology similarity measures if there are changes
           sim_method = 'san' if attrib['similarityType'] == 'Feature-based' else 'wup'
-          retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None),
+          retrieve.setOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None),
                                    root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
   source_to_update['doc']['id__'] = pid
@@ -253,7 +253,7 @@ def save_case_list(event, context=None):
   for attrib in proj['attributes']:
     if attrib['type'] == "Ontology Concept" and attrib.get('similarityType') is not None and attrib.get('options') is not None and retrieve.checkOntoSimilarity(attrib['options'].get('id'))['statusCode'] != 200:
       sim_method = 'san' if attrib['similarityType'] == 'Feature-based' else 'wup'
-      retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type'), root_node=attrib['options'].get('root'), similarity_method=sim_method)
+      retrieve.setOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type'), root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
   response = {
     "statusCode": 201,
@@ -423,14 +423,15 @@ def cbr_retrieve(event, context=None):
   queryAdded = False
   params = json.loads(event['body'])  # parameters in request body
   # print(params)
-  queryFeatures = params['data']
-  proj = params.get('project', None)
+  queryFeatures = params.get('data')
+  addExplanation = params.get('explanation')
+  proj = params.get('project')
   if proj is None:
-    projId = params.get('projectId', None)  # name of casebase
+    projId = params.get('projectId')  # name of casebase
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
   proj_attributes = proj['attributes']
-  globalSim = params['globalSim']
+  globalSim = params['globalSim']  # not used as default aggregation is a weighted sum of local similarity values
   k = params['topk']
   query = {"query": {"bool": {"should": []}}}
   query["size"] = int(k)  # top k results
@@ -456,8 +457,9 @@ def cbr_retrieve(event, context=None):
     query["query"]["bool"]["should"].append(retrieve.MatchAll())
   # perform retrieval
   counter = 0
-  res = es.search(index=proj['casebase'], body=query)
+  res = es.search(index=proj['casebase'], body=query, explain=addExplanation)
   for hit in res['hits']['hits']:
+    # print(hit)
     entry = hit['_source']
     entry.pop('hash__', None)  # remove hash field and value
     entry = retrieve.remove_vector_fields(proj_attributes, entry)  # remove vectors from Semantic USE fields
@@ -466,9 +468,13 @@ def cbr_retrieve(event, context=None):
     # entry['id__'] = hit['_id'] # using 'id__' to track this case (this is removed during an update operation)
     entry['score__'] = hit['_score']  # removed during an update operation
     result['bestK'].append(entry)
+    if addExplanation:  # if retrieval needs an explanation included
+      # entry['match_explanation'] = retrieve.explain_retrieval(es, proj['casebase'], query, hit['_id'], hit['matched_queries'])
+      entry['match_explanation'] = retrieve.get_explain_details(hit['_explanation'])
     counter += 1
 
-  # Recommend: Get the recommended result using chosen reuse strategies for unknown attribute values and keep known attribute values supplied
+  # Recommend: Get the recommended result using chosen reuse strategies for unknown attribute values and
+  # keep known attribute values (query) supplied
   if counter > 0:
     for entry in queryFeatures:
       if not entry['unknown'] and ('value' in entry) and entry['value'] is not None and "" != entry[
@@ -486,6 +492,9 @@ def cbr_retrieve(event, context=None):
           result['recommended'][entry['name']] = np.median([x[entry['name']] for x in result['bestK']])
         if entry['strategy'] == "Mode":
           result['recommended'][entry['name']] = statistics.mode([x[entry['name']] for x in result['bestK']])
+    # generate a new random id to make (if there was an id) to make it different from existing cases
+    if result['recommended'].get('id') is not None:
+      result['recommended']['id'] = uuid.uuid4().hex
 
   end = timer()  # end timer
   result['retrieveTime'] = end - start
@@ -550,6 +559,7 @@ def cbr_retain(event, context=None):
       project.indexMapping(es, proj)
 
   new_case = params['data']
+  case_id = new_case.get('id')  # check for optional id in case description
   new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
   new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
 
@@ -558,12 +568,41 @@ def cbr_retain(event, context=None):
     result = "The case already exists in the casebase"
     statusCode = 400
   else:
-    result = es.index(index=proj['casebase'], body=new_case)
+    if case_id is None:
+      result = es.index(index=proj['casebase'], body=new_case)
+    else:
+      result = es.index(index=proj['casebase'], body=new_case, id=case_id)
 
   response = {
     "statusCode": statusCode,
     "headers": headers,
     "body": json.dumps(result)
+  }
+  return response
+
+
+def retrieve_explain(event, context):
+  """
+  End-point: Explain the scoring for a retrieved case.
+  """
+  res = {}
+  statusCode = 201
+  params = json.loads(event['body'])  # parameters in request body
+
+  proj = params.get('project')
+  query = params.get('query')
+  caseId = params.get('caseId')
+  es = getESConn()
+  if proj is None:
+    projId = params.get('projectId')  # name of casebase
+    proj = utility.getByUniqueField(es, projects_db, "_id", projId)
+
+  res = es.explain(index=proj['casebase'], body=query, id=caseId)
+
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(res)
   }
   return response
 

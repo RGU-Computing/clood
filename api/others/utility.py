@@ -42,6 +42,7 @@ def createOrUpdateGlobalConfig(es, config_db="config", globalConfig=None):
     {'type': 'Location', 'similarityTypes': ['Nearest Location', 'None'], 'reuseStrategy': ['Best Match']})
   config['attributeOptions'].append(
     {'type': 'Ontology Concept', 'similarityTypes': ['Path-based', 'Feature-based', 'None'], 'reuseStrategy': ['Best Match']})
+  config['attributeOptions'].append({'type': 'Object', 'similarityTypes': ['None'], 'reuseStrategy': ['Best Match']})
   # print(config)
   res2 = es.index(index=config_db, body=config)
   result = False if not res2['_id'] else True

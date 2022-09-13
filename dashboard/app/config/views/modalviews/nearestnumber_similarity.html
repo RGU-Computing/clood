@@ -1,0 +1,47 @@
+<div class="modal-header">
+    <h3 class="modal-title" id="modal-title">Set Parameters</h3>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Specify the scale and decay values for calculating {{ data.similarity }} similarity for {{ data.name }}.</p>
+    <form name="paramsForm" ng-if="data.similarity == 'Nearest Number'">
+        <div class="form-group">
+            <label for="nearestnumattribinterval">Scale</label>
+            <input id="nearestnumattribinterval" type="number" class="form-control" ng-model="data.options.nscale" min="0" required>
+        </div>
+        <div class="form-group">
+            <label for="nearestdecayattribinterval">Decay</label>
+            <input id="nearestdecayattribinterval" type="number" class="form-control" ng-model="data.options.ndecay" min="0.001" required>
+        </div>
+    </form>
+    <form name="paramsForm" ng-if="data.similarity == 'Nearest Date'">
+        <div class="form-group">
+            <label for="nearestdateattribinterval">Scale</label>
+            <input id="nearestdateattribinterval" type="text" class="form-control" ng-model="data.options.dscale" required>
+        </div>
+        <div class="form-group">
+            <label for="nearestdatedecayattribinterval">Decay</label>
+            <input id="nearestdatedecayattribinterval" type="number" class="form-control" ng-model="data.options.ddecay" min="0.001" required>
+        </div>
+    </form>
+    <form name="paramsForm" ng-if="data.similarity == 'Nearest Location'">
+        <div class="form-group">
+            <label for="nearestlocattribinterval">Scale</label>
+            <input id="nearestlocattribinterval" type="text" class="form-control" ng-model="data.options.lscale" required>
+        </div>
+        <div class="form-group">
+            <label for="nearestlocdecayattribinterval">Decay</label>
+            <input id="nearestlocdecayattribinterval" type="number" class="form-control" ng-model="data.options.ldecay" min="0.001" required>
+        </div>
+    </form>
+
+    <div>
+        <p class="lead">Description</p>
+        <img src="https://www.elastic.co/guide/en/elasticsearch/reference/current/images/decay_2d.png" alt="Image showing decay function parameters">
+        <p>The similarity metric uses an <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html">exponential decay function</a> (exp) as in the image.
+            The query forms the 'origin' and 'offset' is set to 0. </p>
+    </div>
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="paramsForm.$invalid">Continue</button>
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

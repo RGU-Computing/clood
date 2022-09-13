@@ -41,8 +41,13 @@
                       <div ng-if=" getDataType(value)=='boolean' " class="form-group">
                         <input class="form-check-input" type="checkbox" ng-model="requests.response.recommended[key]">
                       </div>
+                      <!-- Object type -->
+                      <div ng-if=" getDataType(value)=='object' " class="form-group">
+                        <textarea class="form-control" ng-model="requests.response.recommended[key]">
+                        </textarea>
+                      </div>
                       <!-- Other type -->
-                      <div ng-if=" getDataType(value)!='string' && getDataType(value)!='number' && getDataType(value)!='boolean'" class="form-group">
+                      <div ng-if=" getDataType(value)!='string' && getDataType(value)!='number' && getDataType(value)!='boolean' && getDataType(value)!='object'" class="form-group">
                         <input type="text" class="form-control" ng-model="requests.response.recommended[key]">
                       </div>
                     </td>
