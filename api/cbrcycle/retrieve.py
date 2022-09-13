@@ -20,6 +20,7 @@ def checkOntoSimilarity(ontology_id):
   """
   Calls an external service to check if an ontology based similarity measures exist.
   """
+  print('checkOntoSimilarity() =>', ontology_id)
   url = cfg.ontology_sim + '/status'
   res = requests.post(url, json={'ontologyId': ontology_id})
   return res.json()  #res['statusCode'] = 200 if ontology exists and 404 otherwise
@@ -29,6 +30,7 @@ def getOntoSimilarity(ontology_id, key):
   """
   Calls an external service to get ontology based similarity values for concept comparisons.
   """
+  print('getOntoSimilarity() =>', ontology_id)
   url = cfg.ontology_sim + '/query'
   res = requests.post(url, json={'ontologyId': ontology_id, 'key': key})
   res_dictionary = res.json()
@@ -39,6 +41,7 @@ def setOntoSimilarity(ontology_id, ontology_sources, relation_type=None, root_no
   """
   Calls an external service to create ontology based similarity values for concept comparisons.
   """
+  print('setOntoSimilarity() =>', ontology_id)
   url = cfg.ontology_sim + '/preload'
   body = {'ontologyId': ontology_id, 'sources': ontology_sources}
   if relation_type is not None and len(relation_type) > 0:
@@ -54,6 +57,7 @@ def removeOntoIndex(ontology_id):
   """
   Calls an external service to remove an ontology index of similarity measures.
   """
+  print('removeOntoIndex() =>', ontology_id)
   url = cfg.ontology_sim + '/delete'
   body = {
     "ontologyId": ontology_id
@@ -161,7 +165,7 @@ def get_explain_details(match_explanation):
   # print(expl)
   return expl
 
-def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
+def getQueryFunction(projId ,caseAttrib, queryValue, weight, simMetric, options):
   """
   Determine query function to use base on attribute specification and retrieval features.
   Add new query functions in the if..else statement as elif.
@@ -208,10 +212,10 @@ def getQueryFunction(caseAttrib, queryValue, weight, simMetric, options):
   elif simMetric == "Query Intersection":
     return QueryIntersection(caseAttrib, queryValue, weight)
   elif simMetric == "Path-based":
-    sim_grid = getOntoSimilarity(options['id'], queryValue)
+    sim_grid = getOntoSimilarity(projId + "_ontology_" + options['name'], queryValue)
     return OntologySimilarity(caseAttrib, queryValue, weight, sim_grid)
   elif simMetric == "Feature-based":
-    sim_grid = getOntoSimilarity(options['id'], queryValue)
+    sim_grid = getOntoSimilarity(projId + "_ontology_" + options['name'], queryValue)
     return OntologySimilarity(caseAttrib, queryValue, weight, sim_grid)
   else:
     return MostSimilar(caseAttrib, queryValue, weight)

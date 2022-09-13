@@ -205,8 +205,8 @@ def delete_project(event, context=None):
   # delete any ontology indices that were created (if any)
   for attrib in proj['attributes']:
     if attrib['type'] == "Ontology Concept":
-      ontologyId = attrib['options'].get('id')
-      if ontologyId is not None:
+      ontologyId = pid + "_ontology_" + attrib['options'].get('name')
+      if attrib['options'].get('name') is not None:
         retrieve.removeOntoIndex(ontologyId)
   # delete project
   res = es.delete(index=projects_db, id=pid)
@@ -400,7 +400,7 @@ def check_ontology_sim(event, context=None):
 #   End-point: Computes and persists the similarity measures of an ontology's concepts using its hierarchical structure.
 #   """
 #   attrib = json.loads(event['body'])
-#   res = retrieve.setOntoSimilarity(attrib['options'].get('id'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None), root_node=attrib['options'].get('root', None))
+#   res = retrieve.setOntoSimilarity(attrib['options'].get('name'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None), root_node=attrib['options'].get('root', None))
 #   body = {
 #     "result": res
 #   }
@@ -450,7 +450,7 @@ def cbr_retrieve(event, context=None):
       # isProblem = entry['unknown']
       # strategy = entry['strategy']
 
-      qfnc = retrieve.getQueryFunction(field, value, weight, similarityType, options)
+      qfnc = retrieve.getQueryFunction(proj['id__'], field, value, weight, similarityType, options)
       query["query"]["bool"]["should"].append(qfnc)
 
   if not queryAdded:  # retrieval all (up to k) if not query was added
