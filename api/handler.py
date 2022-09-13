@@ -473,7 +473,8 @@ def cbr_retrieve(event, context=None):
       entry['match_explanation'] = retrieve.get_explain_details(hit['_explanation'])
     counter += 1
 
-  # Recommend: Get the recommended result using chosen reuse strategies for unknown attribute values and keep known attribute values supplied
+  # Recommend: Get the recommended result using chosen reuse strategies for unknown attribute values and
+  # keep known attribute values (query) supplied
   if counter > 0:
     for entry in queryFeatures:
       if not entry['unknown'] and ('value' in entry) and entry['value'] is not None and "" != entry[
@@ -491,6 +492,9 @@ def cbr_retrieve(event, context=None):
           result['recommended'][entry['name']] = np.median([x[entry['name']] for x in result['bestK']])
         if entry['strategy'] == "Mode":
           result['recommended'][entry['name']] = statistics.mode([x[entry['name']] for x in result['bestK']])
+    # generate a new random id to make (if there was an id) to make it different from existing cases
+    if result['recommended'].get('id') is not None:
+      result['recommended']['id'] = uuid.uuid4().hex
 
   end = timer()  # end timer
   result['retrieveTime'] = end - start
