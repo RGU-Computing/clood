@@ -167,7 +167,7 @@ def get_explain_details(match_explanation):
   # print(expl)
   return expl
 
-def getQueryFunction(projId ,caseAttrib, queryValue, weight, simMetric, options):
+def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options):
   """
   Determine query function to use base on attribute specification and retrieval features.
   Add new query functions in the if..else statement as elif.
