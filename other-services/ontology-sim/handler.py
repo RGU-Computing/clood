@@ -467,7 +467,7 @@ def query_ontology(event, context=None):
 
 def check_status(event, context=None):
   """
-  End-point: Retrieves all projects. Each project is separate CBR application.
+  End-point: Checks if an index exists. Returns number of documents in the index if the index exists.
   """
   count = {"count": 0}
   # retrieve if ES index does exist
@@ -485,7 +485,7 @@ def check_status(event, context=None):
 
   if es.indices.exists(index=ontologyId):
     es.indices.refresh(ontologyId)
-    countes = es.cat.count(ontologyId, params={"format": "json"})
+    countes = es.cat.count(ontologyId, params={"format": "json"})  # count of documents in index
     countes = countes[0]
     count["count"] = countes["count"]
 
@@ -523,7 +523,7 @@ def home(event, context):
   End-point: To check API reachability.
   """
   body = {
-    "message": "Go Serverless with CloodCBR! Your function executed successfully!"
+    "message": "Your function executed successfully! Ontology-based similarity service is running."
   }
 
   response = {
