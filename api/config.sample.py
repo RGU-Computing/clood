@@ -16,4 +16,4 @@ is_dev = True
 # use_vectoriser = None # for non USE
 use_vectoriser = "http://cloodcbr-other-use:4100/dev/vectorise"
 # service for ontology-based similarity
-ontology_sim = "http://cloodcbr-other-ontology-sim:4200/dev"
+ontology_sim = "http://cloodcbr-other-ontology-sim:3000/dev"
