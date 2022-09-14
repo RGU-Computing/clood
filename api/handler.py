@@ -178,8 +178,8 @@ def update_project(event, context=None):
       if attrib['type'] == "Ontology Concept" and attrib.get('options') is not None and \
               attrib['options']:  # check that the attribute is ontology based
         old_onto_attrib = next((item for item in proj_old['attributes'] if item['name'] == attrib['name']), None)  # get the pre project update version of the attribute
-        if old_onto_attrib is not None and attrib.get('similarityType') is not None and attrib != old_onto_attrib:  # update ontology similarity measures if there are changes
-          sim_method = 'san' if attrib['similarityType'] == 'Feature-based' else 'wup'
+        if old_onto_attrib is not None and attrib.get('similarity') is not None and attrib != old_onto_attrib:  # update ontology similarity measures if there are changes
+          sim_method = 'san' if attrib['similarity'] == 'Feature-based' else 'wup'
           retrieve.setOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None),
                                    root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
@@ -251,8 +251,8 @@ def save_case_list(event, context=None):
 
   # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
   for attrib in proj['attributes']:
-    if attrib['type'] == "Ontology Concept" and attrib.get('similarityType') is not None and attrib.get('options') is not None and retrieve.checkOntoSimilarity(attrib['options'].get('id'))['statusCode'] != 200:
-      sim_method = 'san' if attrib['similarityType'] == 'Feature-based' else 'wup'
+    if attrib['type'] == "Ontology Concept" and attrib.get('similarity') is not None and attrib.get('options') is not None and retrieve.checkOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'))['statusCode'] != 200:
+      sim_method = 'san' if attrib['similarity'] == 'Feature-based' else 'wup'
       retrieve.setOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type'), root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
   response = {
@@ -551,12 +551,24 @@ def cbr_retain(event, context=None):
     projId = params.get('projectId')  # name of casebase
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
-    if(not proj['hasCasebase']): # Update project status if only using retain API
-      proj['hasCasebase'] = True
-      source_to_update = {'doc': proj}
-      res = es.update(index=projects_db, id=projId, body=source_to_update)
-      # create index with mapping if it does not exist already
-      project.indexMapping(es, proj)
+  pid = proj["id__"]
+  if(not proj['hasCasebase']): # Update project status if only using retain API
+    proj['hasCasebase'] = True
+    source_to_update = {'doc': proj}
+    res = es.update(index=projects_db, id=pid, body=source_to_update)
+    # create index with mapping if it does not exist already
+    project.indexMapping(es, proj)
+
+    # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
+    for attrib in proj['attributes']:
+      if attrib['type'] == "Ontology Concept" and attrib.get('similarity') is not None and attrib.get(
+              'options') is not None and \
+              retrieve.checkOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'))['statusCode'] != 200:
+        sim_method = 'san' if attrib['similarity'] == 'Feature-based' else 'wup'
+        retrieve.setOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'),
+                                   attrib['options'].get('sources'),
+                                   relation_type=attrib['options'].get('relation_type'),
+                                   root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
   new_case = params['data']
   case_id = new_case.get('id')  # check for optional id in case description

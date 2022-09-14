@@ -20,17 +20,19 @@ def checkOntoSimilarity(ontology_id):
   """
   Calls an external service to check if an ontology based similarity measures exist.
   """
-  print('checkOntoSimilarity() =>', ontology_id)
+  # print('checkOntoSimilarity() =>', ontology_id)
   url = cfg.ontology_sim + '/status'
   res = requests.post(url, json={'ontologyId': ontology_id})
-  return res.json()  #res['statusCode'] = 200 if ontology exists and 404 otherwise
+  resp = res.json()
+  resp['statusCode'] = res.status_code
+  return resp  #resp['statusCode'] = 200 if ontology exists and 404 otherwise
 
 
 def getOntoSimilarity(ontology_id, key):
   """
   Calls an external service to get ontology based similarity values for concept comparisons.
   """
-  print('getOntoSimilarity() =>', ontology_id)
+  # print('getOntoSimilarity() =>', ontology_id)
   url = cfg.ontology_sim + '/query'
   res = requests.post(url, json={'ontologyId': ontology_id, 'key': key})
   res_dictionary = res.json()
@@ -41,7 +43,7 @@ def setOntoSimilarity(ontology_id, ontology_sources, relation_type=None, root_no
   """
   Calls an external service to create ontology based similarity values for concept comparisons.
   """
-  print('setOntoSimilarity() =>', ontology_id)
+  # print('setOntoSimilarity() =>', ontology_id)
   url = cfg.ontology_sim + '/preload'
   body = {'ontologyId': ontology_id, 'sources': ontology_sources}
   if relation_type is not None and len(relation_type) > 0:
@@ -57,7 +59,7 @@ def removeOntoIndex(ontology_id):
   """
   Calls an external service to remove an ontology index of similarity measures.
   """
-  print('removeOntoIndex() =>', ontology_id)
+  # print('removeOntoIndex() =>', ontology_id)
   url = cfg.ontology_sim + '/delete'
   body = {
     "ontologyId": ontology_id
@@ -133,7 +135,7 @@ def explain_retrieval(es, index_name, query, doc_id, matched_queries):
   query.pop("size", None)  # request does not support [size]
   res = es.explain(index=index_name, body=query, id=doc_id, stored_fields="true")
   details = res["explanation"]["details"]
-  print(json.dumps(res, indent=4))
+  # print(json.dumps(res, indent=4))
 
   for idx, x in enumerate(matched_queries):
     expl.append({x: details[idx]['value']})
