@@ -445,7 +445,7 @@ def cbr_retrieve(event, context=None):
       # print(options)
       # fieldType = entry['type']
       # use lowercase when field is specified as case-insensitive
-      value = entry['value'].lower() if similarityType == 'EqualIgnoreCase' else entry['value']
+      value = entry['value']
       weight = entry['weight']
       # isProblem = entry['unknown']
       # strategy = entry['strategy']
