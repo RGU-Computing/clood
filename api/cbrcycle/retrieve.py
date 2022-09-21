@@ -152,17 +152,18 @@ def get_explain_details(match_explanation):
   """
   expl = []
   matchers = match_explanation["details"]  # at times the explanation is not in 'details' list!!
-  if len(matchers) < 1:
+  if len(matchers) <= 1: # not more than one explanation then match attribute in the entire string
     txt = str(match_explanation)
     m0 = re.search("attrib=([a-zA-Z0-9_\-\s]+)",
                    txt)  # FRAGILE: relies on specific format for the explanation to include attribute name
     if m0:  # if field name is found
       expl.append({"field": m0.group(1), "similarity": match_explanation['value']})
-  for x in matchers:
-    txt = str(x)
-    m0 = re.search("attrib=([a-zA-Z0-9_\-\s]+)", txt)
-    if m0:  # if field name is found
-      expl.append({"field": m0.group(1), "similarity": x['value']})
+  else:  # more than one explanation then iterate and match attributes
+    for x in matchers:
+      txt = str(x)
+      m0 = re.search("attrib=([a-zA-Z0-9_\-\s]+)", txt)
+      if m0:  # if field name is found
+        expl.append({"field": m0.group(1), "similarity": x['value']})
 
   # print(expl)
   return expl
@@ -173,7 +174,10 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
   Add new query functions in the if..else statement as elif.
   """
   # minVal = kwargs.get('minVal', None) # optional parameter, minVal (name 'minVal' in function params when calling function e.g. minVal=5)
-  if simMetric == "Equal" or simMetric == "EqualIgnoreCase":
+  if simMetric == "Equal":
+    return Exact(caseAttrib, queryValue, weight)
+  elif simMetric == "EqualIgnoreCase":
+    queryValue = queryValue.lower()
     return Exact(caseAttrib, queryValue, weight)
   elif simMetric == "McSherry More":  # does not use the query value
     maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
@@ -239,14 +243,14 @@ def McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight):
           "match_all": {}
         },
         "script": {
-          "source": "(float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min)",
+          "source": "((float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min)) * params.weight",
           "params": {
+            "attrib": caseAttrib,
             "max": maxValue,
             "min": minValue,
-            "attrib": caseAttrib
+            "weight": weight
           }
         },
-        "boost": weight,
         "_name": caseAttrib
       }
     }
@@ -268,14 +272,14 @@ def McSherryMoreIsBetter(caseAttrib, maxValue, minValue, weight):
           "match_all": {}
         },
         "script": {
-          "source": "1 - ( (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min) )",
+          "source": "(1 - ( (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min) )) * params.weight",
           "params": {
+            "attrib": caseAttrib,
             "max": maxValue,
             "min": minValue,
-            "attrib": caseAttrib
+            "weight": weight
           }
         },
-        "boost": weight,
         "_name": caseAttrib
       }
     }
@@ -298,15 +302,15 @@ def InrecaLessIsBetter(caseAttrib, queryValue, maxValue, jump, weight):
           "match_all": {}
         },
         "script": {
-          "source": "if (doc[params.attrib].value <= params.queryValue) { return 1.0 } if (doc[params.attrib].value >= params.max) { return 0 } return params.jump * (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.queryValue)",
+          "source": "if (doc[params.attrib].value <= params.queryValue) { return (1.0 * params.weight) } if (doc[params.attrib].value >= params.max) { return 0 } return (params.jump * (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.queryValue)) * params.weight",
           "params": {
+            "attrib": caseAttrib,
+            "queryValue": queryValue,
             "jump": jump,
             "max": maxValue,
-            "attrib": caseAttrib,
-            "queryValue": queryValue
+            "weight": weight
           }
         },
-        "boost": weight,
         "_name": caseAttrib
       }
     }
@@ -329,14 +333,14 @@ def InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight):
           "match_all": {}
         },
         "script": {
-          "source": "if (doc[params.attrib].value >= params.queryValue) { return 1.0 } return params.jump * (1 - ((float)(params.queryValue - doc[params.attrib].value) / (float)params.queryValue))",
+          "source": "if (doc[params.attrib].value >= params.queryValue) { return (1.0 * params.weight) } return (params.jump * (1 - ((float)(params.queryValue - doc[params.attrib].value) / (float)params.queryValue))) * params.weight",
           "params": {
-            "jump": jump,
             "attrib": caseAttrib,
-            "queryValue": queryValue
+            "queryValue": queryValue,
+            "jump": jump,
+            "weight": weight
           }
         },
-        "boost": weight,
         "_name": caseAttrib
       }
     }
@@ -360,13 +364,13 @@ def Interval(caseAttrib, queryValue, interval, weight):
         },
         "script": {
           "params": {
-            "interval": interval,
             "attrib": caseAttrib,
-            "queryValue": queryValue
+            "queryValue": queryValue,
+            "interval": interval,
+            "weight": weight
           },
-          "source": "1 - (float)( Math.abs(params.queryValue - doc[params.attrib].value) / (float)params.interval )"
+          "source": "(1 - (float)( Math.abs(params.queryValue - doc[params.attrib].value) / (float)params.interval )) * params.weight"
         },
-        "boost": weight,
         "_name": caseAttrib
       }
     }
@@ -390,13 +394,13 @@ def EnumDistance(caseAttrib, queryValue, weight, options):  # stores enum as arr
         },
         "script": {
           "params": {
-            "lst": options.get('values'),
             "attrib": caseAttrib,
-            "queryValue": queryValue
+            "queryValue": queryValue,
+            "lst": options.get('values'),
+            "weight": weight
           },
-          "source": "if (params.lst.contains(doc[params.attrib].value)) { return 1 - ( (float) Math.abs(params.lst.indexOf(params.queryValue) - params.lst.indexOf(doc[params.attrib].value)) / (float)params.lst.length ) }"
+          "source": "if (params.lst.contains(doc[params.attrib].value)) { return (1 - ( (float) Math.abs(params.lst.indexOf(params.queryValue) - params.lst.indexOf(doc[params.attrib].value)) / (float)params.lst.length )) * params.weight }"
         },
-        "boost": weight,
         "_name": caseAttrib
       }
     }
@@ -406,21 +410,21 @@ def EnumDistance(caseAttrib, queryValue, weight, options):  # stores enum as arr
     print("Interval() is only applicable to numbers")
 
 
-def TermQuery(caseAttrib, queryValue, weight):
-  """
-  Matches query to equal field values using in-built method.
-  """
-  # build query string
-  query = {
-    "term": {
-      caseAttrib: {
-        "value": queryValue,
-        "boost": weight,
-        "_name": caseAttrib
-      }
-    }
-  }
-  return query
+# def TermQuery(caseAttrib, queryValue, weight):
+#   """
+#   Matches query to equal field values using in-built method.
+#   """
+#   # build query string
+#   query = {
+#     "term": {
+#       caseAttrib: {
+#         "value": queryValue,
+#         "boost": weight,
+#         "_name": caseAttrib
+#       }
+#     }
+#   }
+#   return query
 
 
 def Exact(caseAttrib, queryValue, weight):
@@ -431,63 +435,91 @@ def Exact(caseAttrib, queryValue, weight):
   queryFnc = {
     "script_score": {
       "query": {
-        "match_all": {}
+        "match": {
+          caseAttrib: queryValue
+        }
       },
       "script": {
         "params": {
           "attrib": caseAttrib,
           "queryValue": queryValue,
+          "weight": weight
         },
-        "source": "if (params.queryValue == doc[params.attrib].value) { return 1.0 } return 0.0"
+        "source": "if (params.queryValue == doc[params.attrib].value) { return (1.0 * params.weight) }"
       },
-      "boost": weight,
       "_name": caseAttrib
     }
   }
   return queryFnc
 
 
+# def MostSimilar_2(caseAttrib, queryValue, weight):
+#   """
+#   Most similar matches using ES default (works for all attribute types). Default similarity for strings and exact match for other types.
+#   """
+#   # build query string
+#   query = {
+#     "match": {
+#       caseAttrib: {
+#         "query": queryValue,
+#         "boost": weight,
+#         "_name": caseAttrib
+#       }
+#     }
+#   }
+#   return query
+
+
 def MostSimilar(caseAttrib, queryValue, weight):
   """
-  Most similar matches using ES default (works for all attribute types). Default similarity for strings and exact match for other types.
-  """
-  # build query string
-  query = {
-    "match": {
-      caseAttrib: {
-        "query": queryValue,
-        "boost": weight,
-        "_name": caseAttrib
-      }
-    }
-  }
-  return query
-
-
-def ClosestDate_2(caseAttrib, queryValue, weight, maxDate, minDate):  # format 'dd-MM-yyyy' e.g. '01-02-2020'
-  """
-  Find the documents whose attribute values have the closest date to the query date. The date field is indexed as 'keyword' to enable use of this similarity metric.
+  Most similar matches using ES default (works for all attribute types).
+  Default similarity (BM25) for strings and exact match for other types.
   """
   # build query string
   queryFnc = {
     "script_score": {
       "query": {
-        "match_all": {}
+        "match": {
+          caseAttrib: queryValue
+        }
       },
       "script": {
         "params": {
-          "weight": weight,
-          "queryValue": queryValue,
-          "oldestDate": minDate,
-          "newestDate": maxDate,
-          "attrib": caseAttrib
+          "attrib": caseAttrib,
+          "weight": weight
         },
-        "source": "SimpleDateFormat sdf = new SimpleDateFormat('dd-MM-yyyy', Locale.ENGLISH); doc[params.attrib].size()==0 ? 0 : (1 - Math.abs(sdf.parse(doc[params.attrib].value).getTime() - sdf.parse(params.queryValue).getTime()) / ((sdf.parse(params.newestDate).getTime() - sdf.parse(params.oldestDate).getTime()) + 1)) * params.weight"
+        "source": "params.weight * _score"  # right side is a dummy to help explanation method
       },
       "_name": caseAttrib
     }
   }
   return queryFnc
+
+
+# def ClosestDate_2(caseAttrib, queryValue, weight, maxDate, minDate):  # format 'dd-MM-yyyy' e.g. '01-02-2020'
+#   """
+#   Find the documents whose attribute values have the closest date to the query date. The date field is indexed as 'keyword' to enable use of this similarity metric.
+#   """
+#   # build query string
+#   queryFnc = {
+#     "script_score": {
+#       "query": {
+#         "match_all": {}
+#       },
+#       "script": {
+#         "params": {
+#           "attrib": caseAttrib,
+#           "weight": weight,
+#           "queryValue": queryValue,
+#           "oldestDate": minDate,
+#           "newestDate": maxDate
+#         },
+#         "source": "SimpleDateFormat sdf = new SimpleDateFormat('dd-MM-yyyy', Locale.ENGLISH); doc[params.attrib].size()==0 ? 0 : (1 - Math.abs(sdf.parse(doc[params.attrib].value).getTime() - sdf.parse(params.queryValue).getTime()) / ((sdf.parse(params.newestDate).getTime() - sdf.parse(params.oldestDate).getTime()) + 1)) * params.weight"
+#       },
+#       "_name": caseAttrib
+#     }
+#   }
+#   return queryFnc
 
 
 def ClosestDate(caseAttrib, queryValue, weight, scale, decay):  # format 'dd-MM-yyyy' e.g. '01-02-2020'
@@ -511,7 +543,7 @@ def ClosestDate(caseAttrib, queryValue, weight, scale, decay):  # format 'dd-MM-
           "scale": scale,
           "offset": "0",
           "decay": decay,
-          "weight": weight,
+          "weight": weight
         },
         "source": "decayDateExp(params.origin, params.scale, params.offset, params.decay, doc[params.attrib].value) * params.weight",
       },
@@ -533,13 +565,13 @@ def USE(caseAttrib, queryValue, weight):
       },
       "script": {
         "params": {
-          "query_vector": queryValue,
           "attrib": caseAttrib,
-          "attrib_vector": caseAttrib + '.rep'
+          "query_vector": queryValue,
+          "attrib_vector": caseAttrib + '.rep',
+          "weight": weight
         },
-        "source": "cosineSimilarity(params.query_vector, doc[params.attrib_vector]) + 1.0"
+        "source": "cosineSimilarity(params.query_vector, doc[params.attrib_vector]) * params.weight"
       },
-      "boost": weight,
       "_name": caseAttrib
     }
   }
@@ -563,7 +595,7 @@ def ClosestNumber(caseAttrib, queryValue, weight, scale, decay):
           "scale": scale,
           "offset": 0,
           "decay": decay,
-          "weight": weight,
+          "weight": weight
         },
         "source": "decayNumericExp(params.origin, params.scale, params.offset, params.decay, doc[params.attrib].value) * params.weight",
       },
@@ -590,7 +622,7 @@ def ClosestLocation(caseAttrib, queryValue, weight, scale, decay):
           "scale": scale,
           "offset": "0km",
           "decay": decay,
-          "weight": weight,
+          "weight": weight
         },
         "source": "decayGeoExp(params.origin, params.scale, params.offset, params.decay, doc[params.attrib].value) * params.weight",
       },
@@ -616,11 +648,11 @@ def TableSimilarity(caseAttrib, queryValue, weight, options):  # stores enum as 
           "attrib": caseAttrib,
           "queryValue": queryValue,
           "sim_grid": options.get('sim_grid'),
-          "grid_values": list(options.get('sim_grid', {}))
+          "grid_values": list(options.get('sim_grid', {})),
+          "weight": weight
         },
-        "source": "if (params.grid_values.contains(doc[params.attrib].value)) { return params.sim_grid[params.queryValue][doc[params.attrib].value] } return 0.0"
+        "source": "if (params.grid_values.contains(doc[params.attrib].value)) { return (params.sim_grid[params.queryValue][doc[params.attrib].value]) * params.weight }"
       },
-      "boost": weight,
       "_name": caseAttrib
     }
   }
@@ -642,15 +674,15 @@ def QueryIntersection(caseAttrib, queryValue, weight):
       "script": {
         "params": {
           "attrib": caseAttrib,
-          "queryValue": list(queryValue)
+          "queryValue": list(queryValue),
+          "weight": weight
         },
         "source": "double intersect = 0.0; "
                   "if (doc[params.attrib].size() > 0 && doc[params.attrib].value.length() > 0) { "
                   "for (item in doc[params.attrib]) { if (params.queryValue.contains(item)) { intersect = intersect + 1; } }"
-                  "return intersect/params.queryValue.length;} "
-                  "else { return 0;}"
+                  "return (intersect/params.queryValue.length) * params.weight;} "
+                  # "else { return 0;}"
       },
-      "boost": weight,
       "_name": caseAttrib
     }
   }
@@ -673,11 +705,11 @@ def OntologySimilarity(caseAttrib, queryValue, weight, sim_grid):
           "attrib": caseAttrib,
           "queryValue": queryValue,
           "sim_grid": sim_grid,
-          "grid_concepts": list(sim_grid)
+          "grid_concepts": list(sim_grid),
+          "weight": weight
         },
-        "source": "if (params.grid_concepts.contains(doc[params.attrib].value)) { return params.sim_grid[doc[params.attrib].value] } return 0.0"
+        "source": "if (params.grid_concepts.contains(doc[params.attrib].value)) { return (params.sim_grid[doc[params.attrib].value]) * params.weight }"
       },
-      "boost": weight,
       "_name": caseAttrib
     }
   }
