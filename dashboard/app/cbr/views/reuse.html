@@ -66,21 +66,27 @@
             <table class="table table-striped table-bordered" width="100%" cellspacing="0">
               <thead>
                 <tr>
-                  <th ng-repeat="(key, value) in requests.response.bestK[0]" ng-if="key !== 'score__'">{{ key }}</th>
+                  <th ng-repeat="attrib in selected.attributes">{{ attrib.name }}</th>
                   <th>Score</th>
+                  <th ng-if="requests.current.explanation">Local similarity measures</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 <tr ng-repeat="entry in requests.response.bestK">
-                  <td ng-repeat="(key, value) in entry" ng-if="key !== 'score__'">
-                    <span ng-if=" getDataType(value)!='object' ">{{ value }}</span>
-                    <code ng-if=" getDataType(value)=='object' ">
-                      <pre>{{ value | json }}</pre>
+                  <td ng-repeat="attrib in selected.attributes" ng-if="entry">
+                    <span ng-if=" getDataType(entry[attrib.name])!='object' ">{{ entry[attrib.name] }}</span>
+                    <code ng-if=" getDataType(entry[attrib.name])=='object' ">
+                      <pre>{{ entry[attrib.name] | json }}</pre>
                     </code>
                   </td>
                   <td>
                     {{ entry['score__'] | number:3 }}
+                  </td>
+                  <td ng-if="entry.match_explanation">
+                    <code>
+                      <pre>{{ entry['match_explanation'] | json }}</pre>
+                    </code>
                   </td>
                   <td>
                     <button type="button" class="btn btn-block btn-primary" ng-click="reuseCase(entry)">
