@@ -24,7 +24,7 @@
         <select id="newAttribSimilarity" class="form-control" ng-options="sim as sim for sim in getSimilarityTypes(newAttrib.type)" ng-model="newAttrib.similarity"></select>
       </div>
       <div class="form-group" ng-init="newAttrib.weight = newAttrib.weight || 1">
-        <input type="hidden" class="form-control" ng-model="newAttrib.weight">
+        <input type="hidden" class="form-control" ng-model="newAttrib.weight" required>
       </div>
 
       <div class="form-group col-sm-3">

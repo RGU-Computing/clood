@@ -436,19 +436,14 @@ def cbr_retrieve(event, context=None):
   query = {"query": {"bool": {"should": []}}}
   query["size"] = int(k)  # top k results
   for entry in queryFeatures:
-    if ('value' in entry) and entry['value'] is not None and "" != entry['value'] and int(
-            entry.get('weight', 0)) > 0 and entry['similarity'] != "None":
-      queryAdded = True
+    if entry.get('value') is not None and "" != entry['value'] and int(
+            entry.get('weight', 1)) > 0 and entry.get('similarity') != "None":
       field = entry['name']
-      similarityType = entry['similarity']
-      options = retrieve.get_attribute_by_name(proj['attributes'], field).get('options', None)
-      # print(options)
-      # fieldType = entry['type']
-      # use lowercase when field is specified as case-insensitive
       value = entry['value']
-      weight = entry['weight']
-      # isProblem = entry['unknown']
-      # strategy = entry['strategy']
+      similarityType = entry.get('similarity', [x['similarity'] for x in proj_attributes if x['name'] == field][0])  # get similarity type from project attributes if not stated in query
+      weight = entry.get('weight', [x['weight'] for x in proj_attributes if x['name'] == field][0])  # default weight if property is missing
+      options = retrieve.get_attribute_by_name(proj['attributes'], field).get('options', None)
+      queryAdded = True
 
       qfnc = retrieve.getQueryFunction(proj['id__'], field, value, weight, similarityType, options)
       query["query"]["bool"]["should"].append(qfnc)
@@ -477,21 +472,24 @@ def cbr_retrieve(event, context=None):
   # keep known attribute values (query) supplied
   if counter > 0:
     for entry in queryFeatures:
-      if not entry['unknown'] and ('value' in entry) and entry['value'] is not None and "" != entry[
-        'value']:  # copy known values
-        result['recommended'][entry['name']] = entry['value']
-      if entry.get('similarity') is not None and entry['unknown'] and entry[
-        'strategy'] != "Best Match":  # use reuse strategies for unknown fields
-        if entry['strategy'] == "Maximum":
-          result['recommended'][entry['name']] = max(d[entry['name']] for d in result['bestK'])
-        if entry['strategy'] == "Minimum":
-          result['recommended'][entry['name']] = min(d[entry['name']] for d in result['bestK'])
-        if entry['strategy'] == "Mean":
-          result['recommended'][entry['name']] = np.mean([x[entry['name']] for x in result['bestK']])
-        if entry['strategy'] == "Median":
-          result['recommended'][entry['name']] = np.median([x[entry['name']] for x in result['bestK']])
-        if entry['strategy'] == "Mode":
-          result['recommended'][entry['name']] = statistics.mode([x[entry['name']] for x in result['bestK']])
+      field = entry['name']
+      # similarityType = entry.get('similarity', [x['similarity'] for x in proj_attributes if x['name'] == field][0])
+      strategy = entry.get('strategy', "Best Match")
+      if not entry.get('unknown', False) and entry.get('value') is not None and "" != entry['value']:  # copy known values
+        result['recommended'][field] = entry['value']
+      else:  # use reuse strategies for unknown fields
+        if strategy == "Maximum":
+          result['recommended'][field] = max(d[field] for d in result['bestK'])
+        elif strategy == "Minimum":
+          result['recommended'][field] = min(d[field] for d in result['bestK'])
+        elif strategy == "Mean":
+          result['recommended'][field] = np.mean([x[field] for x in result['bestK']])
+        elif strategy == "Median":
+          result['recommended'][field] = np.median([x[field] for x in result['bestK']])
+        elif strategy == "Mode":
+          result['recommended'][field] = statistics.mode([x[field] for x in result['bestK']])
+        else:
+          result['recommended'][field] = result['bestK'][0][field]  # assign value of 'Best Match'
     # generate a new random id to make (if there was an id) to make it different from existing cases
     if result['recommended'].get('id') is not None:
       result['recommended']['id'] = uuid.uuid4().hex
