@@ -79,3 +79,22 @@ def getByUniqueField(es, index, field, value):
     entry['id__'] = res['hits']['hits'][0]['_id']
     result = entry
   return result
+
+
+def getIndexEntries(es, index, start=0, size=100):
+  """
+  Retrieve documents from specified index (100 documents by default).
+  """
+  result = []
+  # retrieve if ES index does exist
+  query = {}
+  query['query'] = {"match_all": {}}
+  query['from'] = start
+  query['size'] = size
+  # print(query)
+  res = es.search(index=index, body=query)
+  for entry in res['hits']['hits']:
+    doc = entry['_source']
+    doc['id__'] = entry['_id']
+    result.append(doc)
+  return result

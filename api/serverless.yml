@@ -67,6 +67,13 @@ functions:
           path: case/{id}/list
           method: post
           cors: true
+  get_all_cases:
+    handler: handler.get_all_cases
+    events:
+      - http:
+          path: case
+          method: post
+          cors: true
   remove_case:
     handler: handler.remove_case
     events:
