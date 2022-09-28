@@ -1,3 +1,4 @@
+from queue import Empty
 import sys
 import os
 import json
@@ -287,22 +288,34 @@ def get_all_cases(event, context=None):
   }
   return response
 
+
 def get_case(event, context=None):
   """
   End-point: Retrieves a specific case from a project.
   """
-  es = getESConn()
+  statusCode = 200
   projectId = event['pathParameters']['pid']
   caseId = event['pathParameters']['cid']
-  result = utility.getByUniqueField(es, projectId+"_casebase", "_id", caseId) # get case
+  es = getESConn()
+
+  try:
+    result = utility.getByUniqueField(es, projectId+"_casebase", "_id", caseId) # get case
+  except:
+    result = "ERROR: Could not find the specified casebase."
+    statusCode = 404
+
+  if not result:
+    result = "ERROR: Could not find the specified case."
+    statusCode = 404
 
   response = {
-    "statusCode": 200,
+    "statusCode": statusCode,
     "headers": headers,
     "body": json.dumps(result)
   }  
 
   return response
+
 
 def update_case(event, context=None):
   """
@@ -340,21 +353,25 @@ def update_case(event, context=None):
   return response
 
 
-def remove_case(event, context=None):
+def delete_case(event, context=None):
   """
-  End-point: Update operation for an existing case.
+  End-point: Delete the specified case from a project
   """
   statusCode = 200
-  params = json.loads(event['body'])  # parameters in request body
-  casebase = params.get('projectId', None)  # name of casebase
-  case = params.get('caseId', None)
+  projectId = event['pathParameters']['pid']
+  caseId = event['pathParameters']['cid']
+  casebase = projectId + "_casebase"
+  es = getESConn()
 
-  if casebase is None or case is None:
-    result = "Details of the case to be removed are missing."
-    statusCode = 400
+  if es.indices.exists(index=casebase):
+    try:
+      result = es.delete(index=casebase, id=caseId)
+    except:
+      result = "ERROR: Could not remove the specified case. Check to see if the case id is correct."
+      statusCode = 400
   else:
-    es = getESConn()
-    result = es.delete(index=casebase, id=case)
+    result = "ERROR: Either the specified project does not exist, or it has no casebase."
+    statusCode = 400
 
   response = {
     "statusCode": statusCode,

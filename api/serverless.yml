@@ -93,8 +93,8 @@ functions:
     handler: handler.delete_case
     events:
       - http:
-          path: remove
-          method: post
+          path: project/{pid}/case/{cid}
+          method: delete
           cors: true
   re_create_config:
     handler: handler.re_create_config
