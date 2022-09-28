@@ -240,7 +240,9 @@ def McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight):
     queryFnc = {
       "script_score": {
         "query": {
-          "match_all": {}
+          "exists": {
+            "field": caseAttrib
+          }
         },
         "script": {
           "source": "((float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min)) * params.weight",
@@ -269,7 +271,9 @@ def McSherryMoreIsBetter(caseAttrib, maxValue, minValue, weight):
     queryFnc = {
       "script_score": {
         "query": {
-          "match_all": {}
+          "exists": {
+            "field": caseAttrib
+          }
         },
         "script": {
           "source": "(1 - ( (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min) )) * params.weight",
@@ -299,7 +303,9 @@ def InrecaLessIsBetter(caseAttrib, queryValue, maxValue, jump, weight):
     queryFnc = {
       "script_score": {
         "query": {
-          "match_all": {}
+          "exists": {
+            "field": caseAttrib
+          }
         },
         "script": {
           "source": "if (doc[params.attrib].value <= params.queryValue) { return (1.0 * params.weight) } if (doc[params.attrib].value >= params.max) { return 0 } return (params.jump * (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.queryValue)) * params.weight",
@@ -330,7 +336,9 @@ def InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight):
     queryFnc = {
       "script_score": {
         "query": {
-          "match_all": {}
+          "exists": {
+            "field": caseAttrib
+          }
         },
         "script": {
           "source": "if (doc[params.attrib].value >= params.queryValue) { return (1.0 * params.weight) } return (params.jump * (1 - ((float)(params.queryValue - doc[params.attrib].value) / (float)params.queryValue))) * params.weight",
@@ -360,7 +368,9 @@ def Interval(caseAttrib, queryValue, interval, weight):
     queryFnc = {
       "script_score": {
         "query": {
-          "match_all": {}
+          "exists": {
+            "field": caseAttrib
+          }
         },
         "script": {
           "params": {
@@ -390,7 +400,9 @@ def EnumDistance(caseAttrib, queryValue, weight, options):  # stores enum as arr
     queryFnc = {
       "script_score": {
         "query": {
-          "match_all": {}
+          "exists": {
+            "field": caseAttrib
+          }
         },
         "script": {
           "params": {
@@ -534,7 +546,9 @@ def ClosestDate(caseAttrib, queryValue, weight, scale, decay):  # format 'dd-MM-
   queryFnc = {
     "script_score": {
       "query": {
-        "match_all": {}
+        "exists": {
+          "field": caseAttrib
+        }
       },
       "script": {
         "params": {
@@ -561,7 +575,9 @@ def USE(caseAttrib, queryValue, weight):
   queryFnc = {
     "script_score": {
       "query": {
-        "match_all": {}
+        "exists": {
+          "field": caseAttrib
+        }
       },
       "script": {
         "params": {
@@ -586,7 +602,9 @@ def ClosestNumber(caseAttrib, queryValue, weight, scale, decay):
   queryFnc = {
     "script_score": {
       "query": {
-        "match_all": {}
+        "exists": {
+          "field": caseAttrib
+        }
       },
       "script": {
         "params": {
@@ -613,7 +631,9 @@ def ClosestLocation(caseAttrib, queryValue, weight, scale, decay):
   queryFnc = {
     "script_score": {
       "query": {
-        "match_all": {}
+        "exists": {
+          "field": caseAttrib
+        }
       },
       "script": {
         "params": {
@@ -641,7 +661,9 @@ def TableSimilarity(caseAttrib, queryValue, weight, options):  # stores enum as 
   queryFnc = {
     "script_score": {
       "query": {
-        "match_all": {}
+        "exists": {
+          "field": caseAttrib
+        }
       },
       "script": {
         "params": {
@@ -669,7 +691,9 @@ def QueryIntersection(caseAttrib, queryValue, weight):
   queryFnc = {
     "script_score": {
       "query": {
-        "match_all": {}
+        "exists": {
+          "field": caseAttrib
+        }
       },
       "script": {
         "params": {
@@ -698,7 +722,9 @@ def OntologySimilarity(caseAttrib, queryValue, weight, sim_grid):
   queryFnc = {
     "script_score": {
       "query": {
-        "match_all": {}
+        "exists": {
+          "field": caseAttrib
+        }
       },
       "script": {
         "params": {
