@@ -263,10 +263,30 @@ def save_case_list(event, context=None):
   return response
 
 
-# except ValueError:
-#   print("Unexpected data type encountered")
-# except:
-#   print("An error occurred while trying to index updated cases")
+def get_all_cases(event, context=None):
+  """
+  End-point: Returns the cases in a casebase. Need to include 'size' in request if more than 100 cases.
+  Also supports pagination by including 'size' and 'start' (offset) properties
+  """
+  statusCode = 200
+  es = getESConn()  # es connection
+  params = json.loads(event['body'])  # parameters in request body
+  proj = params.get('project')
+  if proj is None:
+    projId = params.get('projectId')  # name of casebase
+    proj = utility.getByUniqueField(es, projects_db, "_id", projId)
+
+  start = params.get('start', 0)  # optional offset (default is 0)
+  size = params.get('size', 100)  # optional size (default is 100)
+  result = utility.getIndexEntries(es, proj['casebase'], start, size)
+
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(result)
+  }
+  return response
+
 
 def remove_case(event, context=None):
   """
@@ -431,8 +451,8 @@ def cbr_retrieve(event, context=None):
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
   proj_attributes = proj['attributes']
-  globalSim = params['globalSim']  # not used as default aggregation is a weighted sum of local similarity values
-  k = params['topk']
+  globalSim = params.get('globalSim', "Weighted Sum")  # not used as default aggregation is a weighted sum of local similarity values
+  k = int(params.get('topk', 5))  # default k=5
   query = {"query": {"bool": {"should": []}}}
   query["size"] = int(k)  # top k results
   for entry in queryFeatures:
