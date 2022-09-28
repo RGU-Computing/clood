@@ -287,6 +287,58 @@ def get_all_cases(event, context=None):
   }
   return response
 
+def get_case(event, context=None):
+  """
+  End-point: Retrieves a specific case from a project.
+  """
+  es = getESConn()
+  projectId = event['pathParameters']['pid']
+  caseId = event['pathParameters']['cid']
+  result = utility.getByUniqueField(es, projectId+"_casebase", "_id", caseId) # get case
+
+  response = {
+    "statusCode": 200,
+    "headers": headers,
+    "body": json.dumps(result)
+  }  
+
+  return response
+
+def update_case(event, context=None):
+  """
+  End-point: Updates the specified case.
+  """
+  statusCode = 201
+  doc = json.loads(event['body'])  # parameters in request body
+  projectId = event['pathParameters']['pid']
+  caseId = event['pathParameters']['cid']
+  casebase = projectId + "_casebase"
+  
+  es = getESConn()
+
+  if es.indices.exists(index=casebase):
+    doc.pop('id__') if 'id' in doc else None
+    doc.pop('score__') if 'score__' in doc else None
+    doc['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(doc.items()))).encode('utf-8')).digest()) # Create new hash
+    source_to_update = {'doc': doc}
+
+    try:
+      result = es.update(index=casebase, id=caseId, body=source_to_update)
+    except:
+      result = "ERROR: Could not update the specified case. Check to see if the case id is correct and that you are using the correct value types."
+      statusCode = 400
+  else:
+    result = "ERROR: Either the specified project does not exist, or it has no casebase."
+    statusCode = 400
+    
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(result)
+  }  
+
+  return response
+
 
 def remove_case(event, context=None):
   """
