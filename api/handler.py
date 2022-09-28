@@ -1,3 +1,4 @@
+from queue import Empty
 import sys
 import os
 import json
@@ -288,21 +289,89 @@ def get_all_cases(event, context=None):
   return response
 
 
-def remove_case(event, context=None):
+def get_case(event, context=None):
   """
-  End-point: Update operation for an existing case.
+  End-point: Retrieves a specific case from a project.
   """
   statusCode = 200
-  params = json.loads(event['body'])  # parameters in request body
-  casebase = params.get('projectId', None)  # name of casebase
-  case = params.get('caseId', None)
+  projectId = event['pathParameters']['pid']
+  caseId = event['pathParameters']['cid']
+  es = getESConn()
 
-  if casebase is None or case is None:
-    result = "Details of the case to be removed are missing."
-    statusCode = 400
+  try:
+    result = utility.getByUniqueField(es, projectId+"_casebase", "_id", caseId) # get case
+  except:
+    result = "ERROR: Could not find the specified casebase."
+    statusCode = 404
+
+  if not result:
+    result = "ERROR: Could not find the specified case."
+    statusCode = 404
+
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(result)
+  }  
+
+  return response
+
+
+def update_case(event, context=None):
+  """
+  End-point: Updates the specified case.
+  """
+  statusCode = 201
+  doc = json.loads(event['body'])  # parameters in request body
+  projectId = event['pathParameters']['pid']
+  caseId = event['pathParameters']['cid']
+  casebase = projectId + "_casebase"
+  
+  es = getESConn()
+
+  if es.indices.exists(index=casebase):
+    doc.pop('id__') if 'id' in doc else None
+    doc.pop('score__') if 'score__' in doc else None
+    doc['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(doc.items()))).encode('utf-8')).digest()) # Create new hash
+    source_to_update = {'doc': doc}
+
+    try:
+      result = es.update(index=casebase, id=caseId, body=source_to_update)
+    except:
+      result = "ERROR: Could not update the specified case. Check to see if the case id is correct and that you are using the correct value types."
+      statusCode = 400
   else:
-    es = getESConn()
-    result = es.delete(index=casebase, id=case)
+    result = "ERROR: Either the specified project does not exist, or it has no casebase."
+    statusCode = 400
+    
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(result)
+  }  
+
+  return response
+
+
+def delete_case(event, context=None):
+  """
+  End-point: Delete the specified case from a project
+  """
+  statusCode = 200
+  projectId = event['pathParameters']['pid']
+  caseId = event['pathParameters']['cid']
+  casebase = projectId + "_casebase"
+  es = getESConn()
+
+  if es.indices.exists(index=casebase):
+    try:
+      result = es.delete(index=casebase, id=caseId)
+    except:
+      result = "ERROR: Could not remove the specified case. Check to see if the case id is correct."
+      statusCode = 400
+  else:
+    result = "ERROR: Either the specified project does not exist, or it has no casebase."
+    statusCode = 400
 
   response = {
     "statusCode": statusCode,
