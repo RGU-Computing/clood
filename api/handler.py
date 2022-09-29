@@ -228,7 +228,7 @@ def save_case_list(event, context=None):
   # try:
   doc_list = json.loads(event['body'])  # parameters in request body
   es = getESConn()
-  pid = event['pathParameters']['id']
+  pid = event['pathParameters']['caseid']
   proj = utility.getByUniqueField(es, projects_db, "_id", pid)  # project
   # create index with mapping if it does not exist already
   project.indexMapping(es, proj)
@@ -294,7 +294,7 @@ def get_case(event, context=None):
   End-point: Retrieves a specific case from a project.
   """
   statusCode = 200
-  projectId = event['pathParameters']['pid']
+  projectId = event['pathParameters']['id']
   caseId = event['pathParameters']['cid']
   es = getESConn()
 
@@ -323,7 +323,7 @@ def update_case(event, context=None):
   """
   statusCode = 201
   doc = json.loads(event['body'])  # parameters in request body
-  projectId = event['pathParameters']['pid']
+  projectId = event['pathParameters']['id']
   caseId = event['pathParameters']['cid']
   casebase = projectId + "_casebase"
   
@@ -358,7 +358,7 @@ def delete_casebase(event, context=None):
   End-point: Deletes the casebase for a specific project
   """
   statusCode = 200
-  projectId = event['pathParameters']['pid']
+  projectId = event['pathParameters']['id']
   casebase = projectId + "_casebase"
 
   es = getESConn()
@@ -387,7 +387,7 @@ def delete_case(event, context=None):
   End-point: Delete the specified case from a project
   """
   statusCode = 200
-  projectId = event['pathParameters']['pid']
+  projectId = event['pathParameters']['id']
   caseId = event['pathParameters']['cid']
   casebase = projectId + "_casebase"
   es = getESConn()
