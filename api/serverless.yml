@@ -89,7 +89,14 @@ functions:
           path: project/{pid}/case/{cid}
           method: put
           cors: true
-  remove_case:
+  delete_casebase:
+    handler: handler.delete_casebase
+    events:
+      - http:
+          path: project/{pid}/case
+          method: delete
+          cors: true
+  delete_case:
     handler: handler.delete_case
     events:
       - http:

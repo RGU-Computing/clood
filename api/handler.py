@@ -353,6 +353,35 @@ def update_case(event, context=None):
   return response
 
 
+def delete_casebase(event, context=None):
+  """
+  End-point: Deletes the casebase for a specific project
+  """
+  statusCode = 200
+  projectId = event['pathParameters']['pid']
+  casebase = projectId + "_casebase"
+
+  es = getESConn()
+  try:
+    result = es.indices.delete(index=casebase, ignore=[400, 404]) 
+  except:
+    result = "ERROR: Failed to delete the specified casebase."
+    statusCode = 400
+
+  if statusCode == 200:
+    proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
+    proj['hasCasebase'] = False
+    source_to_update = {'doc': proj}
+    es.update(index=projects_db, id=projectId, body=source_to_update)
+
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(result)
+  }
+
+  return response
+
 def delete_case(event, context=None):
   """
   End-point: Delete the specified case from a project
