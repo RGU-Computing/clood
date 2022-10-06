@@ -21,7 +21,7 @@ import config as cfg
 sys.path.append(os.path.abspath("others"))
 import project
 import utility
-import error
+import exceptions
 
 # Local: functions for CBR cycle
 sys.path.append(os.path.abspath("cbrcycle"))
@@ -96,7 +96,7 @@ def all_projects(event, context=None):
       entry['id__'] = hit['_id']
       result.append(entry)
   else:
-    result = error.projectIndexError()
+    result = exceptions.projectIndexException()
     statusCode = 404
 
   response = {
@@ -118,11 +118,11 @@ def get_project(event, context=None):
   if es.indices.exists(index=projects_db):
     result = utility.getByUniqueField(es, projects_db, "_id", projectId)
   else:
-    result = error.projectIndexError()
+    result = exceptions.projectIndexException()
     statusCode = 404
   
   if not result:
-    result = error.projectGetError()
+    result = exceptions.projectGetException()
     statusCode = 404
 
   response = {
@@ -150,11 +150,11 @@ def new_project(event, context=None):
     utility.createOrUpdateGlobalConfig(es, config_db=config_db)   # create config db if it does not exist
   print(proj)
   if 'casebase' not in proj or "" == proj['casebase'] or "" == proj['name']:
-    result = error.projectNameError()
+    result = exceptions.projectNameException()
     statusCode = 400
   elif utility.indexHasDocWithFieldVal(es, index=projects_db, field='casebase',
                                        value=proj['casebase']):
-    result = error.projectDuplicateError()
+    result = exceptions.projectDuplicateException()
     statusCode = 400
   else:
     if 'attributes' not in proj:
@@ -165,7 +165,7 @@ def new_project(event, context=None):
       result = es.index(index=projects_db, body=proj, id=proj_id)
       result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "proj": proj}
     except:
-      result = error.projectCreateError()
+      result = exceptions.projectCreateException()
       statusCode = 400
 
   proj["id__"] = proj_id
@@ -191,7 +191,7 @@ def update_project(event, context=None):
   proj_old = utility.getByUniqueField(getESConn(), projects_db, "_id", projectId)  # get previous version of project
 
   if not proj_old:
-    result = error.projectGetError()
+    result = exceptions.projectGetException()
     statusCode = 404
   else:
     source_to_update = {"doc" : proj}
@@ -202,7 +202,7 @@ def update_project(event, context=None):
       source_to_update['doc']['id__'] = projectId
       result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "proj": source_to_update['doc']}
     except:
-      result = error.projectUpdateError()
+      result = exceptions.projectUpdateException()
       statusCode = 404
 
     # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
@@ -247,10 +247,10 @@ def delete_project(event, context=None):
                 retrieve.removeOntoIndex(ontologyId)
         result = es.delete(index=projects_db, id=projectId)   # delete project
       except:
-        result = error.projectDeleteError()
+        result = exceptions.projectDeleteException()
         statusCode = 400
   else:
-    result = error.projectGetError()
+    result = exceptions.projectGetException()
     statusCode = 404
 
   response = {
@@ -292,7 +292,7 @@ def save_case_list(event, context=None):
     try:
       result = es.update(index=projects_db, id=projectId, body=source_to_update)
     except:
-      result = error.projectUpdateError()
+      result = exceptions.projectUpdateException()
       statusCode = 404
     # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
     for attrib in proj['attributes']:
@@ -300,7 +300,7 @@ def save_case_list(event, context=None):
         sim_method = 'san' if attrib['similarity'] == 'Feature-based' else 'wup'
         retrieve.setOntoSimilarity(projectId + "_ontology_" + attrib['options'].get('name'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type'), root_node=attrib['options'].get('root'), similarity_method=sim_method)
   else:
-    result = error.projectGetError()
+    result = exceptions.projectGetException()
     statusCode = 404
 
   response = {
@@ -328,9 +328,13 @@ def get_all_cases(event, context=None):
   if proj:
     start = params.get('start', 0)  # optional offset (default is 0)
     size = params.get('size', 100)  # optional size (default is 100)
-    result = utility.getIndexEntries(es, proj['casebase'], start, size)
+    if es.indices.exists(index=proj['casebase']):
+      result = utility.getIndexEntries(es, proj['casebase'], start, size)
+    else:
+      result = exceptions.casebaseGetException()
+      statusCode = 404
   else:
-    result = error.projectGetError()
+    result = exceptions.projectGetException()
     statusCode = 404
 
   response = {
@@ -350,14 +354,18 @@ def get_case(event, context=None):
   caseId = event['pathParameters']['cid']
   es = getESConn()
 
-  try:
-    result = utility.getByUniqueField(es, projectId+"_casebase", "_id", caseId) # get case
-  except:
-    result = "ERROR: Could not find the specified casebase."
+  if utility.getByUniqueField(es, projects_db, "_id", projectId):
+    if es.indices.exists(index=projectId+"_casebase"):
+      result = utility.getByUniqueField(es, projectId+"_casebase", "_id", caseId) # get case
+    else:
+      result = exceptions.casebaseGetException()
+      statusCode = 404
+  else:
+    result = exceptions.projectGetException()
     statusCode = 404
 
   if not result:
-    result = "ERROR: Could not find the specified case."
+    result = exceptions.caseGetException()
     statusCode = 404
 
   response = {
@@ -381,20 +389,29 @@ def update_case(event, context=None):
   
   es = getESConn()
 
-  if es.indices.exists(index=casebase):
-    doc.pop('id__', None)
-    doc.pop('score__', None)
-    doc['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(doc.items()))).encode('utf-8')).digest()) # Create new hash
-    source_to_update = {'doc': doc}
+  if utility.getByUniqueField(es, projects_db, "_id", projectId):
+    if es.indices.exists(index=casebase):
+      doc.pop('id__', None)
+      doc.pop('score__', None)
+      print(doc)
+      doc['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(doc.items()))).encode('utf-8')).digest()) # Create new hash
+      source_to_update = {'doc': doc}
 
-    try:
-      result = es.update(index=casebase, id=caseId, body=source_to_update)
-    except:
-      result = "ERROR: Could not update the specified case. Check to see if the case id is correct and that you are using the correct value types."
-      statusCode = 400
+      if es.exists(index=casebase, id=caseId):
+        try:
+          result = es.update(index=casebase, id=caseId, body=source_to_update)
+        except:
+          result = exceptions.caseUpdateException()
+          statusCode = 400
+      else:
+        result = exceptions.caseGetException()
+        statusCode = 404
+    else:
+      result = exceptions.casebaseGetException()
+      statusCode = 404      
   else:
-    result = "ERROR: Either the specified project does not exist, or it has no casebase."
-    statusCode = 400
+    result = exceptions.projectGetException()
+    statusCode = 404
     
   response = {
     "statusCode": statusCode,
@@ -414,17 +431,24 @@ def delete_casebase(event, context=None):
   casebase = projectId + "_casebase"
 
   es = getESConn()
-  try:
-    result = es.indices.delete(index=casebase, ignore=[400, 404]) 
-  except:
-    result = "ERROR: Failed to delete the specified casebase."
-    statusCode = 400
 
-  if statusCode == 200:
-    proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
-    proj['hasCasebase'] = False
-    source_to_update = {'doc': proj}
-    es.update(index=projects_db, id=projectId, body=source_to_update)
+  proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
+
+  if proj:
+    try:
+      result = es.indices.delete(index=casebase, ignore_unavailable = True) 
+    except:
+      result = exceptions.casebaseDeleteException()
+      statusCode = 400
+
+    if statusCode == 200:
+      proj['hasCasebase'] = False
+      source_to_update = {'doc': proj}
+      es.update(index=projects_db, id=projectId, body=source_to_update)
+
+  else:
+    result = exceptions.projectGetException()
+    statusCode = 404
 
   response = {
     "statusCode": statusCode,
@@ -433,6 +457,7 @@ def delete_casebase(event, context=None):
   }
 
   return response
+
 
 def delete_case(event, context=None):
   """
@@ -445,14 +470,18 @@ def delete_case(event, context=None):
   es = getESConn()
 
   if es.indices.exists(index=casebase):
-    try:
-      result = es.delete(index=casebase, id=caseId)
-    except:
-      result = "ERROR: Could not remove the specified case. Check to see if the case id is correct."
-      statusCode = 400
+    if es.exists(index=casebase, id=caseId):
+      try:
+        result = es.delete(index=casebase, id=caseId)
+      except:
+        result = exceptions.caseDeleteException()
+        statusCode = 400
+    else:
+      result = exceptions.caseGetException()
+      statusCode = 404
   else:
-    result = "ERROR: Either the specified project does not exist, or it has no casebase."
-    statusCode = 400
+    result = exceptions.casebaseGetException()
+    statusCode = 404
 
   response = {
     "statusCode": statusCode,
@@ -469,15 +498,12 @@ def create_project_index(event, context=None):
   es = getESConn()
   pid = event['pathParameters']['id']
   proj = utility.getByUniqueField(es, projects_db, "_id", pid)  # project
-  index_name = proj['casebase']
   res = project.indexMapping(es, proj)
 
   # Indicate that the project has a casebase (empty)
-  # print("Casebase added. Attempting to update project detail. Set hasCasebase => True")
   proj['hasCasebase'] = True
   source_to_update = {'doc': proj}
   res = es.update(index=projects_db, id=pid, body=source_to_update)
-  # print(res)
 
   response = {
     "statusCode": 201,
