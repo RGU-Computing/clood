@@ -206,15 +206,16 @@ def update_project(event, context=None):
       statusCode = 404
 
     # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
-    if proj['hasCasebase']:  # check that the casebase has been created since similarity is computed when the casebase is created
-      for attrib in proj['attributes']:  # for each project casebase attribute
-        if attrib['type'] == "Ontology Concept" and attrib.get('options') is not None and \
-                attrib['options']:  # check that the attribute is ontology based
-          old_onto_attrib = next((item for item in proj_old['attributes'] if item['name'] == attrib['name']), None)  # get the pre project update version of the attribute
-          if old_onto_attrib is not None and attrib.get('similarity') is not None and attrib != old_onto_attrib:  # update ontology similarity measures if there are changes
-            sim_method = 'san' if attrib['similarity'] == 'Feature-based' else 'wup'
-            retrieve.setOntoSimilarity(projectId + "_ontology_" + attrib['options'].get('name'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None),
-                                    root_node=attrib['options'].get('root'), similarity_method=sim_method)
+    if 'attributes' in proj and 'hasCasebase' in proj:
+      if proj['hasCasebase']:  # check that the casebase has been created since similarity is computed when the casebase is created
+        for attrib in proj['attributes']:  # for each project casebase attribute
+          if attrib['type'] == "Ontology Concept" and attrib.get('options') is not None and \
+                  attrib['options']:  # check that the attribute is ontology based
+            old_onto_attrib = next((item for item in proj_old['attributes'] if item['name'] == attrib['name']), None)  # get the pre project update version of the attribute
+            if old_onto_attrib is not None and attrib.get('similarity') is not None and attrib != old_onto_attrib:  # update ontology similarity measures if there are changes
+              sim_method = 'san' if attrib['similarity'] == 'Feature-based' else 'wup'
+              retrieve.setOntoSimilarity(projectId + "_ontology_" + attrib['options'].get('name'), attrib['options'].get('sources'), relation_type=attrib['options'].get('relation_type', None),
+                                      root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
   response = {
     "statusCode": statusCode,
@@ -245,7 +246,7 @@ def delete_project(event, context=None):
               ontologyId = projectId + "_ontology_" + attrib['options'].get('name')
               if attrib['options'].get('name') is not None:
                 retrieve.removeOntoIndex(ontologyId)
-        result = es.delete(index=projects_db, id=projectId)   # delete project
+        result = es.delete(index=projects_db, id=projectId, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")   # delete project
       except:
         result = exceptions.projectDeleteException()
         statusCode = 400
@@ -382,27 +383,36 @@ def update_case(event, context=None):
   End-point: Updates the specified case.
   """
   statusCode = 201
-  doc = json.loads(event['body'])  # parameters in request body
+  case = json.loads(event['body'])  # parameters in request body
   projectId = event['pathParameters']['id']
   caseId = event['pathParameters']['cid']
   casebase = projectId + "_casebase"
   
   es = getESConn()
+  proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
 
-  if utility.getByUniqueField(es, projects_db, "_id", projectId):
+  if proj:
     if es.indices.exists(index=casebase):
-      doc.pop('id__', None)
-      doc.pop('score__', None)
-      print(doc)
-      doc['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(doc.items()))).encode('utf-8')).digest()) # Create new hash
-      source_to_update = {'doc': doc}
+      oldCase = utility.getByUniqueField(es, casebase, "_id", caseId)
+      if oldCase:
+        oldCase.pop('id__', None)
+        oldCase.pop('score__', None)
+        oldCase.pop('hash__', None)
+        for key,value in case.items():
+          oldCase[key] = value
+        oldCase['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(oldCase.items()))).encode('utf-8')).digest()) # Create new hash
+        source_to_update = {'doc': oldCase}
 
-      if es.exists(index=casebase, id=caseId):
-        try:
-          result = es.update(index=casebase, id=caseId, body=source_to_update)
-        except:
-          result = exceptions.caseUpdateException()
+        if not proj['retainDuplicateCases'] and utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__',
+                                                                          value=oldCase['hash__']):
+          result = "The case already exists in the casebase"
           statusCode = 400
+        else:
+          try:
+            result = es.update(index=casebase, id=caseId, body=source_to_update,filter_path="-_seq_no,-_shards,-_primary_term,-_type")
+          except:
+            result = exceptions.caseUpdateException()
+            statusCode = 400
       else:
         result = exceptions.caseGetException()
         statusCode = 404
@@ -775,9 +785,9 @@ def cbr_retain(event, context=None):
     statusCode = 400
   else:
     if case_id is None:
-      result = es.index(index=proj['casebase'], body=new_case)
+      result = es.index(index=proj['casebase'], body=new_case, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
     else:
-      result = es.index(index=proj['casebase'], body=new_case, id=case_id)
+      result = es.index(index=proj['casebase'], body=new_case, id=case_id, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
 
   response = {
     "statusCode": statusCode,
