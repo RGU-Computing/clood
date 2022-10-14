@@ -482,7 +482,7 @@ def delete_case(event, context=None):
   if es.indices.exists(index=casebase):
     if es.exists(index=casebase, id=caseId):
       try:
-        result = es.delete(index=casebase, id=caseId)
+        result = es.delete(index=casebase, id=caseId, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
       except:
         result = exceptions.caseDeleteException()
         statusCode = 400
