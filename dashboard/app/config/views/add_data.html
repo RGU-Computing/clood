@@ -23,7 +23,15 @@
     <br />
     <div class="row">
       <div class="form-group col-sm-6">
-        <label for="formControlFile1">Select CSV file</label>
+        <button type="button" class="btn btn-primary" title="Download CSV Template" ng-click="exportTemplate()" ng-disabled="!selected.attributes.length>0">
+          Download CSV Template
+        </button>
+      </div>
+    </div>
+    <br />
+    <div class="row">
+      <div class="form-group col-sm-6">
+        <label for="formControlFile1">Import CSV file</label>
         <input type="file" class="form-control-file" id="formControlFile1" custom-on-change="readFile" ng-disabled="!selected.attributes.length>0">
         <!-- <input type="file" class="custom-file-input" id="customFile"> -->
         <!-- <input type="file" custom-on-change="uploadFile"> -->
