@@ -9,6 +9,9 @@
 
 <div class="row">
   <p>Retrieve time: {{ requests.response.retrieveTime | number:3 }}s | ES Query time: {{ requests.response.esTime | number:3 }}ms</p>
+  <button type="button" class="btn btn-primary" title="Download Query Results" ng-click="exportResults()" ng-disabled="!requests.response.bestK>0">
+    Download Results
+  </button>
 </div>
 
 <div class="row">

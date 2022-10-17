@@ -228,7 +228,7 @@ def save_case_list(event, context=None):
   # try:
   doc_list = json.loads(event['body'])  # parameters in request body
   es = getESConn()
-  pid = event['pathParameters']['caseid']
+  pid = event['pathParameters']['id']
   proj = utility.getByUniqueField(es, projects_db, "_id", pid)  # project
   # create index with mapping if it does not exist already
   project.indexMapping(es, proj)
