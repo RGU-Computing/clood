@@ -140,7 +140,7 @@ angular.module('cloodApp.cbr', [])
       let caseValue;
       $scope.selected.attributes.forEach(function(key,index){
         item[key.name] == null ? caseValue = "" : caseValue = item[key.name]
-        caseValue.toString().replace(/,/g, '');
+        caseValue = caseValue.toString().replace(/[,\n]/gm, '');
         index == 0 ? itemJSON += caseValue : itemJSON += ","+caseValue
       });
     });
