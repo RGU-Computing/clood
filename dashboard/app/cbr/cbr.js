@@ -153,7 +153,7 @@ angular.module('cloodApp.cbr', [])
     downloadLink.setAttribute('download', fileName);
     downloadLink.click();
 
-    $scope.pop("success", null, "Downloading CSV template");
+    $scope.pop("success", null, "Downloading cases as CSV");
   };
 
 
