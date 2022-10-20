@@ -129,6 +129,33 @@ angular.module('cloodApp.cbr', [])
     $state.transitionTo('cbr.reuse');
   };
 
+  //Export query results to csv file
+  $scope.exportResults = function(){
+    let itemJSON = ""
+    $scope.selected.attributes.forEach(function(value,index){
+      index == 0 ? itemJSON += value.name : itemJSON += ","+value.name
+    });
+    $scope.requests.response.bestK.forEach(function(item,index){
+      itemJSON += "\n"
+      let caseValue;
+      $scope.selected.attributes.forEach(function(key,index){
+        item[key.name] == null ? caseValue = "" : caseValue = item[key.name]
+        caseValue = caseValue.toString().replace(/[,\n]/gm, ' ');
+        index == 0 ? itemJSON += caseValue : itemJSON += ","+caseValue
+      });
+    });
+
+    let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(itemJSON);
+    let fileName = "clood-"+$scope.selected.id__+'-query.csv';
+
+    let downloadLink = document.createElement('a');
+    downloadLink.setAttribute('href', dataUri);
+    downloadLink.setAttribute('download', fileName);
+    downloadLink.click();
+
+    $scope.pop("success", null, "Downloading cases as CSV");
+  };
+
 
   // Start calls
   $scope.getAllProjects();

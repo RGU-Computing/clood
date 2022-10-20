@@ -78,7 +78,7 @@ functions:
       handler: handler.get_case
       events:
         - http:
-            path: project/{pid}/case/{cid}
+            path: project/{id}/case/{cid}
             method: get
             cors: true
   update_case:
@@ -86,14 +86,21 @@ functions:
     timeout: 900 # default is 6
     events:
       - http:
-          path: project/{pid}/case/{cid}
+          path: project/{id}/case/{cid}
           method: put
           cors: true
-  remove_case:
+  delete_casebase:
+    handler: handler.delete_casebase
+    events:
+      - http:
+          path: project/{id}/case
+          method: delete
+          cors: true
+  delete_case:
     handler: handler.delete_case
     events:
       - http:
-          path: project/{pid}/case/{cid}
+          path: project/{id}/case/{cid}
           method: delete
           cors: true
   re_create_config:

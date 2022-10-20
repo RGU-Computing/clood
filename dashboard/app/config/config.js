@@ -375,6 +375,24 @@ angular.module('cloodApp.config', [])
     return false;
   }
 
+  // export csv template
+  $scope.exportTemplate = function() {
+    //Retrieve and format attributes of the current project
+    let itemJSON = ""
+    $scope.selected.attributes.forEach(function(value,index){
+      index == 0 ? itemJSON += value.name : itemJSON += ","+value.name
+    });
+    let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(itemJSON);
+    let fileName = "clood-"+$scope.selected.id__+'-template.csv';
+
+    let downloadLink = document.createElement('a');
+    downloadLink.setAttribute('href', dataUri);
+    downloadLink.setAttribute('download', fileName);
+    downloadLink.click();
+
+    $scope.pop("success", null, "Downloading CSV template");
+  };
+
   $scope.parseFile = function(file) {
     $scope.newCasebase = {'data':[], 'columnHeads':[], 'preview':false}; // reset
     $scope.displayWarning = "";
