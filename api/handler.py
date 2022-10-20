@@ -159,11 +159,14 @@ def new_project(event, context=None):
   else:
     if 'attributes' not in proj:
       proj['attributes'] = []
+
+    if 'retainDuplicateCases' not in proj:
+      proj['retainDuplicateCases'] = False
     proj['hasCasebase'] = False
 
     try:
       result = es.index(index=projects_db, body=proj, id=proj_id)
-      result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "proj": proj}
+      result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "project": proj}
     except:
       result = exceptions.projectCreateException()
       statusCode = 400
@@ -200,7 +203,7 @@ def update_project(event, context=None):
     try:
       result = es.update(index=projects_db, id=projectId, body=source_to_update)
       source_to_update['doc']['id__'] = projectId
-      result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "proj": source_to_update['doc']}
+      result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "project": source_to_update['doc']}
     except:
       result = exceptions.projectUpdateException()
       statusCode = 404
@@ -284,14 +287,15 @@ def save_case_list(event, context=None):
       x = retrieve.add_lowercase_fields(proj['attributes'], x)   # use lowercase values for EqualIgnoreCase fields
       x['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(x.items()))).encode('utf-8')).digest())   # case hash for easy detection of duplicates
 
-    resp = helpers.bulk(es, doc_list, index=proj['casebase'], doc_type="_doc")   # add documents to created index  
+    result = helpers.bulk(es, doc_list, index=proj['casebase'], doc_type="_doc")   # add documents to created index  
+    result = {"casesAdded":result[0],"errors":result[1]}
 
     # Indicate that the project has a casebase
     proj['hasCasebase'] = True
     source_to_update = {'doc': proj}
 
     try:
-      result = es.update(index=projects_db, id=projectId, body=source_to_update)
+      resp = es.update(index=projects_db, id=projectId, body=source_to_update)
     except:
       result = exceptions.projectUpdateException()
       statusCode = 404
@@ -319,12 +323,12 @@ def get_all_cases(event, context=None):
   """
   params = json.loads(event['body'])  # parameters in request body
   proj = params.get('project')
-  projId = params.get('projectId')  # name of casebase
+  projId = params.get('projectId')  
   statusCode = 200
   es = getESConn()  # es connection
 
-  if proj is None and projId is not None:
-    proj = utility.getByUniqueField(es, projects_db, "_id", projId)
+  if proj is None and projId is not None:  
+    proj = utility.getByUniqueField(es, projects_db, "_id", projId)   
 
   if proj:
     start = params.get('start', 0)  # optional offset (default is 0)

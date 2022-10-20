@@ -37,7 +37,7 @@ angular.module('cloodApp.projects', [])
     var proj = new Project($scope.newProj);
     proj.$save({}, function(res){
       console.log(res);
-      item.id__ = res.proj.id__;
+      item.id__ = res.project.id__;
       $scope.projects.push(item); // refresh list
       $scope.pop("success", null, "New project save.");
       $scope.newProj = null; // reset form fields
