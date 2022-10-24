@@ -1,0 +1,4 @@
+fastapi~=0.85.1
+sentence-transformers
+pydantic
+uvicorn

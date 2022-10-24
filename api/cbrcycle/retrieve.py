@@ -11,7 +11,7 @@ def getVector(text):
   Calls an external service to get the 512 dimensional vector representation of a piece of text.
   """
   url = cfg.use_vectoriser
-  res = requests.post(url, json={'text': text})
+  res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
   res_dictionary = res.json()
   return res_dictionary['vectors']
 

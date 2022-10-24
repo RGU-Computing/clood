@@ -14,6 +14,9 @@ is_dev = True
 # use_vectoriser end-point should be callable using post request 
 # with body "{'text': text}" and should return a 512-dimensional vector representation of the text
 # use_vectoriser = None # for non USE
-use_vectoriser = "http://cloodcbr-other-use:4100/dev/vectorise"
+# use_vectoriser = "http://cloodcbr-other-use:4100/dev/vectorise"
+use_vectoriser = "http://cloodcbr-other-semantic-sim/vectorise"
+vectoriser_access_key = "SECRET_KEY" # Change this to the same key set in other/ontologoy-sim or other/semantic-sim
+
 # service for ontology-based similarity
 ontology_sim = "http://cloodcbr-other-ontology-sim:3000/dev"
