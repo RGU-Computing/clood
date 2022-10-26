@@ -56,8 +56,11 @@ def getMappingFrag(attrType, simMetric):
     res = {}
     if simMetric == "Semantic USE":
         # dimension for universal sentence encoder. May require passing in as parameter if using vectors of a different dimension
+        # NEEDS TO BE UPDATED TO SUPPORT BOTH USE AND OTHER DIMENSION VECTORS
+        # res['properties'] = {"name": {"type": "keyword"},
+        #                      "rep": {"type": "knn_vector", "dimension": 512}}
         res['properties'] = {"name": {"type": "keyword"},
-                             "rep": {"type": "knn_vector", "dimension": 512}}
+                             "rep": {"type": "knn_vector", "dimension": 768}}
     elif simMetric == "Equal" or simMetric == "EqualIgnoreCase":
         res['type'] = "keyword"
     elif attrType == "String":
