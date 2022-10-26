@@ -21,7 +21,7 @@ def createOrUpdateGlobalConfig(es, config_db="config", globalConfig=None):
   config = {}
   config['attributeOptions'] = []
   config['attributeOptions'].append(
-    {'type': 'String', 'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'None'],
+    {'type': 'String', 'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'Semantic SBERT', 'None'],
      'reuseStrategy': ['Best Match']})
   config['attributeOptions'].append({'type': 'Integer',
                                      'similarityTypes': ['Equal', 'Nearest Number', 'McSherry More', 'McSherry Less',
