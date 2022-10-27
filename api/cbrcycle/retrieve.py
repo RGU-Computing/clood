@@ -630,7 +630,7 @@ def Semantic_SBERT(caseAttrib, queryValue, weight):
           "attrib_vector": caseAttrib + '.rep',
           "weight": weight
         },
-        "source": "cosineSimilarity(params.query_vector, doc[params.attrib_vector]) * params.weight"
+        "source": "(cosineSimilarity(params.query_vector, doc[params.attrib_vector])+1)/2 * params.weight"
       },
       "_name": caseAttrib
     }
