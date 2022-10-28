@@ -11,7 +11,16 @@ def getVector(text):
   Calls an external service to get the 512 dimensional vector representation of a piece of text.
   """
   url = cfg.use_vectoriser
-  res = requests.post(url, json={'text': text})
+  res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
+  res_dictionary = res.json()
+  return res_dictionary['vectors']
+
+def getVectorSemanticSBERT(text):
+  """
+  Calls an external service to get the 512 dimensional vector representation of a piece of text.
+  """
+  url = cfg.sbert_vectoriser
+  res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
   res_dictionary = res.json()
   return res_dictionary['vectors']
 
@@ -85,6 +94,13 @@ def add_vector_fields(attributes, data):
         newVal['name'] = value
         newVal['rep'] = getVector(value)
         data[attrib['name']] = newVal
+    elif attrib['similarity'] == 'Semantic SBERT':
+      value = data.get(attrib['name'])
+      if value is not None:
+        newVal = {}
+        newVal['name'] = value
+        newVal['rep'] = getVectorSemanticSBERT(value)
+        data[attrib['name']] = newVal
   return data
 
 
@@ -94,7 +110,7 @@ def remove_vector_fields(attributes, data):
   Transforms "x: {name: val, rep: vector(val)}" to "x: val"
   """
   for attrib in attributes:
-    if attrib['similarity'] == 'Semantic USE':
+    if attrib['similarity'] == 'Semantic USE' or attrib['similarity'] == 'Semantic SBERT':
       # print('data: ')
       # print(data)
       value = data.get(attrib['name'])
@@ -199,6 +215,8 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
     return Interval(caseAttrib, queryValue, interval, weight)
   elif simMetric == "Semantic USE" and cfg.use_vectoriser is not None:
     return USE(caseAttrib, getVector(queryValue), weight)
+  elif simMetric == "Semantic SBERT" and cfg.sbert_vectoriser is not None:
+    return Semantic_SBERT(caseAttrib, getVectorSemanticSBERT(queryValue), weight)
   elif simMetric == "Nearest Date":
     scale = options.get('dscale', '365d') if options is not None else '365d'
     decay = options.get('ddecay', 0.999) if options is not None else 0.999
@@ -586,7 +604,33 @@ def USE(caseAttrib, queryValue, weight):
           "attrib_vector": caseAttrib + '.rep',
           "weight": weight
         },
-        "source": "cosineSimilarity(params.query_vector, doc[params.attrib_vector]) * params.weight"
+        "source": "(cosineSimilarity(params.query_vector, doc[params.attrib_vector])+1)/2 * params.weight"
+      },
+      "_name": caseAttrib
+    }
+  }
+  return queryFnc
+
+def Semantic_SBERT(caseAttrib, queryValue, weight):
+  """
+  Returns the similarity of two numbers using their vector representation.
+  """
+  # build query string
+  queryFnc = {
+    "script_score": {
+      "query": {
+        "exists": {
+          "field": caseAttrib
+        }
+      },
+      "script": {
+        "params": {
+          "attrib": caseAttrib,
+          "query_vector": queryValue,
+          "attrib_vector": caseAttrib + '.rep',
+          "weight": weight
+        },
+        "source": "(cosineSimilarity(params.query_vector, doc[params.attrib_vector])+1)/2 * params.weight"
       },
       "_name": caseAttrib
     }

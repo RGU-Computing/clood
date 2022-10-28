@@ -48,6 +48,19 @@ services:
       - ./other-services/ontology-sim:/app
       - clood-ontology-nodemodules:/app/node_modules
 
+  cloodcbr-other-semantic-sim:
+    container_name: cloodcbr-other-semantic-sim
+    build: './other-services/semantic-sim'
+    image: cloodcbr/other-semantic-sim:latest
+    working_dir: /app
+    networks:
+      - cloodcbr-net
+    ports:
+      - 4300:80
+    volumes:
+      - ./other-services/semantic-sim:/app
+    restart: on-failure
+
   clood-opensearch:
     image: opensearchproject/opensearch:1.3.1
     container_name: clood-opensearch
