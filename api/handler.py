@@ -788,7 +788,8 @@ def cbr_retain(event, context=None):
                                    root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
   new_case = params['data']
-  case_id = new_case.get('id')  # check for optional id in case description
+  case_id = new_case.get('_id') # check for optional id in case description
+  new_case.pop('_id',None)
   new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
   new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
 
