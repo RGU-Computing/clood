@@ -93,3 +93,11 @@ def caseDeleteException():
   body['detail'] = "Contact system administrator for additional information"
 
   return body
+
+def caseDuplicateException():
+  body = {}
+  body['type'] = "CaseDuplicateException"
+  body['message'] = "The case already exists in the casebase"
+  body['detail'] = "Enable duplicate cases within the project if you wish to store identical cases"
+
+  return body
