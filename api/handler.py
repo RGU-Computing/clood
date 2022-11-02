@@ -781,40 +781,45 @@ def cbr_retain(event, context=None):
     projId = params.get('projectId')  # name of casebase
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
-  pid = proj["id__"]
-  if(not proj['hasCasebase']): # Update project status if only using retain API
-    proj['hasCasebase'] = True
-    source_to_update = {'doc': proj}
-    res = es.update(index=projects_db, id=pid, body=source_to_update)
-    # create index with mapping if it does not exist already
-    project.indexMapping(es, proj)
+  if proj:
+    pid = proj["id__"]
+    if(not proj['hasCasebase']): # Update project status if only using retain API
+      proj['hasCasebase'] = True
+      source_to_update = {'doc': proj}
+      res = es.update(index=projects_db, id=pid, body=source_to_update)
+      # create index with mapping if it does not exist already
+      project.indexMapping(es, proj)
 
-    # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
-    for attrib in proj['attributes']:
-      if attrib['type'] == "Ontology Concept" and attrib.get('similarity') is not None and attrib.get(
-              'options') is not None and \
-              retrieve.checkOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'))['statusCode'] != 200:
-        sim_method = 'san' if attrib['similarity'] == 'Feature-based' else 'wup'
-        retrieve.setOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'),
-                                   attrib['options'].get('sources'),
-                                   relation_type=attrib['options'].get('relation_type'),
-                                   root_node=attrib['options'].get('root'), similarity_method=sim_method)
+      # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
+      for attrib in proj['attributes']:
+        if attrib['type'] == "Ontology Concept" and attrib.get('similarity') is not None and attrib.get(
+                'options') is not None and \
+                retrieve.checkOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'))['statusCode'] != 200:
+          sim_method = 'san' if attrib['similarity'] == 'Feature-based' else 'wup'
+          retrieve.setOntoSimilarity(pid + "_ontology_" + attrib['options'].get('name'),
+                                    attrib['options'].get('sources'),
+                                    relation_type=attrib['options'].get('relation_type'),
+                                    root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
-  new_case = params['data']
-  case_id = new_case.get('_id') # check for optional id in case description
-  new_case.pop('_id',None)
-  new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
-  new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
+    new_case = params['data']
+    case_id = new_case.get('_id') # check for optional id in case description
+    new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
 
-  if not proj['retainDuplicateCases'] and utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__',
-                                                                          value=new_case['hash__']):
-    result = "The case already exists in the casebase"
-    statusCode = 400
-  else:
-    if case_id is None:
-      result = es.index(index=proj['casebase'], body=new_case, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
+    new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
+    new_case.pop('_id',None) # remove id field if present
+
+    if not proj['retainDuplicateCases'] and utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__',
+                                                                            value=new_case['hash__']):
+      result = exceptions.caseDuplicateException()
+      statusCode = 400
     else:
-      result = es.index(index=proj['casebase'], body=new_case, id=case_id, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
+      if case_id is None:
+        result = es.index(index=proj['casebase'], body=new_case, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
+      else:
+        result = es.index(index=proj['casebase'], body=new_case, id=case_id, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
+  else:
+    result = exceptions.projectGetException()
+    statusCode = 404
 
   response = {
     "statusCode": statusCode,
