@@ -137,7 +137,7 @@ def new_project(event, context=None):
   """
   End-point: Creates a new CBR application (project).
   """
-  proj = json.loads(event['body'])
+  proj = json.loads(event['body']) if event['body'] else {"name":""}
   statusCode = 201
   proj_id = uuid.uuid4().hex
   proj['casebase'] = proj_id + '_casebase'
@@ -148,7 +148,6 @@ def new_project(event, context=None):
     project_mapping = project.getProjectMapping()
     es.indices.create(index=projects_db, body=project_mapping)   # create project_db index
     utility.createOrUpdateGlobalConfig(es, config_db=config_db)   # create config db if it does not exist
-  print(proj)
   if 'casebase' not in proj or "" == proj['casebase'] or "" == proj['name']:
     result = exceptions.projectNameException()
     statusCode = 400
@@ -185,7 +184,7 @@ def update_project(event, context=None):
   End-point: Updates a project
   """
   projectId = event['pathParameters']['id']
-  proj = json.loads(event['body'])  # get to-update project from request body
+  proj = json.loads(event['body']) if event['body'] else {}  # get to-update project from request body
   statusCode = 201
   
   proj.pop('id__', None)  # remove id__ (was added to dict to use a plain structure)
@@ -271,8 +270,11 @@ def save_case_list(event, context=None):
   Creates index for the casebase if one does not exist
   """
   projectId = event['pathParameters']['id']
-  doc_list = json.loads(event['body'])  # parameters in request body
+  doc_list = json.loads(event['body']) if event['body'] else {}  # parameters in request body
   statusCode = 201
+
+  if type(doc_list) is not list:
+    doc_list = [doc_list]
 
   es = getESConn()
 
@@ -387,7 +389,7 @@ def update_case(event, context=None):
   End-point: Updates the specified case.
   """
   statusCode = 201
-  case = json.loads(event['body'])  # parameters in request body
+  case = json.loads(event['body']) if event['body'] else {}  # parameters in request body
   projectId = event['pathParameters']['id']
   caseId = event['pathParameters']['cid']
   casebase = projectId + "_casebase"
@@ -402,14 +404,21 @@ def update_case(event, context=None):
         oldCase.pop('id__', None)
         oldCase.pop('score__', None)
         oldCase.pop('hash__', None)
+
         for key,value in case.items():
-          oldCase[key] = value
+          for attr in proj['attributes']:
+            if attr['name'] == key:
+              if attr['similarity'] == "Semantic SBERT":
+                oldCase[key]['name'] = value
+                oldCase[key]['rep'] = retrieve.getVectorSemanticSBERT(value)
+              else:
+                oldCase[key] = value
         oldCase['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(oldCase.items()))).encode('utf-8')).digest()) # Create new hash
         source_to_update = {'doc': oldCase}
 
         if not proj['retainDuplicateCases'] and utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__',
                                                                           value=oldCase['hash__']):
-          result = "The case already exists in the casebase"
+          result = exceptions.caseDuplicateException()
           statusCode = 400
         else:
           try:
