@@ -295,10 +295,8 @@ def save_case_list(event, context=None):
       x['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(x.items()))).encode('utf-8')).digest())   # case hash for easy detection of duplicates
       if not proj['retainDuplicateCases'] and (x['hash__'] in hash_list or utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__',
                                                                           value=x['hash__'])):
-        print("fail")
         duplicateCases += 1
       else:
-        print("success")
         verified_doc_list.append(x)
         hash_list.append(x['hash__'])
 
