@@ -61,7 +61,7 @@ angular.module('cloodApp.projects', [])
     var proj = angular.copy($scope.newProj);
     delete proj.id__;
     Project.update({ id: $scope.newProj.id__ }, proj).$promise.then(function(res){
-      const index = $scope.projects.findIndex(p => p.id__ === res.proj.id__);
+      const index = $scope.projects.findIndex(p => p.id__ === res.project.id__);
       $scope.projects[index] = $scope.newProj;
       console.log(res);
       $scope.pop("success", null, "Project detail updated.");
