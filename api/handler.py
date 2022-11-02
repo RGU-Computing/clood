@@ -21,6 +21,7 @@ import config as cfg
 sys.path.append(os.path.abspath("others"))
 import project
 import utility
+import exceptions
 
 # Local: functions for CBR cycle
 sys.path.append(os.path.abspath("cbrcycle"))
@@ -322,27 +323,52 @@ def update_case(event, context=None):
   End-point: Updates the specified case.
   """
   statusCode = 201
-  doc = json.loads(event['body'])  # parameters in request body
+  case = json.loads(event['body']) if event['body'] else {}  # parameters in request body
   projectId = event['pathParameters']['id']
   caseId = event['pathParameters']['cid']
   casebase = projectId + "_casebase"
   
   es = getESConn()
+  proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
 
-  if es.indices.exists(index=casebase):
-    doc.pop('id__') if 'id' in doc else None
-    doc.pop('score__') if 'score__' in doc else None
-    doc['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(doc.items()))).encode('utf-8')).digest()) # Create new hash
-    source_to_update = {'doc': doc}
+  if proj:
+    if es.indices.exists(index=casebase):
+      oldCase = utility.getByUniqueField(es, casebase, "_id", caseId)
+      if oldCase:
+        oldCase.pop('id__', None)
+        oldCase.pop('score__', None)
+        oldCase.pop('hash__', None)
 
-    try:
-      result = es.update(index=casebase, id=caseId, body=source_to_update)
-    except:
-      result = "ERROR: Could not update the specified case. Check to see if the case id is correct and that you are using the correct value types."
-      statusCode = 400
+        for key,value in case.items():
+          for attr in proj['attributes']:
+            if attr['name'] == key:
+              if attr['similarity'] == "Semantic SBERT":
+                oldCase[key]['name'] = value
+                oldCase[key]['rep'] = retrieve.getVectorSemanticSBERT(value)
+              else:
+                oldCase[key] = value
+        oldCase['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(oldCase.items()))).encode('utf-8')).digest()) # Create new hash
+        source_to_update = {'doc': oldCase}
+
+        if not proj['retainDuplicateCases'] and utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__',
+                                                                          value=oldCase['hash__']):
+          result = exceptions.caseDuplicateException()
+          statusCode = 400
+        else:
+          try:
+            result = es.update(index=casebase, id=caseId, body=source_to_update,filter_path="-_seq_no,-_shards,-_primary_term,-_type")
+          except:
+            result = exceptions.caseUpdateException()
+            statusCode = 400
+      else:
+        result = exceptions.caseGetException()
+        statusCode = 404
+    else:
+      result = exceptions.casebaseGetException()
+      statusCode = 404      
   else:
-    result = "ERROR: Either the specified project does not exist, or it has no casebase."
-    statusCode = 400
+    result = exceptions.projectGetException()
+    statusCode = 404
     
   response = {
     "statusCode": statusCode,
