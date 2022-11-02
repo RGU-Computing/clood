@@ -271,6 +271,11 @@ def save_case_list(event, context=None):
   """
   projectId = event['pathParameters']['id']
   doc_list = json.loads(event['body']) if event['body'] else {}  # parameters in request body
+  verified_doc_list = []   # List to hold the cases after they have been checked
+  duplicateCases = 0
+  errors = ""
+  hash_list = []
+
   statusCode = 201
 
   if type(doc_list) is not list:
@@ -288,9 +293,19 @@ def save_case_list(event, context=None):
       x = retrieve.add_vector_fields(proj['attributes'], x)   # add vectors to Semantic USE fields
       x = retrieve.add_lowercase_fields(proj['attributes'], x)   # use lowercase values for EqualIgnoreCase fields
       x['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(x.items()))).encode('utf-8')).digest())   # case hash for easy detection of duplicates
+      if not proj['retainDuplicateCases'] and (x['hash__'] in hash_list or utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__',
+                                                                          value=x['hash__'])):
+        print("fail")
+        duplicateCases += 1
+      else:
+        print("success")
+        verified_doc_list.append(x)
+        hash_list.append(x['hash__'])
 
-    result = helpers.bulk(es, doc_list, index=proj['casebase'], doc_type="_doc")   # add documents to created index  
-    result = {"casesAdded":result[0],"errors":result[1]}
+    result = helpers.bulk(es, verified_doc_list, index=proj['casebase'], doc_type="_doc")   # add documents to created index
+    if duplicateCases:
+      errors = str(duplicateCases) + " cases were not added because they were duplicates. "
+    result = {"casesAdded":result[0],"errors":[errors,result[1]]}
 
     # Indicate that the project has a casebase
     proj['hasCasebase'] = True
