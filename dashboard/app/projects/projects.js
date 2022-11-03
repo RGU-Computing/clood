@@ -37,7 +37,7 @@ angular.module('cloodApp.projects', [])
     var proj = new Project($scope.newProj);
     proj.$save({}, function(res){
       console.log(res);
-      item.id__ = res.id__;
+      item.id__ = res.project.id__;
       $scope.projects.push(item); // refresh list
       $scope.pop("success", null, "New project save.");
       $scope.newProj = null; // reset form fields
@@ -61,7 +61,7 @@ angular.module('cloodApp.projects', [])
     var proj = angular.copy($scope.newProj);
     delete proj.id__;
     Project.update({ id: $scope.newProj.id__ }, proj).$promise.then(function(res){
-      const index = $scope.projects.findIndex(p => p.id__ === res.id__);
+      const index = $scope.projects.findIndex(p => p.id__ === res.project.id__);
       $scope.projects[index] = $scope.newProj;
       console.log(res);
       $scope.pop("success", null, "Project detail updated.");
@@ -119,25 +119,17 @@ angular.module('cloodApp.projects', [])
             {
                 description: importedJSON.description,
                 name: importedJSON.name,
-                retainDuplicateCases: importedJSON.retainDuplicateCases ?? false
+                retainDuplicateCases: importedJSON.retainDuplicateCases ?? false,
+                attributes: importedJSON.attributes
             }
         );
-
+        console.log(importedProj)
         importedProj.$save({}, function (res) {
-            // Add Attributes to the Project
-            var project_id = res.id__
-            delete res.id__;
-            res.attributes = importedJSON.attributes;
-            Project.update({ id: project_id }, res).$promise.then(function (res) {
-                $scope.pop("success", null, "Succesfully imported project " + importedJSON.name + " !");
-                $scope.projects.push(res); // refresh list
-                $scope.newProj = null;
-                document.getElementById("importBtn").disabled = false;
-                $('#importModal').modal('hide');
-            }, function (err) {
-                console.log(err);
-                $scope.pop("error", null, "Error importing project details.");
-            });
+          $scope.pop("success", null, "Succesfully imported project " + importedJSON.name + " !");
+          $scope.projects.push(res.proj); // refresh list
+          $scope.newProj = null;
+          document.getElementById("importBtn").disabled = false;
+          $('#importModal').modal('hide');
         }, function (err) {
             console.log(err);
             $scope.pop("error", null, "Error importing project.");
