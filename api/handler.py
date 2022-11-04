@@ -6,6 +6,7 @@ import copy
 import uuid
 import requests
 import time
+from threading import Thread
 from timeit import default_timer as timer
 from requests_aws4auth import AWS4Auth
 from opensearchpy import OpenSearch, helpers, RequestsHttpConnection
@@ -300,7 +301,9 @@ def save_case_list(event, context=None):
         verified_doc_list.append(x)
         hash_list.append(x['hash__'])
 
-    result = helpers.bulk(es, verified_doc_list, index=proj['casebase'], doc_type="_doc")   # add documents to created index
+    result = helpers.bulk(es, verified_doc_list, index=proj['casebase'], doc_type="_doc",refresh=True)   # add documents to created index
+    retrieve.update_attribute_options(es,proj)
+
     if duplicateCases:
       errors = str(duplicateCases) + " cases were not added because they were duplicates. "
     result = {"casesAdded":result[0],"errors":[errors,result[1]]}
@@ -435,7 +438,8 @@ def update_case(event, context=None):
           statusCode = 400
         else:
           try:
-            result = es.update(index=casebase, id=caseId, body=source_to_update,filter_path="-_seq_no,-_shards,-_primary_term,-_type")
+            result = es.update(index=casebase, id=caseId, body=source_to_update,filter_path="-_seq_no,-_shards,-_primary_term,-_type",refresh=True)
+            retrieve.update_attribute_options(es,proj)
           except:
             result = exceptions.caseUpdateException()
             statusCode = 400
@@ -504,11 +508,13 @@ def delete_case(event, context=None):
   caseId = event['pathParameters']['cid']
   casebase = projectId + "_casebase"
   es = getESConn()
+  proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
 
   if es.indices.exists(index=casebase):
     if es.exists(index=casebase, id=caseId):
       try:
-        result = es.delete(index=casebase, id=caseId, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
+        result = es.delete(index=casebase, id=caseId, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
+        retrieve.update_attribute_options(es,proj)
       except:
         result = exceptions.caseDeleteException()
         statusCode = 400
@@ -524,6 +530,32 @@ def delete_case(event, context=None):
     "headers": headers,
     "body": json.dumps(result)
   }
+  return response
+
+
+def update_attribute_options(event, context=None):
+  """
+  End-point: Updates the options for a specific attribute or attributes
+  """
+  statusCode = 201
+  projectId = event['pathParameters']['id']
+  attrNames = json.loads(event['body']) if event['body'] else {}
+
+  es = getESConn()
+  proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
+
+  if proj:
+    result = retrieve.update_attribute_options(es, proj, attrNames)
+  else:
+    result = exceptions.projectGetException()
+    statusCode = 404
+
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(result)
+  }
+
   return response
 
 
@@ -812,9 +844,10 @@ def cbr_retain(event, context=None):
     statusCode = 400
   else:
     if case_id is None:
-      result = es.index(index=proj['casebase'], body=new_case, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
+      result = es.index(index=proj['casebase'], body=new_case, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
     else:
-      result = es.index(index=proj['casebase'], body=new_case, id=case_id, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
+      result = es.index(index=proj['casebase'], body=new_case, id=case_id, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
+    retrieve.update_attribute_options(es,proj)
 
   response = {
     "statusCode": statusCode,
@@ -865,3 +898,4 @@ def home(event, context):
   }
   
   return response
+

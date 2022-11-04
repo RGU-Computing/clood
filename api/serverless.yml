@@ -166,6 +166,13 @@ functions:
           path: explain
           method: post
           cors: true
+  update_attribute_options:
+    handler: handler.update_attribute_options
+    events:
+      - http:
+          path: project/{id}/options
+          method: post
+          cors: true
 plugins:
   - serverless-python-requirements
   - serverless-offline

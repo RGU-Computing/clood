@@ -1,5 +1,6 @@
 # Retrieve functions
 import re
+import time
 import dateutil.parser
 import requests
 import json
@@ -183,6 +184,43 @@ def get_explain_details(match_explanation):
 
   # print(expl)
   return expl
+
+
+def get_min_max_values(es,casebase,attribute):
+  query = {
+    "aggs": {
+      "max": { "max": { "field": attribute } },
+      "min": { "min": { "field": attribute } }
+      }
+    }
+  res = es.search(index=casebase, body=query, explain=False)
+  res = {"max": res["aggregations"]["max"]["value"], "min": res["aggregations"]["min"]["value"], "interval": res["aggregations"]["max"]["value"] - res["aggregations"]["min"]["value"]}
+
+  return res
+
+def update_attribute_options(es,proj,attrNames = []):
+  #time.sleep(2) # wait for the operation to complete
+  if not attrNames: # if no attributes specified, update all attributes
+      attrNames = []
+      for attr in proj['attributes']:
+        attrNames.append(attr['name'])
+  for attr in attrNames:
+      for elem in proj['attributes']:
+        if elem['name'] == attr:
+          if elem['type'] == "Integer" or elem['type'] == "Float":
+              res = get_min_max_values(es, proj['casebase'], attr)
+              if 'options' in elem:
+                if 'min' in elem['options']:
+                  elem['options']['min'] = res['min']
+                if 'max' in elem['options']:
+                  elem['options']['max'] = res['max']
+                if 'interval' in elem['options']:
+                  elem['options']['interval'] = res['interval']
+                if 'nscale' in elem['options']:
+                  elem['options']['nscale'] = res['interval']/10
+                  elem['options']['ndecay'] = 0.9
+  result = es.update(index='projects', id=proj['id__'], body={'doc': proj}, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
+  return result
 
 def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options):
   """
