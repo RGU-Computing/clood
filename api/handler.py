@@ -681,24 +681,26 @@ def cbr_retrieve(event, context=None):
   End-point: Completes the Retrieve step of the CBR cycle.
   """
   start = timer()  # start timer
-  result = {'recommended': {}, 'bestK': []}
-  es = getESConn()  # es connection
-  # query["query"]["bool"]["should"].append(queryFnc)
-  queryAdded = False
+
   params = json.loads(event['body'])  # parameters in request body
-  # print(params)
   queryFeatures = params.get('data')
   addExplanation = params.get('explanation')
   proj = params.get('project')
-  if proj is None:
-    projId = params.get('projectId')  # name of casebase
+  globalSim = params.get('globalSim', "Weighted Sum")  # not used as default aggregation is a weighted sum of local similarity values
+
+  result = {'recommended': {}, 'bestK': []}
+  queryAdded = False
+  es = getESConn()
+
+  if proj is None:   # if project object is not specified, find using project id
+    projId = params.get('projectId')
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
   proj_attributes = proj['attributes']
-  globalSim = params.get('globalSim', "Weighted Sum")  # not used as default aggregation is a weighted sum of local similarity values
-  k = int(params.get('topk', 5))  # default k=5
+  
   query = {"query": {"bool": {"should": []}}}
-  query["size"] = int(k)  # top k results
+  query["size"] = int(params.get('topk', 5))  # number of cases to retrieve, default is 5
+
   for entry in queryFeatures:
     if entry.get('value') is not None and "" != entry['value'] and int(
             entry.get('weight', 1)) > 0 and entry.get('similarity') != "None":
@@ -706,29 +708,28 @@ def cbr_retrieve(event, context=None):
       value = entry['value']
       similarityType = entry.get('similarity', [x['similarity'] for x in proj_attributes if x['name'] == field][0])  # get similarity type from project attributes if not stated in query
       weight = entry.get('weight', [x['weight'] for x in proj_attributes if x['name'] == field][0])  # default weight if property is missing
-      options = retrieve.get_attribute_by_name(proj['attributes'], field).get('options', None)
+      options = retrieve.get_attribute_by_name(proj['attributes'], field).get('options', None)   # get options for attribute
       queryAdded = True
 
       qfnc = retrieve.getQueryFunction(proj['id__'], field, value, weight, similarityType, options)
       query["query"]["bool"]["should"].append(qfnc)
 
-  if not queryAdded:  # retrieval all (up to k) if not query was added
+  if not queryAdded:  # If no query features are specified, return all cases up to topk
     query["query"]["bool"]["should"].append(retrieve.MatchAll())
+  
   # perform retrieval
-  counter = 0
   res = es.search(index=proj['casebase'], body=query, explain=addExplanation)
+
+  counter = 0
   for hit in res['hits']['hits']:
-    # print(hit)
     entry = hit['_source']
     entry.pop('hash__', None)  # remove hash field and value
-    entry = retrieve.remove_vector_fields(proj_attributes, entry)  # remove vectors from Semantic USE fields
+    entry = retrieve.remove_vector_fields(proj_attributes, entry)  # remove vectors from Semantic USE and Semantic SBERT fields
     if counter == 0:
-      result['recommended'] = copy.deepcopy(entry)
-    # entry['id__'] = hit['_id'] # using 'id__' to track this case (this is removed during an update operation)
+      result['recommended'] = copy.deepcopy(entry)   # Make recommended case the first case in the result
     entry['score__'] = hit['_score']  # removed during an update operation
     result['bestK'].append(entry)
     if addExplanation:  # if retrieval needs an explanation included
-      # entry['match_explanation'] = retrieve.explain_retrieval(es, proj['casebase'], query, hit['_id'], hit['matched_queries'])
       entry['match_explanation'] = retrieve.get_explain_details(hit['_explanation'])
     counter += 1
 
@@ -737,7 +738,6 @@ def cbr_retrieve(event, context=None):
   if counter > 0:
     for entry in queryFeatures:
       field = entry['name']
-      # similarityType = entry.get('similarity', [x['similarity'] for x in proj_attributes if x['name'] == field][0])
       strategy = entry.get('strategy', "Best Match")
       if not entry.get('unknown', False) and entry.get('value') is not None and "" != entry['value']:  # copy known values
         result['recommended'][field] = entry['value']
@@ -803,23 +803,22 @@ def cbr_retain(event, context=None):
   """
   End-point: Completes the Retain step of the CBR cycle. Note: If the new case have id of an existing case, the new case will replace the existing entry.
   """
-  result = {}
-  # retain logic here
   statusCode = 201
   params = json.loads(event['body'])  # parameters in request body
   proj = params.get('project')
   es = getESConn()
-  if proj is None:
-    projId = params.get('projectId')  # name of casebase
+
+  if proj is None:   # if project object is not specified, find using project id
+    projId = params.get('projectId')
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
   pid = proj["id__"]
-  if(not proj['hasCasebase']): # Update project status if only using retain API
+  if(not proj['hasCasebase']):   # if casebase does not exist, create it
     proj['hasCasebase'] = True
     source_to_update = {'doc': proj}
     res = es.update(index=projects_db, id=pid, body=source_to_update)
-    # create index with mapping if it does not exist already
-    project.indexMapping(es, proj)
+    
+    project.indexMapping(es, proj)   # create index with mapping if it does not exist already
 
     # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
     for attrib in proj['attributes']:
@@ -833,17 +832,17 @@ def cbr_retain(event, context=None):
                                    root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
   new_case = params['data']
-  case_id = new_case.get('_id') # check for optional id in case description
-  new_case.pop('_id',None)
-  new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
+  case_id = new_case.get('_id') # check for optional id in case fields (allows for custom id)
+  new_case.pop('_id',None)   # remove id field if present
+  new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE and Semantic SBERT fields
   new_case['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(new_case.items()))).encode('utf-8')).digest())
 
   if not proj['retainDuplicateCases'] and utility.indexHasDocWithFieldVal(es, index=proj['casebase'], field='hash__',
                                                                           value=new_case['hash__']):
-    result = "The case already exists in the casebase"
+    result = exceptions.caseDuplicateException()
     statusCode = 400
   else:
-    if case_id is None:
+    if case_id is None:   # if no id is specified, let it be generated automatically
       result = es.index(index=proj['casebase'], body=new_case, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
     else:
       result = es.index(index=proj['casebase'], body=new_case, id=case_id, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
