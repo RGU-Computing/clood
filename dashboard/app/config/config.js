@@ -419,9 +419,12 @@ angular.module('cloodApp.config', [])
           // Check if supplied column heads match the expected fields
           var attribNameArray = $scope.selected.attributes.map(function (el) { return el.name; });
           if (!(attribNameArray.length === $scope.newCasebase.columnHeads.length && attribNameArray.sort().every(function(value, index) { return value === $scope.newCasebase.columnHeads.sort()[index]}))) {
-            $scope.displayWarning = "Warning: One or more field names in CSV file are different from defined attributes. Names are case-sensitive. \n";
-            $scope.displayWarning += "Attribute names: " + attribNameArray.toString() + ". \n";
-            $scope.displayWarning += "CSV column names: " + $scope.newCasebase.columnHeads.toString() + ".";
+            var dif = $scope.newCasebase.columnHeads.filter(x => attribNameArray.indexOf(x) === -1); // get difference
+            if(dif.length != 1 || dif[0] != "_id") { // if difference is not just _id
+              $scope.displayWarning = "Warning: One or more field names in CSV file are different from defined attributes. Names are case-sensitive. \n";
+              $scope.displayWarning += "Attribute names: " + attribNameArray.toString() + ". \n";
+              $scope.displayWarning += "CSV column names: " + $scope.newCasebase.columnHeads.toString() + ".";
+            }
           }
           console.log($scope.newCasebase);
         } else {
