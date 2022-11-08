@@ -220,11 +220,12 @@ def update_attribute_options(es,proj,attrNames = []):
                     elem['options']['max'] += 0.001
                 if 'interval' in elem['options']:
                   elem['options']['interval'] = res['interval']
-                if 'nscale' in elem['options']:
+                if 'nscale' in elem['options']:   # set scale to 10% of the interval (floats and integers)
                   elem['options']['nscale'] = res['interval']/10
+                  elem['options']['nscale'] = 1 if elem['options']['nscale'] < 1 else elem['options']['nscale']   # if nscale is less than 1, set it to 1
                   elem['options']['ndecay'] = 0.9
-                if 'dscale' in elem['options']:
-                  elem['options']['dscale'] = str(math.ceil((dt.fromtimestamp(res['max']/1000)-dt.fromtimestamp(res['min']/1000)).days/10)) + "d"
+                if 'dscale' in elem['options']:   # set scale to 10% of the interval (dates)
+                  elem['options']['dscale'] = str(math.ceil((dt.fromtimestamp(res['max']/1000)-dt.fromtimestamp(res['min']/1000)).days/10)) + "d"   # if date scale is 0, set it to 1 day
                   elem['options']['dscale'] = elem['options']['dscale'].replace("0d","1d")
                   elem['options']['ddecay'] = 0.9
   result = es.update(index='projects', id=proj['id__'], body={'doc': proj}, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
