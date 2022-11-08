@@ -216,6 +216,8 @@ def update_attribute_options(es,proj,attrNames = []):
                   elem['options']['min'] = res['min']
                 if 'max' in elem['options']:
                   elem['options']['max'] = res['max']
+                  if elem['options']['max'] == elem['options']['min']:   # if min and max are the same, set max to min + 0.001
+                    elem['options']['max'] += 0.001
                 if 'interval' in elem['options']:
                   elem['options']['interval'] = res['interval']
                 if 'nscale' in elem['options']:
@@ -223,9 +225,8 @@ def update_attribute_options(es,proj,attrNames = []):
                   elem['options']['ndecay'] = 0.9
                 if 'dscale' in elem['options']:
                   elem['options']['dscale'] = str(math.ceil((dt.fromtimestamp(res['max']/1000)-dt.fromtimestamp(res['min']/1000)).days/10)) + "d"
+                  elem['options']['dscale'] = elem['options']['dscale'].replace("0d","1d")
                   elem['options']['ddecay'] = 0.9
-                if elem['options']['max'] == elem['options']['min']:   # if min and max are the same, set max to min + 0.001
-                  elem['options']['max'] += 0.001
   result = es.update(index='projects', id=proj['id__'], body={'doc': proj}, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
   return result
 
