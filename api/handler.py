@@ -720,6 +720,7 @@ def cbr_retrieve(event, context=None):
   # perform retrieval
   res = es.search(index=proj['casebase'], body=query, explain=addExplanation)
 
+  # format results
   counter = 0
   for hit in res['hits']['hits']:
     entry = hit['_source']
@@ -733,8 +734,7 @@ def cbr_retrieve(event, context=None):
       entry['match_explanation'] = retrieve.get_explain_details(hit['_explanation'])
     counter += 1
 
-  # Recommend: Get the recommended result using chosen reuse strategies for unknown attribute values and
-  # keep known attribute values (query) supplied
+  # Get the recommended result using chosen reuse strategies for unknown attribute values
   if counter > 0:
     for entry in queryFeatures:
       field = entry['name']

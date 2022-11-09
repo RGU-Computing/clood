@@ -1,14 +1,14 @@
 <ul class="nav nav-tabs">
   <li role="presentation"><a class="btn btn-link" ng-click="$state.go('cbr.retrieve')"><i class="fas fa-search-plus"></i> Retrieve</a></li>
   <li role="presentation"><a class="btn btn-link" ng-click="$state.go('cbr.reuse')"><i class="fas fa-redo"></i> Reuse</a></li>
-  <li role="presentation"><a class="btn btn-link" ng-click="$state.go('cbr.revise')"><i class="fas fa-edit"></i> Revise</a></li>
+  <li role="presentation"><a class="btn btn-link" ng-click="reviseCase()"><i class="fas fa-edit"></i> Revise</a></li>
   <li role="presentation" class="active"><a class="btn btn-link"><i class="fas fa-plus"></i> Retain</a></li>
 </ul>
 
 <p></p>
 
 <div class="row">
-  <div ng-show="editing && objOrArrayHasContent(requests.response.recommended)">
+  <div ng-show="objOrArrayHasContent(requests.response.recommended)">
     <!-- Dynamically create fields using the project's casebase attributes -->
     <div class="row">
       <div class="col-lg-12">
