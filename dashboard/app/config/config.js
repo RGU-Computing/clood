@@ -73,6 +73,20 @@ angular.module('cloodApp.config', [])
     console.log(item);
     console.log($scope.selected);
     if (!containsObject(item, $scope.selected.attributes)) {
+      // Check to see if the attribute should have any options - don't really like hardcoding it like this:P
+      item.options = {};
+      if(item.similarity == 'Interval' || item.similarity == 'McSherry Less' || item.similarity == 'McSherry More' || item.similarity == 'INRECA Less' || item.similarity == 'INRECA More') {
+        item.options.max = 100;
+        item.options.min = 1;
+        item.options.jump = 1;
+      } else if(item.similarity == 'Nearest Number') {
+        item.options.nscale = 1;
+        item.options.ndecay = 0.9;
+      } else if(item.similarity == 'Nearest Date') {
+        item.options.dscale = "1d";
+        item.options.ddecay = 0.9;
+      }
+      console.log("item2",item);
       $scope.selected.attributes.push(angular.copy(item)); // add to the selected project's attributes
     } else {
       console.log('Cannot have duplicate attribute names');
