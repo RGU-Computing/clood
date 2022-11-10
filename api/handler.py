@@ -6,6 +6,7 @@ import copy
 import uuid
 import requests
 import time
+from threading import Thread
 from timeit import default_timer as timer
 from requests_aws4auth import AWS4Auth
 from opensearchpy import OpenSearch, helpers, RequestsHttpConnection
@@ -300,7 +301,9 @@ def save_case_list(event, context=None):
         verified_doc_list.append(x)
         hash_list.append(x['hash__'])
 
-    result = helpers.bulk(es, verified_doc_list, index=proj['casebase'], doc_type="_doc")   # add documents to created index
+    result = helpers.bulk(es, verified_doc_list, index=proj['casebase'], doc_type="_doc",refresh=True)   # add documents to created index
+    retrieve.update_attribute_options(es,proj)
+
     if duplicateCases:
       errors = str(duplicateCases) + " cases were not added because they were duplicates. "
     result = {"casesAdded":result[0],"errors":[errors,result[1]]}
@@ -435,7 +438,8 @@ def update_case(event, context=None):
           statusCode = 400
         else:
           try:
-            result = es.update(index=casebase, id=caseId, body=source_to_update,filter_path="-_seq_no,-_shards,-_primary_term,-_type")
+            result = es.update(index=casebase, id=caseId, body=source_to_update,filter_path="-_seq_no,-_shards,-_primary_term,-_type",refresh=True)
+            retrieve.update_attribute_options(es,proj)
           except:
             result = exceptions.caseUpdateException()
             statusCode = 400
@@ -504,11 +508,13 @@ def delete_case(event, context=None):
   caseId = event['pathParameters']['cid']
   casebase = projectId + "_casebase"
   es = getESConn()
+  proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
 
   if es.indices.exists(index=casebase):
     if es.exists(index=casebase, id=caseId):
       try:
-        result = es.delete(index=casebase, id=caseId, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
+        result = es.delete(index=casebase, id=caseId, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
+        retrieve.update_attribute_options(es,proj)
       except:
         result = exceptions.caseDeleteException()
         statusCode = 400
@@ -524,6 +530,32 @@ def delete_case(event, context=None):
     "headers": headers,
     "body": json.dumps(result)
   }
+  return response
+
+
+def update_attribute_options(event, context=None):
+  """
+  End-point: Updates the options for a specific attribute or attributes
+  """
+  statusCode = 201
+  projectId = event['pathParameters']['id']
+  attrNames = json.loads(event['body']) if event['body'] else {}
+
+  es = getESConn()
+  proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
+
+  if proj:
+    result = retrieve.update_attribute_options(es, proj, attrNames)
+  else:
+    result = exceptions.projectGetException()
+    statusCode = 404
+
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(result)
+  }
+
   return response
 
 
@@ -649,24 +681,26 @@ def cbr_retrieve(event, context=None):
   End-point: Completes the Retrieve step of the CBR cycle.
   """
   start = timer()  # start timer
-  result = {'recommended': {}, 'bestK': []}
-  es = getESConn()  # es connection
-  # query["query"]["bool"]["should"].append(queryFnc)
-  queryAdded = False
+
   params = json.loads(event['body'])  # parameters in request body
-  # print(params)
   queryFeatures = params.get('data')
   addExplanation = params.get('explanation')
   proj = params.get('project')
-  if proj is None:
-    projId = params.get('projectId')  # name of casebase
+  globalSim = params.get('globalSim', "Weighted Sum")  # not used as default aggregation is a weighted sum of local similarity values
+
+  result = {'recommended': {}, 'bestK': []}
+  queryAdded = False
+  es = getESConn()
+
+  if proj is None:   # if project object is not specified, find using project id
+    projId = params.get('projectId')
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
   proj_attributes = proj['attributes']
-  globalSim = params.get('globalSim', "Weighted Sum")  # not used as default aggregation is a weighted sum of local similarity values
-  k = int(params.get('topk', 5))  # default k=5
+  
   query = {"query": {"bool": {"should": []}}}
-  query["size"] = int(k)  # top k results
+  query["size"] = int(params.get('topk', 5))  # number of cases to retrieve, default is 5
+
   for entry in queryFeatures:
     if entry.get('value') is not None and "" != entry['value'] and int(
             entry.get('weight', 1)) > 0 and entry.get('similarity') != "None":
@@ -674,38 +708,36 @@ def cbr_retrieve(event, context=None):
       value = entry['value']
       similarityType = entry.get('similarity', [x['similarity'] for x in proj_attributes if x['name'] == field][0])  # get similarity type from project attributes if not stated in query
       weight = entry.get('weight', [x['weight'] for x in proj_attributes if x['name'] == field][0])  # default weight if property is missing
-      options = retrieve.get_attribute_by_name(proj['attributes'], field).get('options', None)
+      options = retrieve.get_attribute_by_name(proj['attributes'], field).get('options', None)   # get options for attribute
       queryAdded = True
 
       qfnc = retrieve.getQueryFunction(proj['id__'], field, value, weight, similarityType, options)
       query["query"]["bool"]["should"].append(qfnc)
 
-  if not queryAdded:  # retrieval all (up to k) if not query was added
+  if not queryAdded:  # If no query features are specified, return all cases up to topk
     query["query"]["bool"]["should"].append(retrieve.MatchAll())
+  
   # perform retrieval
-  counter = 0
   res = es.search(index=proj['casebase'], body=query, explain=addExplanation)
+
+  # format results
+  counter = 0
   for hit in res['hits']['hits']:
-    # print(hit)
     entry = hit['_source']
     entry.pop('hash__', None)  # remove hash field and value
-    entry = retrieve.remove_vector_fields(proj_attributes, entry)  # remove vectors from Semantic USE fields
+    entry = retrieve.remove_vector_fields(proj_attributes, entry)  # remove vectors from Semantic USE and Semantic SBERT fields
     if counter == 0:
-      result['recommended'] = copy.deepcopy(entry)
-    # entry['id__'] = hit['_id'] # using 'id__' to track this case (this is removed during an update operation)
+      result['recommended'] = copy.deepcopy(entry)   # Make recommended case the first case in the result
     entry['score__'] = hit['_score']  # removed during an update operation
     result['bestK'].append(entry)
     if addExplanation:  # if retrieval needs an explanation included
-      # entry['match_explanation'] = retrieve.explain_retrieval(es, proj['casebase'], query, hit['_id'], hit['matched_queries'])
       entry['match_explanation'] = retrieve.get_explain_details(hit['_explanation'])
     counter += 1
 
-  # Recommend: Get the recommended result using chosen reuse strategies for unknown attribute values and
-  # keep known attribute values (query) supplied
+  # Get the recommended result using chosen reuse strategies for unknown attribute values
   if counter > 0:
     for entry in queryFeatures:
       field = entry['name']
-      # similarityType = entry.get('similarity', [x['similarity'] for x in proj_attributes if x['name'] == field][0])
       strategy = entry.get('strategy', "Best Match")
       if not entry.get('unknown', False) and entry.get('value') is not None and "" != entry['value']:  # copy known values
         result['recommended'][field] = entry['value']
@@ -771,14 +803,13 @@ def cbr_retain(event, context=None):
   """
   End-point: Completes the Retain step of the CBR cycle. Note: If the new case have id of an existing case, the new case will replace the existing entry.
   """
-  result = {}
-  # retain logic here
   statusCode = 201
   params = json.loads(event['body'])  # parameters in request body
   proj = params.get('project')
   es = getESConn()
-  if proj is None:
-    projId = params.get('projectId')  # name of casebase
+
+  if proj is None:   # if project object is not specified, find using project id
+    projId = params.get('projectId')
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
   if proj:
@@ -870,3 +901,4 @@ def home(event, context):
   }
   
   return response
+

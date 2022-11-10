@@ -73,6 +73,20 @@ angular.module('cloodApp.config', [])
     console.log(item);
     console.log($scope.selected);
     if (!containsObject(item, $scope.selected.attributes)) {
+      // Check to see if the attribute should have any options - don't really like hardcoding it like this:P
+      item.options = {};
+      if(item.similarity == 'Interval' || item.similarity == 'McSherry Less' || item.similarity == 'McSherry More' || item.similarity == 'INRECA Less' || item.similarity == 'INRECA More') {
+        item.options.max = 100;
+        item.options.min = 1;
+        item.options.jump = 1;
+      } else if(item.similarity == 'Nearest Number') {
+        item.options.nscale = 1;
+        item.options.ndecay = 0.9;
+      } else if(item.similarity == 'Nearest Date') {
+        item.options.dscale = "1d";
+        item.options.ddecay = 0.9;
+      }
+      console.log("item2",item);
       $scope.selected.attributes.push(angular.copy(item)); // add to the selected project's attributes
     } else {
       console.log('Cannot have duplicate attribute names');
@@ -419,9 +433,12 @@ angular.module('cloodApp.config', [])
           // Check if supplied column heads match the expected fields
           var attribNameArray = $scope.selected.attributes.map(function (el) { return el.name; });
           if (!(attribNameArray.length === $scope.newCasebase.columnHeads.length && attribNameArray.sort().every(function(value, index) { return value === $scope.newCasebase.columnHeads.sort()[index]}))) {
-            $scope.displayWarning = "Warning: One or more field names in CSV file are different from defined attributes. Names are case-sensitive. \n";
-            $scope.displayWarning += "Attribute names: " + attribNameArray.toString() + ". \n";
-            $scope.displayWarning += "CSV column names: " + $scope.newCasebase.columnHeads.toString() + ".";
+            var dif = $scope.newCasebase.columnHeads.filter(x => attribNameArray.indexOf(x) === -1); // get difference
+            if(dif.length != 1 || dif[0] != "_id") { // if difference is not just _id
+              $scope.displayWarning = "Warning: One or more field names in CSV file are different from defined attributes. Names are case-sensitive. \n";
+              $scope.displayWarning += "Attribute names: " + attribNameArray.toString() + ". \n";
+              $scope.displayWarning += "CSV column names: " + $scope.newCasebase.columnHeads.toString() + ".";
+            }
           }
           console.log($scope.newCasebase);
         } else {

@@ -102,13 +102,12 @@ angular.module('cloodApp.projects', [])
 
   // Import Project from File
   $scope.importProject = function () {
-
-    document.getElementById("importBtn").disabled = true;
-
     var files = document.getElementById('importFile').files;
     if (files.length <= 0) {
+        $scope.pop("error", null, "No file selected.")
         return false;
     }
+    document.getElementById("importBtn").disabled = true;
     var fr = new FileReader();
 
     fr.onload = function (e) {
@@ -126,7 +125,7 @@ angular.module('cloodApp.projects', [])
         console.log(importedProj)
         importedProj.$save({}, function (res) {
           $scope.pop("success", null, "Succesfully imported project " + importedJSON.name + " !");
-          $scope.projects.push(res.proj); // refresh list
+          $scope.projects.push(res.project); // refresh list
           $scope.newProj = null;
           document.getElementById("importBtn").disabled = false;
           $('#importModal').modal('hide');
