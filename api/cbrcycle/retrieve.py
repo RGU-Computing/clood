@@ -196,6 +196,10 @@ def get_min_max_values(es,casebase,attribute):
       }
     }
   res = es.search(index=casebase, body=query, explain=False)
+  if res['aggregations']['max']['value'] is None or res['aggregations']['min']['value'] is None:
+    res['aggregations']['max']['value'] = 1
+    res['aggregations']['min']['value'] = 0
+  
   res = {"max": res["aggregations"]["max"]["value"], "min": res["aggregations"]["min"]["value"], "interval": res["aggregations"]["max"]["value"] - res["aggregations"]["min"]["value"]}
 
   return res

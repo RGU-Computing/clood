@@ -742,18 +742,19 @@ def cbr_retrieve(event, context=None):
       if not entry.get('unknown', False) and entry.get('value') is not None and "" != entry['value']:  # copy known values
         result['recommended'][field] = entry['value']
       else:  # use reuse strategies for unknown fields
-        if strategy == "Maximum":
-          result['recommended'][field] = max(d[field] for d in result['bestK'])
-        elif strategy == "Minimum":
-          result['recommended'][field] = min(d[field] for d in result['bestK'])
-        elif strategy == "Mean":
-          result['recommended'][field] = np.mean([x[field] for x in result['bestK']])
-        elif strategy == "Median":
-          result['recommended'][field] = np.median([x[field] for x in result['bestK']])
-        elif strategy == "Mode":
-          result['recommended'][field] = statistics.mode([x[field] for x in result['bestK']])
-        else:
-          result['recommended'][field] = result['bestK'][0][field]  # assign value of 'Best Match'
+        if field in result['recommended']:
+          if strategy == "Maximum":
+            result['recommended'][field] = max(d[field] for d in result['bestK'])
+          elif strategy == "Minimum":
+            result['recommended'][field] = min(d[field] for d in result['bestK'])
+          elif strategy == "Mean":
+            result['recommended'][field] = np.mean([x[field] for x in result['bestK']])
+          elif strategy == "Median":
+            result['recommended'][field] = np.median([x[field] for x in result['bestK']])
+          elif strategy == "Mode":
+            result['recommended'][field] = statistics.mode([x[field] for x in result['bestK']])
+          else:
+            result['recommended'][field] = result['bestK'][0][field]  # assign value of 'Best Match'
     # generate a new random id to make (if there was an id) to make it different from existing cases
     if result['recommended'].get('id') is not None:
       result['recommended']['id'] = uuid.uuid4().hex
