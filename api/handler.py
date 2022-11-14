@@ -301,7 +301,7 @@ def save_case_list(event, context=None):
         verified_doc_list.append(x)
         hash_list.append(x['hash__'])
 
-    result = helpers.bulk(es, verified_doc_list, index=proj['casebase'], doc_type="_doc",refresh=True)   # add documents to created index
+    result = helpers.bulk(es, verified_doc_list, index=proj['casebase'], doc_type="_doc")   # add documents to created index
     retrieve.update_attribute_options(es,proj)
 
     if duplicateCases:
