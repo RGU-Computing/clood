@@ -18,6 +18,7 @@ def getVector(text):
   res_dictionary = res.json()
   return res_dictionary['vectors']
 
+
 def getVectorSemanticSBERT(text):
   """
   Calls an external service to get the 512 dimensional vector representation of a piece of text.
@@ -204,6 +205,7 @@ def get_min_max_values(es,casebase,attribute):
 
   return res
 
+
 def update_attribute_options(es,proj,attrNames = []):
   #time.sleep(2) # wait for the operation to complete
   if not attrNames: # if no attributes specified, update all attributes
@@ -234,6 +236,7 @@ def update_attribute_options(es,proj,attrNames = []):
                   elem['options']['ddecay'] = 0.9
   result = es.update(index='projects', id=proj['id__'], body={'doc': proj}, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
   return result
+
 
 def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options):
   """
