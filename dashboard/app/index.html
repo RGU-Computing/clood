@@ -33,17 +33,28 @@
           <span class="icon-bar"></span>
           <span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="#"><img src="CloodV2.png" height="32" alt="CloodCBR"></a>
+        <a class="navbar-brand" href="#" style="margin-top:-10px"><img src="CloodV2.png" height="32" alt="CloodCBR"></a>
+
       </div>
       <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav navbar-right">
-          <li><a href="#/projects"><i class="fas fa-tachometer-alt"></i> Projects</a></li>
-          <li><a href="#/config"><i class="fas fa-cog"></i> Configuration</a></li>
-          <li><a href="#"><i class="fas fa-info"></i> Help</a></li>
+        <ul class="nav navbar-nav navbar-right" ng-show="!auth.state">
+          <li id="login" class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Login <span class="caret"></span></a>
+            <ul class="dropdown-menu">
+              <li><input class="dropdown-input" type="text" placeholder="Enter Username" name="email" ng-model="auth.user" required></li>
+              <li><input class="dropdown-input" type="password" placeholder="Enter password" name="email" ng-model="auth.password" required></li>
+              <li><a id="dropdown-link" href="#" ng-click="authUser()">Login</a></li>
+            </ul>
+          </li>
         </ul>
-        <!-- <form class="navbar-form navbar-right">
-          <input type="text" class="form-control" placeholder="Search...">
-        </form> -->
+        <ul class="nav navbar-nav navbar-right" ng-show="auth.state">
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{{auth.user}} <span class="caret"></span></a>
+            <ul class="dropdown-menu">
+              <li><a href="#" ng-click="logout()">Logout</a></li>
+            </ul>
+          </li>
+        </ul>
       </div>
     </div>
   </nav>
@@ -56,6 +67,7 @@
           <li ng-class="{active: menu.active==menu.items[0]}"><a href="#!/projects"><i class="fas fa-tachometer-alt"></i> {{ menu.items[0] }}</a></li>
           <li ng-class="{active: menu.active==menu.items[1]}"><a href="#/config"><i class="fas fa-cog"></i> {{ menu.items[1] }}</a></li>
           <li ng-class="{active: menu.active==menu.items[2]}"><a href="#/cbr"><i class="fas fa-tasks"></i> {{ menu.items[2] }}</a></li>
+          <li ng-class="{active: menu.active==menu.items[3]}"><a href="#/tokens"><i class="fas fa-key"></i> {{ menu.items[3] }}</a></li>
         </ul>
         <!-- <ul class="nav nav-sidebar">
           <li><a href="">Settings</a></li>
@@ -64,7 +76,13 @@
       </div>
 
       <!-- Main body (for fragments) -->
-      <div ui-view></div>
+      <div ui-view ng-show="auth.state"></div>
+      <div ng-show="!auth.state">
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+          <h1 class="page-header">Welcome to Clood!</h1>
+          <span>Please login to access the APIs</span>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -105,6 +123,7 @@
   <script src="projects/projects.js"></script>
   <script src="config/config.js"></script>
   <script src="cbr/cbr.js"></script>
+  <script src="tokens/tokens.js"></script>
   <script src="core/version/version.js"></script>
   <script src="core/version/version-directive.js"></script>
   <script src="core/version/interpolate-filter.js"></script>

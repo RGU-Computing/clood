@@ -13,6 +13,7 @@ angular.module('cloodApp', [
   'cloodApp.projects',
   'cloodApp.config',
   'cloodApp.cbr',
+  'cloodApp.tokens',
   'cloodApp.version'
 ]).
 config(['$locationProvider', '$urlRouterProvider', '$stateProvider', function($locationProvider, $urlRouterProvider, $stateProvider) {
@@ -33,14 +34,22 @@ run(['$rootScope', 'toaster', function($rootScope, toaster){
 // Global variables?
 run(['$rootScope', function($rootScope){
   var menu = {};
-  menu.items = ['Projects', 'Configuration', 'CBR Tasks'];
+  menu.items = ['Projects', 'Configuration', 'CBR Tasks', 'Tokens'];
   menu.active = menu.items[0];
   $rootScope.menu = menu;
+  var auth = {};
+  auth.user = '';
+  auth.password = '';
+  auth.token = '';
+  auth.state = false;
+  $rootScope.auth = auth;
+  $rootScope.headers = {'Authorization': auth.token}
+
 }]).
 // App-wide functions
 run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){ // global functions
   $rootScope.getGlobalConfig = function() {
-    $http.get(ENV_CONST.base_api_url + "/config").then(function(res) {
+    $http.get(ENV_CONST.base_api_url + "/config", {headers: {"Authorization":$rootScope.checkauth()}}).then(function(res) {
       if (typeof res.data.attributeOptions != 'undefined'){
         $rootScope.globalConfig = res.data; // should allow update in settings
       }
@@ -48,6 +57,38 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
   };
   $rootScope.getDataType = function(data) { // number, string, boolean, object, undefined
     return typeof data;
+  };
+  $rootScope.authUser = function() {
+    $http.post(ENV_CONST.base_api_url + "/auth", {
+      username: $rootScope.auth.user,
+      password: $rootScope.auth.password
+    }).then(function(res) {
+      if (res.data.authenticated) {
+        $rootScope.auth.token = res.data.token;
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', $rootScope.auth.user);
+        $rootScope.auth.state = true;
+        location.reload();
+      } else {
+        $rootScope.auth.state = false;
+      }
+    });
+  };
+  $rootScope.logout = function() {
+    $rootScope.auth.state = false;
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    location.reload();
+  };
+  $rootScope.checkauth = function() {
+    if (localStorage.getItem('token') && localStorage.getItem('user')) {
+      $rootScope.auth.state = true;
+      $rootScope.auth.user = localStorage.getItem('user');
+      $rootScope.auth.token = localStorage.getItem('token');
+      return $rootScope.auth.token
+    } else {
+      $rootScope.auth.state = false;
+    }
   };
   $rootScope.objOrArrayHasContent = function(data) {
     if ((typeof data[0] != 'undefined') || (typeof Object.keys(data)[0] != 'undefined')) {
@@ -57,6 +98,7 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
     }
   };
   $rootScope.getGlobalConfig();
+  $rootScope.checkauth();
 }]).
 
 directive('disallowSpaces', [function(){

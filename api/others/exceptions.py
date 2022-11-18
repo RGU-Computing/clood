@@ -101,3 +101,43 @@ def caseDuplicateException():
   body['detail'] = "Enable duplicate cases within the project if you wish to store identical cases"
 
   return body
+
+def authException():
+  body = {}
+  body['type'] = "AuthException"
+  body['message'] = "Could not authenticate user"
+  body['detail'] = "Check that the user credentials are correct"
+
+  return body
+
+def tokenIndexException():
+  body = {}
+  body['type'] = "TokenDBNotFound"
+  body['message'] = "Could not find a token_db index"
+  body['detail'] = "Contact system administrator for additional information"
+
+  return body
+
+def tokenNameException():
+  body = {}
+  body['type'] = "TokenNameException"
+  body['message'] = "A new token has to specify a name"
+  body['detail'] = "Please specify a name attribute when creating a new token"
+
+  return body
+
+def tokenCreateException():
+  body = {}
+  body['type'] = "TokenCreateException"
+  body['message'] = "Failed to create new token"
+  body['detail'] = "Contact system administrator for additional information"
+
+  return body
+
+def tokenDeleteException():
+  body = {}
+  body['type'] = "TokenDeleteException"
+  body['message'] = "Failed to delete token"
+  body['detail'] = "Contact system administrator for additional information"
+
+  return body

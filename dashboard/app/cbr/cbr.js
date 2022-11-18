@@ -41,7 +41,7 @@ angular.module('cloodApp.cbr', [])
 
   // Retrieves all projects
   $scope.getAllProjects = function() {
-    $http.get(ENV_CONST.base_api_url + "/project").then(function(res){
+    $http({method: 'GET', url: ENV_CONST.base_api_url + "/project", headers: {"Authorization":$scope.auth.token}}).then(function(res){
       $scope.projects = res.data; // array of projects
       if ($scope.projects.length > 0) {
         $scope.selected = $scope.projects[0]; // select first
@@ -66,7 +66,7 @@ angular.module('cloodApp.cbr', [])
   $scope.retrieveCases = function() {
     $scope.requests.current.project = angular.copy($scope.selected);
     console.log($scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown)
-    $http.post(ENV_CONST.base_api_url + '/retrieve', $scope.requests.current).then(function(res) {
+    $http.post(ENV_CONST.base_api_url + '/retrieve', $scope.requests.current, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
       $scope.requests.response = res.data;
       console.log($scope.requests.response)
       $state.transitionTo('cbr.reuse');
@@ -102,7 +102,7 @@ angular.module('cloodApp.cbr', [])
     var newCase = {};
     newCase.data = $scope.requests.response.recommended;
     newCase.project = $scope.selected;
-    $http.post(ENV_CONST.base_api_url + '/retain', newCase).then(function(res) {
+    $http.post(ENV_CONST.base_api_url + '/retain', newCase, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
       console.log(res.data);
       $scope.pop("success", null, "New case added.");
       $state.transitionTo('cbr.retrieve');

@@ -43,6 +43,7 @@ is_dev = cfg.is_dev
 # dbs
 projects_db = "projects"
 config_db = "config"
+tokens_db = "tokens"
 
 headers = {
   'Access-Control-Allow-Origin': '*',
@@ -80,6 +81,56 @@ def getESConn():
 
 # The functions below are also exposed through the API (as specified in 'serverless.yml')
 
+
+def auth(event, context=None):
+  """
+  End-point: Check if the user is authenticated.
+  """
+  token = event.get('authorizationToken', None)
+
+  response = "allow" if utility.verifyToken(token) else "deny"
+
+  authResponse = {
+    "principalId": "user",
+    "policyDocument": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Action": "execute-api:Invoke",
+          "Effect": response,
+          "Resource": "*"
+        }
+      ]
+    }
+  }
+  return authResponse
+
+def authenticate(event, context=None):
+  """
+  End-point: Authenticates the user.
+  """
+  body = json.loads(event['body'])
+  username = body['username']
+  password = body['password']
+
+  if username == cfg.nudge_auth['username'] and password == cfg.nudge_auth['password']:
+    token = utility.generateToken({"name":username,"expiry": time.time()+86400})   # also send time of expiry, default 1 hour
+    body = {
+      "token": token,
+      "authenticated": True
+    }
+    statusCode = 200
+  else:
+    body = exceptions.authException()
+    statusCode = 401
+
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(body)
+  }
+  return response
+
 def all_projects(event, context=None):
   """
   End-point: Retrieves all projects. Each project is separate CBR application.
@@ -89,6 +140,7 @@ def all_projects(event, context=None):
   if es.indices.exists(index=projects_db):   # retrieve if ES index does exist
     query = {"query" : retrieve.MatchAll()}
     statusCode = 200
+    #print("Event arn ", event.methodArn)
     
     res = es.search(index=projects_db, body=query)
     
@@ -886,6 +938,94 @@ def retrieve_explain(event, context):
   }
   return response
 
+def all_tokens(event, context):
+  """
+  End-point: Get all tokens in the casebase.
+  """
+  result = []
+  es = getESConn()
+  if es.indices.exists(index=tokens_db):
+    query = {"query" : retrieve.MatchAll()}
+    statusCode = 200
+    #print("Event arn ", event.methodArn)
+    
+    res = es.search(index=tokens_db, body=query)
+    
+    for hit in res['hits']['hits']:
+      entry = hit['_source']
+      entry['id__'] = hit['_id']
+      result.append(entry)
+  else:
+    result = exceptions.tokenIndexException()
+    statusCode = 404
+
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(result)
+  }
+  return response
+
+def new_token(event, context):
+  """
+  End-point: Creates a new JWT token.
+  """
+  token = json.loads(event['body']) if event['body'] else {"name":""}
+  statusCode = 201
+  token_id = uuid.uuid4().hex
+
+  es = getESConn()
+  
+  if not es.indices.exists(index=tokens_db):
+    token_mapping = project.getTokenMapping()
+    es.indices.create(index=tokens_db, body=token_mapping)   # create project_db index
+    utility.createOrUpdateGlobalConfig(es, config_db=config_db)   # create config db if it does not exist
+  if 'expiry' not in token or "" == token['expiry'] or 'name' not in token or "" == token['name']:
+    result = exceptions.tokenNameException()
+    statusCode = 400
+  else:
+    token['token'] = utility.generateToken(token)
+    print("token ", token)
+    if "token" in token and token['token'] is not None:
+      try:
+        print("token2 ", token)
+        result = es.index(index=tokens_db, body=token, id=token_id)
+        result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "token": token}
+      except:
+        result = exceptions.tokenCreateException()
+        statusCode = 400
+
+  token["id__"] = token_id
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(result)
+  }
+  return response
+
+def delete_token(event, context):
+  """
+  End-point: Delete a token.
+  """
+  token_id = event['pathParameters']['id']
+  es = getESConn()
+  if es.indices.exists(index=tokens_db):
+    try:
+      result = es.delete(index=tokens_db, id=token_id)
+      statusCode = 200
+    except:
+      result = exceptions.tokenDeleteException()
+      statusCode = 400
+  else:
+    result = exceptions.tokenIndexException()
+    statusCode = 404
+
+  response = {
+    "statusCode": statusCode,
+    "headers": headers,
+    "body": json.dumps(result)
+  }
+  return response
 
 def home(event, context):
   """

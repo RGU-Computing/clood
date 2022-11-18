@@ -48,6 +48,22 @@ def getProjectMapping():
     }
     return pmap
 
+def getTokenMapping():
+    """
+    Index mapping for tokens. Tokens are used to provide authorization for users to access projects.
+    """
+    tmap = {
+        "mappings": {
+            "properties": {
+                "name": {"type": "text"},
+                "description": {"type": "text"},
+                "expiry": {"type": "text"},
+                "token": {"type": "text"},
+            }
+        }
+    }
+
+    return tmap
 
 def getMappingFrag(attrType, simMetric):
     """

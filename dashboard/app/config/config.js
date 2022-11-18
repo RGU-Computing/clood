@@ -56,7 +56,7 @@ angular.module('cloodApp.config', [])
 
   // Get all projects
   $scope.getAllProjects = function() {
-    $http.get(ENV_CONST.base_api_url + "/project").then(function(res){
+    $http({method: 'GET', url: ENV_CONST.base_api_url + "/project", headers: {"Authorization":$scope.auth.token}}).then(function(res){
       $scope.projects = res.data; // array of projects
       if ($scope.projects.length > 0) {
         $scope.selectProject($scope.projects[0]); // select first
@@ -346,7 +346,7 @@ angular.module('cloodApp.config', [])
     var projId = $scope.selected.id__;
     var proj = angular.copy($scope.selected);
     console.log(proj);
-    Project.update({ id: projId }, $scope.selected).$promise.then(
+    $http.put(ENV_CONST.base_api_url + "/project/" + projId, proj, {headers: {"Authorization":$scope.auth.token}}).then(
       function(suc) {
         console.log('Updated casebase attributes');
         $scope.pop("success", null, "Project updated.");
@@ -358,7 +358,7 @@ angular.module('cloodApp.config', [])
 
   // Create index mapping for a project. Index mapping specifies the case structure and is a required step before adding cases
   $scope.createIndexMapping = function() {
-    $http.get(ENV_CONST.base_api_url + "/project" + "/mapping/" + $scope.selected.id__).then(function(res) {
+    $http.put(ENV_CONST.base_api_url + "/project" + "/mapping/" + $scope.selected.id__, {headers: {"Authorization":$scope.auth.token}}).then(function(res) {
       $scope.pop("success", null, "Project case-base has been set up.");
       $scope.selected.hasCasebase = true;
       console.log(res.data);
@@ -464,7 +464,8 @@ angular.module('cloodApp.config', [])
   // Save casebase
   $scope.saveCasebase = function() {
     console.log($scope.newCasebase);
-    $http.post(ENV_CONST.base_api_url + "/case/" + $scope.selected.id__ + "/list", $scope.newCasebase.data)
+    
+    $http.post(ENV_CONST.base_api_url + "/case/" + $scope.selected.id__ + "/list", $scope.newCasebase.data, {headers: {"Authorization":$scope.auth.token}})
         .then(function(res) {
           console.log(res);
           $scope.newCasebase = {'data':[], 'columnHeads':[], 'preview':false}; // reset
