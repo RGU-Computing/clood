@@ -18,8 +18,8 @@ is_dev = env.get('CLOOD_IS_DEV', True)
 # use_vectoriser = None # for non USE
 use_vectoriser = env.get('CLOOD_USE_VECTORISER_URL', "http://cloodcbr-other-use:4100/dev/vectorise")
 ontology_sim = env.get('CLOOD_ONTOLOGY_SIM_URL', "http://cloodcbr-other-ontology-sim:3000/dev")
-sbert_vectoriser = env.get('CLOOD_SBERT_VECTORISER_URL', '')
-vectoriser_access_key = env['CLOOD_SBERT_VECTORISER_ACCESS_KEY']
+sbert_vectoriser = env.get('CLOOD_SBERT_VECTORISER_URL', None)
+vectoriser_access_key = env.get('CLOOD_SBERT_VECTORISER_ACCESS_KEY', None)
 
 DEFAULT_USERNAME = env['CLOOD_ADMIN_USERNAME']
 DEFAULT_PASSWORD = env['CLOOD_ADMIN_PASSWORD']
