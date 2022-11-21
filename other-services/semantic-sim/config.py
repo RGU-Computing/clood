@@ -5,4 +5,4 @@ from os import environ as env
 # https://www.sbert.net/docs/pretrained_models.html#model-overview
 # all-mpnet-base-v2 , all-MiniLM-L12-v2 , all-MiniLM-L6-v2
 model_name = "all-mpnet-base-v2"
-access_key = env.get('SECRET_KEY', '')  # CHANGE THIS ON PRODUCTION
+access_key = env.get('CLOOD_SEMANTIC_SIM_ACCESS_KEY', '')  # CHANGE THIS ON PRODUCTION
