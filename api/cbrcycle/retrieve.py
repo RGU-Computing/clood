@@ -24,16 +24,10 @@ def getVectorSemanticSBERT(text):
   Calls an external service to get the 512 dimensional vector representation of a piece of text.
   """
   url = cfg.sbert_vectoriser
-  text = "test"
   res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
   res_dictionary = res.json()
   return res_dictionary['vectors']
 
-def getBulkVectorSemanticSBERT(data):
-  url = cfg.sbert_vectoriser
-  res = requests.post(url, json={'text': data, 'access_key': cfg.vectoriser_access_key})
-  res_dictionary = res.json()
-  return res_dictionary['vectors']
 
 def checkOntoSimilarity(ontology_id):
   """
