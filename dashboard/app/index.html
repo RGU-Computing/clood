@@ -37,16 +37,7 @@
 
       </div>
       <div id="navbar" class="navbar-collapse collapse">
-        <ul class="nav navbar-nav navbar-right" ng-show="!auth.state">
-          <li id="login" class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Login <span class="caret"></span></a>
-            <ul class="dropdown-menu">
-              <li><input class="dropdown-input" type="text" placeholder="Enter Username" name="email" ng-model="auth.user" required></li>
-              <li><input class="dropdown-input" type="password" placeholder="Enter password" name="email" ng-model="auth.password" required></li>
-              <li><a id="dropdown-link" href="#" ng-click="authUser()">Login</a></li>
-            </ul>
-          </li>
-        </ul>
+
         <ul class="nav navbar-nav navbar-right" ng-show="auth.state">
           <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{{auth.user}} <span class="caret"></span></a>
@@ -80,7 +71,18 @@
       <div ng-show="!auth.state">
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
           <h1 class="page-header">Welcome to Clood!</h1>
-          <span>Please login to access the APIs</span>
+          <span>Please login to access the Clood service.</span>
+          <form class="login-form">
+            <div class="form-group">
+              <label for="username">Username</label>
+              <input type="text" class="form-control" id="username" placeholder="Username" ng-model="auth.user" required>
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" class="form-control" id="password" placeholder="Password" ng-model="auth.password" required>
+            </div>
+            <button type="submit" class="btn btn-default" ng-click="authUser()">Login</button>
+          </form>
         </div>
       </div>
 

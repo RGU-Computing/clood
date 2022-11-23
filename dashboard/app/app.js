@@ -53,6 +53,8 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
       if (typeof res.data.attributeOptions != 'undefined'){
         $rootScope.globalConfig = res.data; // should allow update in settings
       }
+    }, function(err) {
+      console.log(err.data);
     });
   };
   $rootScope.getDataType = function(data) { // number, string, boolean, object, undefined
@@ -71,6 +73,7 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
         location.reload();
       } else {
         $rootScope.auth.state = false;
+        $rootScope.pop('error',null, 'Please check your username and password');
       }
     });
   };

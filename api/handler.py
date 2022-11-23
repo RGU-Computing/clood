@@ -113,7 +113,7 @@ def authenticate(event, context=None):
   username = body['username']
   password = body['password']
 
-  if username == cfg.nudge_auth['username'] and password == cfg.nudge_auth['password']:
+  if username == cfg.DEFAULT_USERNAME and password == cfg.DEFAULT_PASSWORD:
     token = utility.generateToken({"name":username,"expiry": time.time()+86400})   # also send time of expiry, default 1 hour
     body = {
       "token": token,
@@ -121,8 +121,11 @@ def authenticate(event, context=None):
     }
     statusCode = 200
   else:
-    body = exceptions.authException()
-    statusCode = 401
+    body = {
+      "authenticated": False
+    }
+    #body = exceptions.authException()
+    statusCode = 200
 
   response = {
     "statusCode": statusCode,

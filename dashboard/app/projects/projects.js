@@ -18,15 +18,20 @@ angular.module('cloodApp.projects', [])
   if (typeof ENV_CONST.base_api_url == 'undefined' || ENV_CONST.base_api_url == '') {
     $scope.pop("warn", null, "The root API to the serverless functions is not set. You can set this up in env.js");
   }
+  
 
+  // get all projects
   $scope.getAllProjects = function() {
     $http({method: 'GET', url: ENV_CONST.base_api_url + "/project", headers: {"Authorization":$scope.auth.token}}).then(function(res) {
       $scope.projects = res.data;
       console.log(res.data);
+    }, function(err) {
+      console.log(err.data);
     });
   };
 
-  // Creates new project
+
+  // create new project
   $scope.newProject = function() {
     var item = angular.copy($scope.newProj);
     var proj = new Project($scope.newProj);
@@ -51,7 +56,8 @@ angular.module('cloodApp.projects', [])
     $scope.newProj = null;
   };
 
-  // Updates a project
+
+  // update project
   $scope.updateProject = function() {
     var proj = angular.copy($scope.newProj);
     delete proj.id__;
@@ -68,7 +74,8 @@ angular.module('cloodApp.projects', [])
     });
   };
 
-  // Deletes a project
+
+  // delete project
   $scope.deleteProject = function(item) {
     $http({method: 'DELETE', url: ENV_CONST.base_api_url + "/project/" + item.id__, headers: {"Authorization":$scope.auth.token}}).then(function(){
       $scope.projects = $scope.projects.filter(function(el) { return el.id__ != item.id__; });
@@ -79,6 +86,7 @@ angular.module('cloodApp.projects', [])
       $scope.pop("error", null, "Item was not deleted as something went wrong.")
     })
   };
+
 
   // Export Project
   $scope.exportProject = function(item) {
@@ -94,6 +102,7 @@ angular.module('cloodApp.projects', [])
     $scope.pop("success", null, "Project Exporting!");
   };
 
+  
   // Import Project from File
   $scope.importProject = function () {
     var files = document.getElementById('importFile').files;

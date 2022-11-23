@@ -122,7 +122,7 @@ def verifyToken(token):
       print(tokenParts)
 
       # HMAC of sha256 hash of header and payload using secret key
-      signature =  base64.b64encode(hmac.HMAC(cfg.jwt_secret, (tokenParts[0] + '.' + tokenParts[1]).encode('utf-8'), hashlib.sha256).digest(),b"-_")
+      signature =  base64.b64encode(hmac.HMAC(cfg.SECRET.encode('utf-8'), (tokenParts[0] + '.' + tokenParts[1]).encode('utf-8'), hashlib.sha256).digest(),b"-_")
       signature = signature.replace(b'=', b'').decode("utf-8") # strip padding
       print(signature)
       # compare the new signature with the provided signature
@@ -161,7 +161,7 @@ def generateToken(token):
     encodedPayload = encodedPayload.replace(b'=', b'').decode("utf-8") # strip padding
 
     # HMAC of sha256 hash of header and payload using secret key
-    signature =  base64.b64encode(hmac.HMAC(cfg.jwt_secret, (encodedHeader + '.' + encodedPayload).encode('utf-8'), hashlib.sha256).digest(),b"-_")
+    signature =  base64.b64encode(hmac.HMAC(cfg.SECRET.encode('utf-8'), (encodedHeader + '.' + encodedPayload).encode('utf-8'), hashlib.sha256).digest(),b"-_")
     signature = signature.replace(b'=', b'').decode("utf-8") # strip padding
 
     # create token
