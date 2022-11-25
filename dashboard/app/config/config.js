@@ -331,6 +331,32 @@ angular.module('cloodApp.config', [])
     $ctrl.open('lg');
   };
 
+  $scope.simListPopup = function(info) {
+    var $ctrl = this;
+    $ctrl.data = info
+    $ctrl.open = function (size) {
+      var modalInstance = $uibModal.open({
+        animation: true,
+        backdrop: true,  // prevents closing modal by clicking outside it
+        ariaLabelledBy: 'modal-title',
+        ariaDescribedBy: 'modal-body',
+        templateUrl: 'config/views/modalviews/similarity_list.html',
+        controller: 'ModalSimListInstanceCtrl',
+        controllerAs: '$ctrl',
+        size: 'lg',
+        resolve: {
+          data: function () {
+            return $ctrl.data
+          }
+        }
+      })
+      modalInstance.result.then(function (res) {
+        console.log("Similarity list modal closed");
+      });
+    };
+    $ctrl.open('lg');
+  };
+
  // Removes attribute from project attributes list if it exists
   $scope.removeAttribute = function(item) {
     for (var i = 0; i < $scope.selected.attributes.length; i++) {
@@ -509,7 +535,7 @@ angular.module('cloodApp.config', [])
   }
 	// make a temp copy of the table similarity grid
 	$scope.sim_grid = angular.copy($scope.data.options.sim_grid);
-
+  console.log("sim_grid: " + JSON.stringify($scope.data.options));
 	// updates the sim grid according to values
   $scope.updateGrid = function() {
     // initialise sim grid wherever it is undefined
@@ -517,7 +543,11 @@ angular.module('cloodApp.config', [])
 			//console.log($scope.data.options.values);
       angular.forEach($scope.data.options.values, function(value1){
         angular.forEach($scope.data.options.values, function(value2){
-	        if ($scope.sim_grid[value1] === undefined){
+          console.log("sim_grid: " + JSON.stringify($scope.sim_grid));
+	        if ($scope.sim_grid === undefined){
+	          $scope.sim_grid = {};
+	        }
+          if ($scope.sim_grid[value1] === undefined){
 	          $scope.sim_grid[value1] = {};
 	        }
           if ($scope.sim_grid[value1][value2] === undefined) {
@@ -722,6 +752,15 @@ angular.module('cloodApp.config', [])
     //{...}
     alert("Changes will not be saved.");
     //$scope.data = angular.copy(data);
+    $uibModalInstance.dismiss('cancel');
+  };
+}])
+.controller('ModalSimListInstanceCtrl', ['$uibModalInstance', 'data', '$scope', function($uibModalInstance, data, $scope) {
+  $scope.save = function() {
+    $uibModalInstance.close();
+  };
+
+  $scope.cancel = function() {
     $uibModalInstance.dismiss('cancel');
   };
 }]);

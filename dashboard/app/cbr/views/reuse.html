@@ -14,6 +14,12 @@
   </button>
 </div>
 
+<div class="row" ng-if="requests.current.explanation && requests.response.bestK.length>0">
+  <h4 align="center">Parallel Coordinate Plot of Top 5 Cases</h4>
+  <div id="plotly-graph" ng-init="plotTest()"><p style="color: red;margin: auto;" ng-if="requests.response.bestK[0].match_explanation.length==0">Query against specific case attributes to see a plot of local similarities</p></div>
+  
+</div>
+
 <div class="row">
   <!-- Display recommended solution -->
   <div class="row" ng-show="objOrArrayHasContent(requests.response.recommended)">
@@ -92,6 +98,9 @@
                     </code>
                   </td>
                   <td>
+                    <button type="button" class="btn btn-block btn-primary" ng-click="graphData(entry)">
+                      Details
+                    </button>
                     <button type="button" class="btn btn-block btn-primary" ng-click="reuseCase(entry)">
                       Reuse
                     </button>

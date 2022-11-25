@@ -20,7 +20,7 @@
         <select id="newAttribType" class="form-control" ng-options="item.type as item.type for item in globalConfig.attributeOptions" ng-model="newAttrib.type"></select>
       </div>
       <div class="form-group col-sm-3" ng-init="newAttrib.similarity=getSimilarityTypes(newAttrib.type)[0]">
-        <label for="newAttribSimilarity">Similarity type</label>
+        <label for="newAttribSimilarity">Similarity type <a href="" ng-click="simListPopup()"><i class="fas fa-info-circle" title="Click for more information!"></i></a></label>
         <select id="newAttribSimilarity" class="form-control" ng-options="sim as sim for sim in getSimilarityTypes(newAttrib.type)" ng-model="newAttrib.similarity"></select>
       </div>
       <div class="form-group" ng-init="newAttrib.weight = newAttrib.weight || 1">

@@ -168,3 +168,12 @@ legend {
     width: 1px;
     white-space: nowrap;
 }
+
+.modal-body > i{
+  font-size: 10px;
+}
+
+#plotly-graph{
+  width: 100%;
+  height: 100%;
+}
