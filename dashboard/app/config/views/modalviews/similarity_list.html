@@ -138,6 +138,34 @@
         The table is a 2D array of values, where the first row is the query values and the first column is the case values.
         The first row and column are used to determine the similarity score for each combination of query and case values.
         The similarity score is determined by the value in the table at the intersection of the query and case values.
+        For example:
+        <br/>
+        <table class="table table-responsive">
+            <tr>
+                <th></th>
+                <th>Query Value 1</th>
+                <th>Query Value 2</th>
+                <th>Query Value 3</th>
+            </tr>
+            <tr>
+                <td>Case Value 1</td>
+                <td>1</td>
+                <td>0</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>Case Value 2</td>
+                <td>0</td>
+                <td>1</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>Case Value 3</td>
+                <td>0</td>
+                <td>0</td>
+                <td>1</td>
+            </tr>
+        </table>
     </p>
     <p><b>Formula: </b><code>"table[query][case]"</code>
         <br/><i>where "table" is the table of values, "query" is the query value, and "case" is the case value</i>
