@@ -67,11 +67,13 @@
             <td class="nowrap">{{ item.name }}</td>
             <td class="nowrap">{{ item.description }}</td>
             <td class="nowrap">{{ item.expiryDate }}</td>
-            <td><input style="width:100%;" type="text" value="{{item.token}}" readonly/></td>
+            <td>
+              <input ng-click="copyToken(item.token)" style="width:100%;cursor: pointer;" type="text" value="{{item.token}}" readonly/>
+            </td>
             <td class="nowrap">
-                <button ng-click="deleteToken(item)" class="btn btn-danger" title="Delete">
-                    <i class="fas fa-trash"></i>
-                </button>
+              <button ng-click="deleteToken(item)" class="btn btn-danger" title="Delete">
+                  <i class="fas fa-trash"></i>
+              </button>
             </td>
         </tr>
       </tbody>

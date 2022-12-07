@@ -106,6 +106,12 @@ angular.module('cloodApp.tokens', [])
     })
   };
 
+  // Copy token to clipboard
+    $scope.copyToken = function(item) {
+        navigator.clipboard.writeText(item);
+        $scope.pop("success", null, "Token copied to clipboard!");
+    };
+
   // Return a formatted date
     $scope.formatDate = function(date) {
         var d = new Date(date);
