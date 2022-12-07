@@ -1,6 +1,7 @@
 <ul class="nav nav-tabs">
   <li role="presentation" class="active"><a class="btn"><i class="fas fa-wrench"></i> Attributes</a></li>
   <li role="presentation"><a class="btn" ng-click="$state.go('config.add_data')"><i class="fas fa-database"></i> Add Data</a></li>
+  <li role="presentation"><a class="btn" ng-click="$state.go('config.add_case')"><i class="fas fa-plus"></i> Add Case</a></li>
 </ul>
 
 <p ng-show="(selected | json) == '{}'" class="lead">Create a project before specifying case attributes.</p>

@@ -16,9 +16,14 @@ angular.module('cloodApp.config', [])
     name: 'config.add_data',
     templateUrl: 'config/views/add_data.html'
   };
+  var configAddCaseState = {
+    name: 'config.add_case',
+    templateUrl: 'config/views/add_case.html'
+  };
   $stateProvider.state(configState);
   $stateProvider.state(configAttributesState);
   $stateProvider.state(configAddDataState);
+  $stateProvider.state(configAddCaseState);
 }])
 .directive('customOnChange', [function() {
   return {
@@ -52,6 +57,7 @@ angular.module('cloodApp.config', [])
   $scope.newAttrib = {};
   $scope.newCasebase = {'data':[], 'columnHeads':[], 'preview':false};
   $scope.editing = {'status': false, 'index' : -1};  // indicate attribute edit operation
+  $scope.newCase = {'data':{}, 'project':{}};
 
 
   // Get all projects
@@ -502,6 +508,20 @@ angular.module('cloodApp.config', [])
           console.log(err);
           $scope.pop("error", null, "An error occurred while trying to save data.");
         });
+  };
+
+   // saves a new case to the casebase
+   $scope.saveCase = function() {
+    $scope.newCase.project = $scope.selected;
+    console.log("new case: ", $scope.newCase);
+    $http.post(ENV_CONST.base_api_url + '/retain', $scope.newCase, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
+      console.log(res.data);
+      $scope.pop("success", null, "New case added.");
+      $scope.newCase = {'data':[], 'project':null};
+    }).catch(function(err) {
+      console.log(err);
+      $scope.pop("error", null, "Case added was not added. Duplicate cases are rejected when not allowing duplicates.");
+    });
   };
 
   $scope.getAllProjects();
