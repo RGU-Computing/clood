@@ -1,0 +1,23 @@
+<div class="modal-header">
+    <h3 class="modal-title" id="modal-title">Case Details</h3>
+</div>
+<div class="modal-body" id="modal-body">
+    <div ng-repeat="(key, value) in data">
+        <div ng-if="getDataType(value)!='object'">
+            <div class="row">
+                <div class="col-md-4">
+                    <label>{{key}}</label>
+                </div>
+                <div class="col-md-8" ng-if="getDataType(value)!='object'">
+                    <p>{{value}}</p>
+                </div>
+                <div class="col-md-8" ng-if="getDataType(value)=='object'">
+                    <p>{{value | json}}</p>
+                </div>
+            </div>
+        </div>
+    </div>  
+</div>
+<div class="modal-footer">
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Close</button>
+</div>

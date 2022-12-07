@@ -218,6 +218,32 @@ angular.module('cloodApp.cbr', [])
     $ctrl.open('lg');
   };
 
+  $scope.showCase = function(entry) {
+    var $ctrl = this;
+    $ctrl.data = entry
+    $ctrl.open = function (size) {
+      var modalInstance = $uibModal.open({
+        animation: true,
+        backdrop: true,  // prevents closing modal by clicking outside it
+        ariaLabelledBy: 'modal-title',
+        ariaDescribedBy: 'modal-body',
+        templateUrl: 'cbr/views/modalviews/caseView.html',
+        controller: 'ModalCaseInstanceCtrl',
+        controllerAs: '$ctrl',
+        size: 'lg',
+        resolve: {
+          data: function () {
+            return $ctrl.data
+          }
+        }
+      })
+      modalInstance.result.then(function (res) {
+        console.log("Case modal closed");
+      });
+    };
+    $ctrl.open('lg');
+  };
+
 
   // Start calls
   $scope.getAllProjects();
@@ -278,6 +304,18 @@ angular.module('cloodApp.cbr', [])
     var data = [trace];
     Plotly.newPlot('bar-graph', data, layout);
   };
+  
+  $scope.save = function() {
+    $uibModalInstance.close();
+  };
+
+  $scope.cancel = function() {
+    $uibModalInstance.dismiss('cancel');
+  };
+}])
+.controller('ModalCaseInstanceCtrl', ['$uibModalInstance', 'data', '$scope', function($uibModalInstance, data, $scope) {
+  $scope.data = angular.copy(data);
+  console.log($scope.data);
   
   $scope.save = function() {
     $uibModalInstance.close();
