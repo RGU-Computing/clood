@@ -21,7 +21,7 @@ def getVector(text):
 
 def getVectorSemanticSBERT(text):
   """
-  Calls an external service to get the 512 dimensional vector representation of a piece of text.
+  Calls an external service to get the 768 dimensional vector representation of a piece of text.
   """
   url = cfg.sbert_vectoriser
   res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
@@ -296,6 +296,8 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
   elif simMetric == "Feature-based":
     sim_grid = getOntoSimilarity(projId + "_ontology_" + options['name'], queryValue)
     return OntologySimilarity(caseAttrib, queryValue, weight, sim_grid)
+  elif simMetric == "Array":
+    return Array(caseAttrib, queryValue, weight)
   else:
     return MostSimilar(caseAttrib, queryValue, weight)
 
@@ -303,6 +305,34 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
 # Similarity measure functions for retrieve phase of CBR cycle.
 # Each similarity function returns a Painless script for Elasticsearch. 
 # Each function requires field name and set of functions-specific parameters.
+
+def Array(caseAttrib, queryValue, weight):
+  """
+  Returns the similarity between two arrays
+  """
+  try:
+    # build query string comparing two arrays
+
+    queryFnc = {
+      "script_score": {
+        "query": {
+          "exists": {
+            "field": caseAttrib
+          }
+        },
+        "script": {
+          "source": "float sum = 0; for (int i = 0; i < doc[params.attrib].length; i++) { for (int j = 0; j < params.queryValue.length; j++) { if (doc[params.attrib][i] == params.queryValue[j]) { sum += 1; } } } return sum/(doc[params.attrib].length+params.queryValue.length-sum);",
+          "params": {
+            "attrib": caseAttrib,
+            "queryValue": queryValue
+          }
+        }
+      }
+    }
+    return queryFnc
+
+  except ValueError:
+    print("Error")
 
 def McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
   """

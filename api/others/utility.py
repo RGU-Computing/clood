@@ -29,15 +29,15 @@ def createOrUpdateGlobalConfig(es, config_db="config", globalConfig=None):
   config = {}
   config['attributeOptions'] = []
   config['attributeOptions'].append(
-    {'type': 'String', 'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'Semantic SBERT', 'None'],
+    {'type': 'String', 'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'Semantic SBERT','Array','None'],
      'reuseStrategy': ['Best Match']})
   config['attributeOptions'].append({'type': 'Integer',
                                      'similarityTypes': ['Equal', 'Nearest Number', 'McSherry More', 'McSherry Less',
-                                                         'INRECA More', 'INRECA Less', 'Interval', 'None'],
+                                                         'INRECA More', 'INRECA Less', 'Interval', 'Array', 'None'],
                                      'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median', 'Mode']})
   config['attributeOptions'].append({'type': 'Float',
                                      'similarityTypes': ['Equal', 'Nearest Number', 'McSherry More', 'McSherry Less',
-                                                         'INRECA More', 'INRECA Less', 'Interval', 'None'],
+                                                         'INRECA More', 'INRECA Less', 'Interval', 'Array','None'],
                                      'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median']})
   config['attributeOptions'].append({'type': 'Categorical',
                                      'similarityTypes': ['Equal', 'EqualIgnoreCase', 'Table', 'EnumDistance', 'Query Intersection', 'None'],

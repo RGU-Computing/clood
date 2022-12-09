@@ -65,7 +65,20 @@ angular.module('cloodApp.cbr', [])
   // retrieves cases from the casebase using specified request features
   $scope.retrieveCases = function() {
     $scope.requests.current.project = angular.copy($scope.selected);
-    console.log($scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown)
+    // Check if the type is Array
+    console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown
+    angular.forEach($scope.requests.current.data, function(value, key) {
+      if (value.similarity == "Array" && value.value != "" && value.value != null) {
+        value.value = value.value.split(",");
+        if(value.type == "Integer") {
+          value.value = value.value.map(function (el) { return parseInt(el); });
+        } else if (value.type == "Float") {
+          value.value = value.value.map(function (el) { return parseFloat(el); });
+        }
+      }
+    });
+
+    console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown)
     $http.post(ENV_CONST.base_api_url + '/retrieve', $scope.requests.current, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
       $scope.requests.response = res.data;
       console.log($scope.requests.response)
@@ -102,6 +115,20 @@ angular.module('cloodApp.cbr', [])
     var newCase = {};
     newCase.data = $scope.requests.response.recommended;
     newCase.project = $scope.selected;
+
+    // Convert csv input to array
+    angular.forEach(newCase.project.attributes, function(value, key) {
+      if (value.similarity == "Array") {
+        newCase.data[value.name] = newCase.data[value.name].split(",");
+        if (value.type == "Integer") {
+          newCase.data[value.name] = newCase.data[value.name].map(function (el) { return parseInt(el); });
+        } else if (value.type == "Float") {
+          newCase.data[value.name] = newCase.data[value.name].map(function (el) { return parseFloat(el); });
+        }
+      console.log("newCase",newCase);
+      }
+    });
+
     $http.post(ENV_CONST.base_api_url + '/retain', newCase, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
       console.log(res.data);
       $scope.pop("success", null, "New case added.");

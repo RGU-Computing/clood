@@ -513,7 +513,20 @@ angular.module('cloodApp.config', [])
    // saves a new case to the casebase
    $scope.saveCase = function() {
     $scope.newCase.project = $scope.selected;
-    console.log("new case: ", $scope.newCase);
+    
+    // Convert csv input to array
+    angular.forEach($scope.newCase.project.attributes, function(value, key) {
+      if (value.similarity == "Array" && $scope.newCase.data[value.name] != null && $scope.newCase.data[value.name] != "") {
+        $scope.newCase.data[value.name] = $scope.newCase.data[value.name].split(",");
+        if (value.type == "Integer") {
+          $scope.newCase.data[value.name] = $scope.newCase.data[value.name].map(function (el) { return parseInt(el); });
+        } else if (value.type == "Float") {
+          $scope.newCase.data[value.name] = $scope.newCase.data[value.name].map(function (el) { return parseFloat(el); });
+        }
+      console.log("newCase",$scope.newCase);
+      }
+    });
+
     $http.post(ENV_CONST.base_api_url + '/retain', $scope.newCase, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
       console.log(res.data);
       $scope.pop("success", null, "New case added.");

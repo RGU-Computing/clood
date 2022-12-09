@@ -3,7 +3,7 @@
 </div>
 <div class="modal-body" id="modal-body">
     <div ng-repeat="(key, value) in data">
-        <div ng-if="getDataType(value)!='object'">
+        <div ng-if="key != 'match_explanation'">
             <div class="row">
                 <div class="col-md-4">
                     <label>{{key}}</label>
@@ -11,9 +11,9 @@
                 <div class="col-md-8" ng-if="getDataType(value)!='object'">
                     <p>{{value}}</p>
                 </div>
-                <div class="col-md-8" ng-if="getDataType(value)=='object'">
+                <code class="col-md-8" ng-if="getDataType(value)=='object'">
                     <p>{{value | json}}</p>
-                </div>
+                </code>
             </div>
         </div>
     </div>  

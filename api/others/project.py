@@ -78,7 +78,7 @@ def getMappingFrag(attrType, simMetric):
         # NEEDS TO BE UPDATED TO SUPPORT BOTH USE AND OTHER DIMENSION VECTORS
         res['properties'] = {"name": {"type": "keyword"},
                              "rep": {"type": "knn_vector", "dimension": 768}}
-    elif attrType == "String" and (simMetric == "Equal" or simMetric == "EqualIgnoreCase"):
+    elif attrType == "String" and (simMetric == "Equal" or simMetric == "EqualIgnoreCase" or simMetric == "Array"):
         res['type'] = "keyword"
     elif attrType == "String":
         res['type'] = "text"

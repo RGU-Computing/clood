@@ -25,17 +25,20 @@
                   <tr ng-repeat="field in selected.attributes">
                     <!-- Field -->
                     <td ng-init="requests.current.data[$index].name = field.name">
-                      {{ field.name }} <span ng-init="requests.current.data[$index].type = field.type">({{ field.type }})</span>
+                      {{ field.name }} <span ng-init="requests.current.data[$index].type = field.type">({{ field.type }}){{ field.similarity == "Array" ? '(Array)' : '' }}</span>
                     </td>
                     <!-- Value -->
                     <td ng-init="requests.current.data[$index].similarity = field.similarity">
                       <!-- String type -->
-                      <div ng-if="field.type=='String' || field.type=='Ontology Concept'" class="form-group">
+                      <div ng-if="(field.type=='String' || field.type=='Ontology Concept')  && field.similarity != 'Array'" class="form-group">
                         <input type="text" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }}">
                       </div>
                       <!-- Numeric type -->
-                      <div ng-if="field.type=='Integer' || field.type=='Float'" class="form-group">
+                      <div ng-if="(field.type=='Integer' || field.type=='Float') && field.similarity != 'Array'" class="form-group">
                         <input type="number" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }}">
+                      </div>
+                      <div ng-if="field.similarity == 'Array'" class="form-group">
+                        <input class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }}">
                       </div>
                       <!-- Boolean type -->
                       <div ng-if="field.type=='Boolean'" class="form-group">
