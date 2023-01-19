@@ -15,6 +15,7 @@ angular.module('cloodApp.tokens', [])
     $scope.projects = [];
     $scope.tokens = [];
     $scope.newToken = null; // new token to be saved
+    $scope.datePicker = null; // datepicker date
     
     if (typeof ENV_CONST.base_api_url == 'undefined' || ENV_CONST.base_api_url == '') {
         $scope.pop("warn", null, "The root API to the serverless functions is not set. You can set this up in env.js");
@@ -55,9 +56,18 @@ angular.module('cloodApp.tokens', [])
             case 3:
                 date = new Date(Date.now()+(30*24*60*60*1000));
                 break;
+            case 4:
+                date = null;
+                $scope.newToken.expiryDate = null;
+                break;
+            case 5:
+                $scope.datePicker = $scope.newToken.expiryDate;
+                date = $scope.newToken.expiryDate;
+                break;
         }
-        console.log("test2", value);
-        $scope.newToken.expiryDate = date.getHours() + ":" + ('0'+date.getMinutes()).slice(-2) + ":00 " + date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear();
+        if (date != null) {
+            $scope.newToken.expiryDate = date.getHours() + ":" + ('0'+date.getMinutes()).slice(-2) + ":00 " + date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear();
+        }
     };
 
     $scope.createToken = function() {
@@ -75,6 +85,8 @@ angular.module('cloodApp.tokens', [])
             case '3':
                 $scope.newToken.expiry = Date.now()+(30*24*60*60*1000);
                 break;
+            case '4':
+                $scope.newToken.expiry = Date.parse($scope.datePicker);
         }
         var item = angular.copy($scope.newToken);
         var token = new Token($scope.newToken);

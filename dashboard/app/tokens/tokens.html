@@ -31,10 +31,17 @@
                     <label class="form-check-label" for="tokenExpiry2">1 Week</label>
                     <input class="form-check-input" type="radio" name="tokenExpiry" id="tokenExpiry3" value="3" ng-model="newToken.value" ng-change="getDate(3)">
                     <label class="form-check-label" for="tokenExpiry3">1 Month</label>
+                    <input class="form-check-input" type="radio" name="tokenExpiry" id="tokenExpiry4" value="4" ng-model="newToken.value" ng-change="getDate(4)">
+                    <label class="form-check-label" for="tokenExpiry4">Custom</label>
                 </div>
                 <div class="form-group">
                     <div style="margin-top:15px;background-color: bisque;" id="tokenExpiryTime" class="form-check form-check-inline">
-                        <label style="margin:auto;padding:10px;" class="form-check form-check-inline" for="tokenExpiryTime">Your token will expire at: &nbsp; {{newToken.expiryDate}}</label>
+                        <label style="margin:auto;padding:10px;" class="form-check form-check-inline" for="tokenExpiryTime">
+                          Your token will expire at: &nbsp; {{newToken.expiryDate}}
+                        </label>
+                        <div ng-if="newToken.value == 4">
+                          <input type="datetime-local" id="tokenExpiryTime" class="form-control" ng-model="newToken.expiryDate" placeholder="Token Expiry Time" ng-change="getDate(5)" required>
+                        </div>
                     </div>
                 </div>
                 <div style="padding-left: 0px;vertical-align: auto;"  class="col-sm-4" ng-if="!newProj.id__">
