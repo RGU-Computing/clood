@@ -28,6 +28,16 @@ def getVectorSemanticSBERT(text):
   res_dictionary = res.json()
   return res_dictionary['vectors']
 
+def getVectorSemanticSBERTArray(text):
+  """
+  Calls an external service to get the 768 dimensional vector representation of a piece of text.
+  """
+  repArray = []
+  for element in text:
+    repArray.append(getVectorSemanticSBERT(element))
+
+  return repArray
+
 
 def checkOntoSimilarity(ontology_id):
   """
@@ -105,6 +115,19 @@ def add_vector_fields(attributes, data):
         newVal['name'] = value
         newVal['rep'] = getVectorSemanticSBERT(value)
         data[attrib['name']] = newVal
+    elif attrib['similarity'] == 'Array SBERT':
+          value = data.get(attrib['name'])
+          if value is not None:
+            newVal = {}
+            newVal['name'] = value
+            newVal["rep"] = []
+            array = getVectorSemanticSBERTArray(value)
+            for element in array:
+              temp = {}
+              temp['rep'] = element
+              newVal["rep"].append(temp)
+
+            data[attrib['name']] = newVal
   return data
 
 
@@ -114,9 +137,7 @@ def remove_vector_fields(attributes, data):
   Transforms "x: {name: val, rep: vector(val)}" to "x: val"
   """
   for attrib in attributes:
-    if attrib['similarity'] == 'Semantic USE' or attrib['similarity'] == 'Semantic SBERT':
-      # print('data: ')
-      # print(data)
+    if attrib['similarity'] == 'Semantic USE' or attrib['similarity'] == 'Semantic SBERT' or attrib['similarity'] == 'Array SBERT':
       value = data.get(attrib['name'])
       if value is not None:
         data[attrib['name']] = value['name']
@@ -164,7 +185,7 @@ def explain_retrieval(es, index_name, query, doc_id, matched_queries):
   return expl
 
 
-def get_explain_details(match_explanation):
+def get_explain_details2(match_explanation):
   """
   Extracts the field names and local similarity values from explanations.
   Note: Could fail if the format of explanations change as it uses regex to extract field names. Skips explanation for
@@ -184,8 +205,21 @@ def get_explain_details(match_explanation):
       m0 = re.search("attrib=([a-zA-Z0-9_\-\s]+)", txt)
       if m0:  # if field name is found
         expl.append({"field": m0.group(1), "similarity": x['value']})
+  return expl
 
-  # print(expl)
+
+def get_explain_details(match_explanation):
+  """
+  Extracts the field names and local similarity values from explanations.
+  Note: Could fail if the format of explanations change as it uses regex to extract field names. Skips explanation for
+  a field if it cannot find the field name.
+  """
+  expl = []
+  for x in match_explanation["details"]:
+    if len(re.findall("attrib=([a-zA-Z0-9_\-\s]+)", str(x))) > 1:
+      expl.extend(get_explain_details(x))
+    elif len(re.findall("attrib=([a-zA-Z0-9_\-\s]+)", str(x))) == 1:
+      expl.append({"field": re.search("attrib=([a-zA-Z0-9_\-\s]+)", str(x)).group(1), "similarity":x['value']})
   return expl
 
 
@@ -298,6 +332,8 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
     return OntologySimilarity(caseAttrib, queryValue, weight, sim_grid)
   elif simMetric == "Array":
     return Array(caseAttrib, queryValue, weight)
+  elif simMetric == "Array SBERT":
+    return ArraySBERT(caseAttrib, getVectorSemanticSBERTArray(queryValue), weight)
   else:
     return MostSimilar(caseAttrib, queryValue, weight)
 
@@ -321,10 +357,43 @@ def Array(caseAttrib, queryValue, weight):
           }
         },
         "script": {
-          "source": "float sum = 0; for (int i = 0; i < doc[params.attrib].length; i++) { for (int j = 0; j < params.queryValue.length; j++) { if (doc[params.attrib][i] == params.queryValue[j]) { sum += 1; } } } return sum/(doc[params.attrib].length+params.queryValue.length-sum);",
+          "source": "float sum = 0; for (int i = 0; i < doc[params.attrib].length; i++) { for (int j = 0; j < params.queryValue.length; j++) { if (doc[params.attrib][i] == params.queryValue[j]) { sum += 1; } } } return sum*params.weight/(doc[params.attrib].length+params.queryValue.length-sum);",
           "params": {
             "attrib": caseAttrib,
-            "queryValue": queryValue
+            "queryValue": queryValue,
+            "weight": weight
+          }
+        }
+      }
+    }
+    return queryFnc
+
+  except ValueError:
+    print("Error")
+
+def ArraySBERT(caseAttrib, queryValue, weight):
+  """
+  Returns the similarity between two arrays
+  """
+  try:
+    # build query string comparing two arrays
+    queryFnc = {
+      "nested": {
+        "path": caseAttrib + ".rep",
+        "score_mode": "avg",
+        "query": {
+          "function_score": {
+            "script_score": {
+              "script": {
+                "source": "float max = 0; for (int i = 0; i < params.queryValue.length; i++) { float cosine = cosineSimilarity(params.queryValue[i], doc[params.attrib_vector]); if(cosine > max) { max = cosine; } } return max*params.weight;",
+                "params": {
+                  "attrib": caseAttrib,
+                  "queryValue": queryValue,
+                  "weight": weight,
+                  "attrib_vector": caseAttrib + ".rep.rep"
+                }
+              }
+            }
           }
         }
       }

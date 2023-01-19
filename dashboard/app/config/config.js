@@ -516,7 +516,7 @@ angular.module('cloodApp.config', [])
     
     // Convert csv input to array
     angular.forEach($scope.newCase.project.attributes, function(value, key) {
-      if (value.similarity == "Array" && $scope.newCase.data[value.name] != null && $scope.newCase.data[value.name] != "") {
+      if ((value.similarity == "Array" || value.similarity == "Array SBERT") && $scope.newCase.data[value.name] != null && $scope.newCase.data[value.name] != "") {
         $scope.newCase.data[value.name] = $scope.newCase.data[value.name].split(",");
         if (value.type == "Integer") {
           $scope.newCase.data[value.name] = $scope.newCase.data[value.name].map(function (el) { return parseInt(el); });

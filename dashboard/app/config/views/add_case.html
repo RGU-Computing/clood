@@ -20,8 +20,8 @@
                     <tr ng-repeat="attribute in selected.attributes">
                         <td>{{ attribute.name }}</td>
                         <td>
-                            {{ attribute.type }}{{ attribute.similarity == "Array" ? '(Array)' : '' }}
-                            <i class="fas fa-info-circle" ng-if="attribute.similarity == 'Array'" data-toggle="tooltip" data-placement="right" title="Array values are created by seperating values with commas."></i>
+                            {{ attribute.type }}{{ (attribute.similarity == "Array" || attribute.similarity == "Array SBERT") ? '(Array)' : '' }}
+                            <i class="fas fa-info-circle" ng-if="attribute.similarity == 'Array' || attribute.similarity == 'Array SBERT'" data-toggle="tooltip" data-placement="right" title="Array values are created by seperating values with commas."></i>
                         </td>
                         <td>
                             <input type="text" class="form-control" ng-model="newCase['data'][attribute.name]" ng-disabled="!selected.attributes.length>0">

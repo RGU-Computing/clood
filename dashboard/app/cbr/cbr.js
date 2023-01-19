@@ -68,7 +68,7 @@ angular.module('cloodApp.cbr', [])
     // Check if the type is Array
     console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown
     angular.forEach($scope.requests.current.data, function(value, key) {
-      if (value.similarity == "Array" && value.value != "" && value.value != null) {
+      if ((value.similarity == "Array" || value.similarity == "Array SBERT") && value.value != "" && value.value != null) {
         value.value = value.value.split(",");
         if(value.type == "Integer") {
           value.value = value.value.map(function (el) { return parseInt(el); });
@@ -118,7 +118,7 @@ angular.module('cloodApp.cbr', [])
 
     // Convert csv input to array
     angular.forEach(newCase.project.attributes, function(value, key) {
-      if (value.similarity == "Array") {
+      if ((value.similarity == "Array"  || value.similarity == "Array SBERT") && newCase.data[value.name] != null && newCase.data[value.name] != "") {
         newCase.data[value.name] = newCase.data[value.name].split(",");
         if (value.type == "Integer") {
           newCase.data[value.name] = newCase.data[value.name].map(function (el) { return parseInt(el); });
