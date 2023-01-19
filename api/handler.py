@@ -741,6 +741,7 @@ def cbr_retrieve(event, context=None):
   queryFeatures = params.get('data')
   addExplanation = params.get('explanation')
   proj = params.get('project')
+  filter = params.get('filter', None)
   globalSim = params.get('globalSim', "Weighted Sum")  # not used as default aggregation is a weighted sum of local similarity values
 
   result = {'recommended': {}, 'bestK': []}
@@ -768,6 +769,9 @@ def cbr_retrieve(event, context=None):
 
       qfnc = retrieve.getQueryFunction(proj['id__'], field, value, weight, similarityType, options)
       query["query"]["bool"]["should"].append(qfnc)
+
+  if filter is not None and filter != "" and filter != {}:   # add filter to query if specified
+    query["query"]["bool"].update({"filter": {"term": filter} })
 
   if not queryAdded:  # If no query features are specified, return all cases up to topk
     query["query"]["bool"]["should"].append(retrieve.MatchAll())
