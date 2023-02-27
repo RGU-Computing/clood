@@ -1,5 +1,8 @@
 # Retrieve functions
+from datetime import datetime as dt
+import math
 import re
+import time
 import dateutil.parser
 import requests
 import json
@@ -15,14 +18,25 @@ def getVector(text):
   res_dictionary = res.json()
   return res_dictionary['vectors']
 
+
 def getVectorSemanticSBERT(text):
   """
-  Calls an external service to get the 512 dimensional vector representation of a piece of text.
+  Calls an external service to get the 768 dimensional vector representation of a piece of text.
   """
   url = cfg.sbert_vectoriser
   res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
   res_dictionary = res.json()
   return res_dictionary['vectors']
+
+def getVectorSemanticSBERTArray(text):
+  """
+  Calls an external service to get the 768 dimensional vector representation of a piece of text.
+  """
+  repArray = []
+  for element in text:
+    repArray.append(getVectorSemanticSBERT(element))
+
+  return repArray
 
 
 def checkOntoSimilarity(ontology_id):
@@ -101,6 +115,19 @@ def add_vector_fields(attributes, data):
         newVal['name'] = value
         newVal['rep'] = getVectorSemanticSBERT(value)
         data[attrib['name']] = newVal
+    elif attrib['similarity'] == 'Array SBERT':
+          value = data.get(attrib['name'])
+          if value is not None:
+            newVal = {}
+            newVal['name'] = value
+            newVal["rep"] = []
+            array = getVectorSemanticSBERTArray(value)
+            for element in array:
+              temp = {}
+              temp['rep'] = element
+              newVal["rep"].append(temp)
+
+            data[attrib['name']] = newVal
   return data
 
 
@@ -110,9 +137,7 @@ def remove_vector_fields(attributes, data):
   Transforms "x: {name: val, rep: vector(val)}" to "x: val"
   """
   for attrib in attributes:
-    if attrib['similarity'] == 'Semantic USE' or attrib['similarity'] == 'Semantic SBERT':
-      # print('data: ')
-      # print(data)
+    if attrib['similarity'] == 'Semantic USE' or attrib['similarity'] == 'Semantic SBERT' or attrib['similarity'] == 'Array SBERT':
       value = data.get(attrib['name'])
       if value is not None:
         data[attrib['name']] = value['name']
@@ -160,7 +185,7 @@ def explain_retrieval(es, index_name, query, doc_id, matched_queries):
   return expl
 
 
-def get_explain_details(match_explanation):
+def get_explain_details2(match_explanation):
   """
   Extracts the field names and local similarity values from explanations.
   Note: Could fail if the format of explanations change as it uses regex to extract field names. Skips explanation for
@@ -180,9 +205,72 @@ def get_explain_details(match_explanation):
       m0 = re.search("attrib=([a-zA-Z0-9_\-\s]+)", txt)
       if m0:  # if field name is found
         expl.append({"field": m0.group(1), "similarity": x['value']})
-
-  # print(expl)
   return expl
+
+
+def get_explain_details(match_explanation):
+  """
+  Extracts the field names and local similarity values from explanations.
+  Note: Could fail if the format of explanations change as it uses regex to extract field names. Skips explanation for
+  a field if it cannot find the field name.
+  """
+  expl = []
+  for x in match_explanation["details"]:
+    if len(re.findall("attrib=([a-zA-Z0-9_\-\s]+)", str(x))) > 1:
+      expl.extend(get_explain_details(x))
+    elif len(re.findall("attrib=([a-zA-Z0-9_\-\s]+)", str(x))) == 1:
+      expl.append({"field": re.search("attrib=([a-zA-Z0-9_\-\s]+)", str(x)).group(1), "similarity":x['value']})
+  return expl
+
+
+def get_min_max_values(es,casebase,attribute):
+  query = {
+    "aggs": {
+      "max": { "max": { "field": attribute } },
+      "min": { "min": { "field": attribute } }
+      }
+    }
+  res = es.search(index=casebase, body=query, explain=False)
+  if res['aggregations']['max']['value'] is None or res['aggregations']['min']['value'] is None:
+    res['aggregations']['max']['value'] = 1
+    res['aggregations']['min']['value'] = 0
+  
+  res = {"max": res["aggregations"]["max"]["value"], "min": res["aggregations"]["min"]["value"], "interval": res["aggregations"]["max"]["value"] - res["aggregations"]["min"]["value"]}
+
+  return res
+
+
+def update_attribute_options(es,proj,attrNames = []):
+  #time.sleep(2) # wait for the operation to complete
+  if not attrNames: # if no attributes specified, update all attributes
+      attrNames = []
+      for attr in proj['attributes']:
+        attrNames.append(attr['name'])
+  for attr in attrNames:
+      for elem in proj['attributes']:
+        if elem['name'] == attr:
+          if elem['type'] == "Integer" or elem['type'] == "Float" or elem['type'] == "Date":
+              res = get_min_max_values(es, proj['casebase'], attr)
+              if 'options' in elem:
+                if 'min' in elem['options']:
+                  elem['options']['min'] = res['min']
+                if 'max' in elem['options']:
+                  elem['options']['max'] = res['max']
+                  if elem['options']['max'] == elem['options']['min']:   # if min and max are the same, set max to min + 0.001
+                    elem['options']['max'] += 0.001
+                if 'interval' in elem['options']:
+                  elem['options']['interval'] = res['interval']
+                if 'nscale' in elem['options']:   # set scale to 10% of the interval (floats and integers)
+                  elem['options']['nscale'] = res['interval']/10
+                  elem['options']['nscale'] = 1 if elem['options']['nscale'] < 1 else elem['options']['nscale']   # if nscale is less than 1, set it to 1
+                  elem['options']['ndecay'] = 0.9
+                if 'dscale' in elem['options']:   # set scale to 10% of the interval (dates)
+                  elem['options']['dscale'] = str(math.ceil((dt.fromtimestamp(res['max']/1000)-dt.fromtimestamp(res['min']/1000)).days/10)) + "d"   # if date scale is 0, set it to 1 day
+                  elem['options']['dscale'] = elem['options']['dscale'].replace("0d","1d")
+                  elem['options']['ddecay'] = 0.9
+  result = es.update(index='projects', id=proj['id__'], body={'doc': proj}, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
+  return result
+
 
 def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options):
   """
@@ -198,11 +286,11 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
   elif simMetric == "McSherry More":  # does not use the query value
     maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
     minValue = options.get('min', 0.0) if options is not None else 0.0  # use 0 if no supplied min
-    return McSherryMoreIsBetter(caseAttrib, maxValue, minValue, weight)
+    return McSherryMoreIsBetter(caseAttrib, queryValue, maxValue, minValue, weight)
   elif simMetric == "McSherry Less":  # does not use the query value
     maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
     minValue = options.get('min', 0.0) if options is not None else 0.0  # use 0 if no supplied min
-    return McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight)
+    return McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight)
   elif simMetric == "INRECA More":
     jump = options.get('jump', 1.0) if options is not None else 1.0  # use 1 if no supplied jump
     return InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight)
@@ -211,8 +299,9 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
     maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
     return InrecaLessIsBetter(caseAttrib, queryValue, maxValue, jump, weight)
   elif simMetric == "Interval":
-    interval = options.get('interval', 100.0) if options is not None else 100.0  # use 100 if no supplied interval
-    return Interval(caseAttrib, queryValue, interval, weight)
+    maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
+    minValue = options.get('min', 100.0) if options is not None else 100.0  # use 100 if no supplied min
+    return Interval(caseAttrib, queryValue, maxValue, minValue, weight)
   elif simMetric == "Semantic USE" and cfg.use_vectoriser is not None:
     return USE(caseAttrib, getVector(queryValue), weight)
   elif simMetric == "Semantic SBERT" and cfg.sbert_vectoriser is not None:
@@ -241,6 +330,10 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
   elif simMetric == "Feature-based":
     sim_grid = getOntoSimilarity(projId + "_ontology_" + options['name'], queryValue)
     return OntologySimilarity(caseAttrib, queryValue, weight, sim_grid)
+  elif simMetric == "Array":
+    return Array(caseAttrib, queryValue, weight)
+  elif simMetric == "Array SBERT":
+    return ArraySBERT(caseAttrib, getVectorSemanticSBERTArray(queryValue), weight)
   else:
     return MostSimilar(caseAttrib, queryValue, weight)
 
@@ -249,7 +342,68 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
 # Each similarity function returns a Painless script for Elasticsearch. 
 # Each function requires field name and set of functions-specific parameters.
 
-def McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight):
+def Array(caseAttrib, queryValue, weight):
+  """
+  Returns the similarity between two arrays
+  """
+  try:
+    # build query string comparing two arrays
+
+    queryFnc = {
+      "script_score": {
+        "query": {
+          "exists": {
+            "field": caseAttrib
+          }
+        },
+        "script": {
+          "source": "float sum = 0; for (int i = 0; i < doc[params.attrib].length; i++) { for (int j = 0; j < params.queryValue.length; j++) { if (doc[params.attrib][i] == params.queryValue[j]) { sum += 1; } } } return sum*params.weight/(doc[params.attrib].length+params.queryValue.length-sum);",
+          "params": {
+            "attrib": caseAttrib,
+            "queryValue": queryValue,
+            "weight": weight
+          }
+        }
+      }
+    }
+    return queryFnc
+
+  except ValueError:
+    print("Error")
+
+def ArraySBERT(caseAttrib, queryValue, weight):
+  """
+  Returns the similarity between two arrays
+  """
+  try:
+    # build query string comparing two arrays
+    queryFnc = {
+      "nested": {
+        "path": caseAttrib + ".rep",
+        "score_mode": "avg",
+        "query": {
+          "function_score": {
+            "script_score": {
+              "script": {
+                "source": "float max = 0; for (int i = 0; i < params.queryValue.length; i++) { float cosine = cosineSimilarity(params.queryValue[i], doc[params.attrib_vector]); if(cosine > max) { max = cosine; } } return max*params.weight;",
+                "params": {
+                  "attrib": caseAttrib,
+                  "queryValue": queryValue,
+                  "weight": weight,
+                  "attrib_vector": caseAttrib + ".rep.rep"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return queryFnc
+
+  except ValueError:
+    print("Error")
+
+def McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
   """
   Returns the similarity of two numbers following the McSherry - Less is better formula. queryVal is not used!
   """
@@ -263,9 +417,10 @@ def McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight):
           }
         },
         "script": {
-          "source": "((float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min)) * params.weight",
+          "source": "((float)(Math.max(params.max,params.queryValue) - doc[params.attrib].value) / (float)(Math.max(params.max,params.queryValue) - Math.min(params.min,params.queryValue))) * params.weight",
           "params": {
             "attrib": caseAttrib,
+            "queryValue": queryValue,
             "max": maxValue,
             "min": minValue,
             "weight": weight
@@ -280,7 +435,7 @@ def McSherryLessIsBetter(caseAttrib, maxValue, minValue, weight):
     print("McSherryLessIsBetter() is only applicable to numbers")
 
 
-def McSherryMoreIsBetter(caseAttrib, maxValue, minValue, weight):
+def McSherryMoreIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
   """
   Returns the similarity of two numbers following the McSherry - More is better formula.
   """
@@ -294,9 +449,10 @@ def McSherryMoreIsBetter(caseAttrib, maxValue, minValue, weight):
           }
         },
         "script": {
-          "source": "(1 - ( (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.min) )) * params.weight",
+          "source": "(1 - ((float)(Math.max(params.max,params.queryValue) - doc[params.attrib].value) / (float)(Math.max(params.max,params.queryValue) - Math.min(params.min,params.queryValue)) )) * params.weight",
           "params": {
             "attrib": caseAttrib,
+            "queryValue": queryValue,
             "max": maxValue,
             "min": minValue,
             "weight": weight
@@ -326,7 +482,7 @@ def InrecaLessIsBetter(caseAttrib, queryValue, maxValue, jump, weight):
           }
         },
         "script": {
-          "source": "if (doc[params.attrib].value <= params.queryValue) { return (1.0 * params.weight) } if (doc[params.attrib].value >= params.max) { return 0 } return (params.jump * (float)(params.max - doc[params.attrib].value) / (float)(params.max - params.queryValue)) * params.weight",
+          "source": "if (doc[params.attrib].value <= params.queryValue) { return (1.0 * params.weight) } if (doc[params.attrib].value >= (Math.max(params.max,params.queryValue)) { return 0 } return (params.jump * (float)((Math.max(params.max,params.queryValue) - doc[params.attrib].value) / (float)((Math.max(params.max,params.queryValue) - params.queryValue)) * params.weight",
           "params": {
             "attrib": caseAttrib,
             "queryValue": queryValue,
@@ -376,7 +532,7 @@ def InrecaMoreIsBetter(caseAttrib, queryValue, jump, weight):
     print("InrecaMoreIsBetter() is only applicable to numbers")
 
 
-def Interval(caseAttrib, queryValue, interval, weight):
+def Interval(caseAttrib, queryValue, max, min, weight):
   """
   Returns the similarity of two numbers inside an interval.
   """
@@ -394,10 +550,11 @@ def Interval(caseAttrib, queryValue, interval, weight):
           "params": {
             "attrib": caseAttrib,
             "queryValue": queryValue,
-            "interval": interval,
+            "max": max,
+            "min": min,
             "weight": weight
           },
-          "source": "(1 - (float)( Math.abs(params.queryValue - doc[params.attrib].value) / (float)params.interval )) * params.weight"
+          "source": "(1 - (float)( Math.abs(params.queryValue - doc[params.attrib].value) / ((float)Math.max(params.max,params.queryValue) - (float)Math.min(params.min,params.queryValue)) )) * params.weight"
         },
         "_name": caseAttrib
       }

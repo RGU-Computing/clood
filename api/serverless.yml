@@ -9,6 +9,15 @@ provider:
   stage: dev
 
 functions:
+  auth:
+    handler: handler.auth
+  authenticate:
+    handler: handler.authenticate
+    events:
+      - http:
+          path: /auth
+          method: post
+          cors: true
   home:
     handler: handler.home
     events:
@@ -16,6 +25,7 @@ functions:
           path: /
           method: get
           cors: true
+          authorizer: auth
   all_projects:
     handler: handler.all_projects
     events:
@@ -23,6 +33,7 @@ functions:
           path: project
           method: get
           cors: true
+          authorizer: auth
   get_project:
     handler: handler.get_project
     events:
@@ -30,6 +41,7 @@ functions:
           path: project/{id}
           method: get
           cors: true
+          authorizer: auth
   new_project:
     handler: handler.new_project
     events:
@@ -37,6 +49,7 @@ functions:
           path: project
           method: post
           cors: true
+          authorizer: auth
   update_project:
     handler: handler.update_project
     timeout: 900 # default is 6
@@ -45,6 +58,7 @@ functions:
           path: project/{id}
           method: put
           cors: true
+          authorizer: auth
   delete_project:
     handler: handler.delete_project
     events:
@@ -52,6 +66,7 @@ functions:
           path: project/{id}
           method: delete
           cors: true
+          authorizer: auth
   create_index:
     handler: handler.create_project_index
     events:
@@ -59,6 +74,7 @@ functions:
           path: project/mapping/{id}
           method: get
           cors: true
+          authorizer: auth
   save_case_list:
     handler: handler.save_case_list
     timeout: 900 # default is 6
@@ -67,6 +83,7 @@ functions:
           path: case/{id}/list
           method: post
           cors: true
+          authorizer: auth
   get_all_cases:
     handler: handler.get_all_cases
     events:
@@ -74,6 +91,7 @@ functions:
           path: case
           method: post
           cors: true
+          authorizer: auth
   get_case:
       handler: handler.get_case
       events:
@@ -81,6 +99,7 @@ functions:
             path: project/{id}/case/{cid}
             method: get
             cors: true
+            authorizer: auth
   update_case:
     handler: handler.update_case
     timeout: 900 # default is 6
@@ -89,6 +108,7 @@ functions:
           path: project/{id}/case/{cid}
           method: put
           cors: true
+          authorizer: auth
   delete_casebase:
     handler: handler.delete_casebase
     events:
@@ -96,6 +116,7 @@ functions:
           path: project/{id}/case
           method: delete
           cors: true
+          authorizer: auth
   delete_case:
     handler: handler.delete_case
     events:
@@ -103,6 +124,7 @@ functions:
           path: project/{id}/case/{cid}
           method: delete
           cors: true
+          authorizer: auth
   re_create_config:
     handler: handler.re_create_config
     events:
@@ -110,6 +132,7 @@ functions:
           path: config/create
           method: get
           cors: true
+          authorizer: auth
   get_config:
     handler: handler.get_config
     events:
@@ -117,6 +140,7 @@ functions:
           path: config
           method: get
           cors: true
+          authorizer: auth
   save_config:
     handler: handler.update_config
     events:
@@ -124,6 +148,7 @@ functions:
           path: config
           method: post
           cors: true
+          authorizer: auth
   check_ontology_sim:
     handler: handler.check_ontology_sim
     events:
@@ -131,6 +156,7 @@ functions:
           path: ontology_sim/{ontology_id}
           method: get
           cors: true
+          authorizer: auth
   retrieve:
     handler: handler.cbr_retrieve
     events:
@@ -138,6 +164,7 @@ functions:
           path: retrieve
           method: post
           cors: true
+          authorizer: auth
   reuse:
     handler: handler.cbr_reuse
     events:
@@ -145,6 +172,7 @@ functions:
           path: reuse
           method: post
           cors: true
+          authorizer: auth
   revise:
     handler: handler.cbr_revise
     events:
@@ -152,6 +180,7 @@ functions:
           path: revise
           method: post
           cors: true
+          authorizer: auth
   retain:
     handler: handler.cbr_retain
     events:
@@ -159,6 +188,7 @@ functions:
           path: retain
           method: post
           cors: true
+          authorizer: auth
   explain:
     handler: handler.retrieve_explain
     events:
@@ -166,6 +196,39 @@ functions:
           path: explain
           method: post
           cors: true
+          authorizer: auth
+  update_attribute_options:
+    handler: handler.update_attribute_options
+    events:
+      - http:
+          path: project/{id}/options
+          method: post
+          cors: true
+          authorizer: auth
+  all_tokens:
+    handler: handler.all_tokens
+    events:
+      - http:
+          path: token
+          method: get
+          cors: true
+          authorizer: auth
+  new_token:
+    handler: handler.new_token
+    events:
+      - http:
+          path: token
+          method: post
+          cors: true
+          authorizer: auth
+  delete_token:
+    handler: handler.delete_token
+    events:
+      - http:
+          path: token/{id}
+          method: delete
+          cors: true
+          authorizer: auth
 plugins:
   - serverless-python-requirements
   - serverless-offline

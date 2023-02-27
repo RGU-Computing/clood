@@ -16,9 +16,14 @@ angular.module('cloodApp.config', [])
     name: 'config.add_data',
     templateUrl: 'config/views/add_data.html'
   };
+  var configAddCaseState = {
+    name: 'config.add_case',
+    templateUrl: 'config/views/add_case.html'
+  };
   $stateProvider.state(configState);
   $stateProvider.state(configAttributesState);
   $stateProvider.state(configAddDataState);
+  $stateProvider.state(configAddCaseState);
 }])
 .directive('customOnChange', [function() {
   return {
@@ -52,11 +57,12 @@ angular.module('cloodApp.config', [])
   $scope.newAttrib = {};
   $scope.newCasebase = {'data':[], 'columnHeads':[], 'preview':false};
   $scope.editing = {'status': false, 'index' : -1};  // indicate attribute edit operation
+  $scope.newCase = {'data':{}, 'project':{}};
 
 
   // Get all projects
   $scope.getAllProjects = function() {
-    $http.get(ENV_CONST.base_api_url + "/project").then(function(res){
+    $http({method: 'GET', url: ENV_CONST.base_api_url + "/project", headers: {"Authorization":$scope.auth.token}}).then(function(res){
       $scope.projects = res.data; // array of projects
       if ($scope.projects.length > 0) {
         $scope.selectProject($scope.projects[0]); // select first
@@ -73,6 +79,20 @@ angular.module('cloodApp.config', [])
     console.log(item);
     console.log($scope.selected);
     if (!containsObject(item, $scope.selected.attributes)) {
+      // Check to see if the attribute should have any options - don't really like hardcoding it like this:P
+      item.options = {};
+      if(item.similarity == 'Interval' || item.similarity == 'McSherry Less' || item.similarity == 'McSherry More' || item.similarity == 'INRECA Less' || item.similarity == 'INRECA More') {
+        item.options.max = 100;
+        item.options.min = 1;
+        item.options.jump = 1;
+      } else if(item.similarity == 'Nearest Number') {
+        item.options.nscale = 1;
+        item.options.ndecay = 0.9;
+      } else if(item.similarity == 'Nearest Date') {
+        item.options.dscale = "1d";
+        item.options.ddecay = 0.9;
+      }
+      console.log("item2",item);
       $scope.selected.attributes.push(angular.copy(item)); // add to the selected project's attributes
     } else {
       console.log('Cannot have duplicate attribute names');
@@ -317,6 +337,32 @@ angular.module('cloodApp.config', [])
     $ctrl.open('lg');
   };
 
+  $scope.simListPopup = function(info) {
+    var $ctrl = this;
+    $ctrl.data = info
+    $ctrl.open = function (size) {
+      var modalInstance = $uibModal.open({
+        animation: true,
+        backdrop: true,  // prevents closing modal by clicking outside it
+        ariaLabelledBy: 'modal-title',
+        ariaDescribedBy: 'modal-body',
+        templateUrl: 'config/views/modalviews/similarity_list.html',
+        controller: 'ModalSimListInstanceCtrl',
+        controllerAs: '$ctrl',
+        size: 'lg',
+        resolve: {
+          data: function () {
+            return $ctrl.data
+          }
+        }
+      })
+      modalInstance.result.then(function (res) {
+        console.log("Similarity list modal closed");
+      });
+    };
+    $ctrl.open('lg');
+  };
+
  // Removes attribute from project attributes list if it exists
   $scope.removeAttribute = function(item) {
     for (var i = 0; i < $scope.selected.attributes.length; i++) {
@@ -332,7 +378,7 @@ angular.module('cloodApp.config', [])
     var projId = $scope.selected.id__;
     var proj = angular.copy($scope.selected);
     console.log(proj);
-    Project.update({ id: projId }, $scope.selected).$promise.then(
+    $http.put(ENV_CONST.base_api_url + "/project/" + projId, proj, {headers: {"Authorization":$scope.auth.token}}).then(
       function(suc) {
         console.log('Updated casebase attributes');
         $scope.pop("success", null, "Project updated.");
@@ -344,7 +390,7 @@ angular.module('cloodApp.config', [])
 
   // Create index mapping for a project. Index mapping specifies the case structure and is a required step before adding cases
   $scope.createIndexMapping = function() {
-    $http.get(ENV_CONST.base_api_url + "/project" + "/mapping/" + $scope.selected.id__).then(function(res) {
+    $http.put(ENV_CONST.base_api_url + "/project" + "/mapping/" + $scope.selected.id__, {headers: {"Authorization":$scope.auth.token}}).then(function(res) {
       $scope.pop("success", null, "Project case-base has been set up.");
       $scope.selected.hasCasebase = true;
       console.log(res.data);
@@ -419,9 +465,12 @@ angular.module('cloodApp.config', [])
           // Check if supplied column heads match the expected fields
           var attribNameArray = $scope.selected.attributes.map(function (el) { return el.name; });
           if (!(attribNameArray.length === $scope.newCasebase.columnHeads.length && attribNameArray.sort().every(function(value, index) { return value === $scope.newCasebase.columnHeads.sort()[index]}))) {
-            $scope.displayWarning = "Warning: One or more field names in CSV file are different from defined attributes. Names are case-sensitive. \n";
-            $scope.displayWarning += "Attribute names: " + attribNameArray.toString() + ". \n";
-            $scope.displayWarning += "CSV column names: " + $scope.newCasebase.columnHeads.toString() + ".";
+            var dif = $scope.newCasebase.columnHeads.filter(x => attribNameArray.indexOf(x) === -1); // get difference
+            if(dif.length != 1 || dif[0] != "_id") { // if difference is not just _id
+              $scope.displayWarning = "Warning: One or more field names in CSV file are different from defined attributes. Names are case-sensitive. \n";
+              $scope.displayWarning += "Attribute names: " + attribNameArray.toString() + ". \n";
+              $scope.displayWarning += "CSV column names: " + $scope.newCasebase.columnHeads.toString() + ".";
+            }
           }
           console.log($scope.newCasebase);
         } else {
@@ -447,7 +496,8 @@ angular.module('cloodApp.config', [])
   // Save casebase
   $scope.saveCasebase = function() {
     console.log($scope.newCasebase);
-    $http.post(ENV_CONST.base_api_url + "/case/" + $scope.selected.id__ + "/list", $scope.newCasebase.data)
+    
+    $http.post(ENV_CONST.base_api_url + "/case/" + $scope.selected.id__ + "/list", $scope.newCasebase.data, {headers: {"Authorization":$scope.auth.token}})
         .then(function(res) {
           console.log(res);
           $scope.newCasebase = {'data':[], 'columnHeads':[], 'preview':false}; // reset
@@ -458,6 +508,33 @@ angular.module('cloodApp.config', [])
           console.log(err);
           $scope.pop("error", null, "An error occurred while trying to save data.");
         });
+  };
+
+   // saves a new case to the casebase
+   $scope.saveCase = function() {
+    $scope.newCase.project = $scope.selected;
+    
+    // Convert csv input to array
+    angular.forEach($scope.newCase.project.attributes, function(value, key) {
+      if ((value.similarity == "Array" || value.similarity == "Array SBERT") && $scope.newCase.data[value.name] != null && $scope.newCase.data[value.name] != "") {
+        $scope.newCase.data[value.name] = $scope.newCase.data[value.name].split(",");
+        if (value.type == "Integer") {
+          $scope.newCase.data[value.name] = $scope.newCase.data[value.name].map(function (el) { return parseInt(el); });
+        } else if (value.type == "Float") {
+          $scope.newCase.data[value.name] = $scope.newCase.data[value.name].map(function (el) { return parseFloat(el); });
+        }
+      console.log("newCase",$scope.newCase);
+      }
+    });
+
+    $http.post(ENV_CONST.base_api_url + '/retain', $scope.newCase, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
+      console.log(res.data);
+      $scope.pop("success", null, "New case added.");
+      $scope.newCase = {'data':[], 'project':null};
+    }).catch(function(err) {
+      console.log(err);
+      $scope.pop("error", null, "Case added was not added. Duplicate cases are rejected when not allowing duplicates.");
+    });
   };
 
   $scope.getAllProjects();
@@ -491,7 +568,7 @@ angular.module('cloodApp.config', [])
   }
 	// make a temp copy of the table similarity grid
 	$scope.sim_grid = angular.copy($scope.data.options.sim_grid);
-
+  console.log("sim_grid: " + JSON.stringify($scope.data.options));
 	// updates the sim grid according to values
   $scope.updateGrid = function() {
     // initialise sim grid wherever it is undefined
@@ -499,7 +576,11 @@ angular.module('cloodApp.config', [])
 			//console.log($scope.data.options.values);
       angular.forEach($scope.data.options.values, function(value1){
         angular.forEach($scope.data.options.values, function(value2){
-	        if ($scope.sim_grid[value1] === undefined){
+          console.log("sim_grid: " + JSON.stringify($scope.sim_grid));
+	        if ($scope.sim_grid === undefined){
+	          $scope.sim_grid = {};
+	        }
+          if ($scope.sim_grid[value1] === undefined){
 	          $scope.sim_grid[value1] = {};
 	        }
           if ($scope.sim_grid[value1][value2] === undefined) {
@@ -704,6 +785,15 @@ angular.module('cloodApp.config', [])
     //{...}
     alert("Changes will not be saved.");
     //$scope.data = angular.copy(data);
+    $uibModalInstance.dismiss('cancel');
+  };
+}])
+.controller('ModalSimListInstanceCtrl', ['$uibModalInstance', 'data', '$scope', function($uibModalInstance, data, $scope) {
+  $scope.save = function() {
+    $uibModalInstance.close();
+  };
+
+  $scope.cancel = function() {
     $uibModalInstance.dismiss('cancel');
   };
 }]);

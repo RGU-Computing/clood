@@ -1,0 +1,187 @@
+<div class="modal-header">
+    <h3 class="modal-title" id="modal-title">List of All Similarities</h3>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Array (Jaccard)</p>
+    <p><b>Suitable data types: </b>String, Integer, Float</p>
+    <p><b>Description: </b>Uses the Jaccard similarity metric to compare two arrays. Returns a score equal to the intersection of the two arrays over
+        the union of the two arrays. Intersection is the number of elements in both arrays, union is the number of elements in either array.
+         Returns a score between 0 and 1, with 1 being an exact match. 
+    </p>
+    <p><b>Formula: </b><code>A ∩ B / A ∪ B</code>
+        <br/><i>where A is the query array and B is the case array</i>
+    </p>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">EnumDistance</p>
+    <p><b>Suitable data types: </b>Categorical</p>
+    <p><b>Description: </b>Enum distance measures the distance between two categorical values within an enumeration. 
+        Returns a score of 1 if they are an exact match, with a lower score the further they are apart within the enumeration.
+    </p>
+    <p><b>Formula: </b><code>(1 - ((index(a) - index(b)) / len(enum) ))</code>
+        <br/><i>where a is the query value and b is the case value</i>
+    </p>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Equal</p>
+    <p><b>Suitable data types: </b>String, Integer, Float, Categorical, Boolean</p>
+    <p><b>Description: </b>Compares two data values looking for an exact match. Returns a similarity score of 1 if the two values are equal, 0 if not equal.</p>
+    <p><b>Formula: </b><code>"if (a == b) { return (1) }"</code>
+        <br/><i>where a is the query value and b is the case value</i>
+    </p>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Equal Ignore Case</p>
+    <p><b>Suitable data types: </b>String, Categorical</p>
+    <p><b>Description: </b>Converts both values to lowercase before looking for an exact match. Returns a similarity score of 1 if the two values are equal, 0 if not equal.</p>
+    <p><b>Formula: </b><code>"if (a == b) { return (1) }"</code>
+        <br/><i>where a is the query value and b is the case value</i></p>
+    </p>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">INRECA Less</p>
+    <p><b>Suitable data types: </b>Integer, Float</p>
+    <p><b>Description: </b>
+        Applies the INRECA Less is Better algorithm to the case and query values. 
+        Returns a similarity score of 1 if the case value is less than or equal to the query value, a score of 0 if the case value is greater than max, 
+        and a value between 0 and 1 if the case value is between the query value and the max value.
+    </p>
+    <p><b>Formula: </b><code>"if (b <= a) { return (1.0) } if (b >= max) { return 0 } return ((max - b) / (max - a))"</code>
+        <br/><i>where "max" is the maximum value in the casebase (or query) for the attribute being compared, and a is the query value and b is the case value</i>
+    </p>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">INRECA More</p>
+    <p><b>Suitable data types: </b>Integer, Float</p>
+    <p><b>Description: </b>
+        Applies the INRECA More is Better algorithm to the case and query values. 
+        Returns a similarity score of 1 if the case value is greater than or equal to the query value, a score of 0 if the case value is 0, 
+        and a value between 0 and 1 if the case value is between 0 and the query value.
+    </p>
+    <p><b>Formula: </b><code>"if (b >= a) { return (1.0) } return ((1 - (a - b)) / a)"</code>
+        <br/><i>where a is the query value and b is the case value</i>
+    </p>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Interval</p>
+    <p><b>Suitable data types: </b>Integer, Float</p>
+    <p><b>Description: </b>
+        Compares the difference between the query value and case value to the interval between the max and min values in the casebase. 
+        Returns a score of 1 if the difference is between values is 0, and returns a score of 0 if the difference is equal to the interval.
+    </p>
+    <p><b>Formula: </b><code>"(1 - ( |a - b| / (max - min) ))"</code>
+        <br/><i>where "max" and "min" are the maximum and minimum values in the casebase (or query) for the attribute being compared, and a is the query value and b is the case value</i> 
+    </p>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">McSherry Less</p>
+    <p><b>Suitable data types: </b>Integer, Float</p>
+    <p><b>Description: </b>
+        Applies the McSherry Less is Better algorithm to the case value.
+        Returns a similarity score of 1 if the case value is equal to the minimum value in the casebase (or query) for the attribute being compared, 
+        0 if the case value is equal to the maximum value in the casebase (or query) for the attribute being compared, 
+        and a value between 0 and 1 if the case value is between the minimum and maximum values in the casebase (or query) for the attribute being compared.
+    </p>
+    <p><b>Formula: </b>
+        <code>((max-b) / (max-min))</code>
+        <br/><i>where "max" and "min" are the maximum and minimum values in the casebase (or query) for the attribute being compared, and b is the value of the attribute within the case</i>
+    </p>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">McSherry More</p>
+    <p><b>Suitable data types: </b>Integer, Float</p>
+    <p><b>Description: </b>
+        Applies the McSherry More is Better algorithm to the case value. 
+        Returns a similarity score of 1 if the case value is equal to the maximum value in the casebase (or query) for the attribute being compared, 0 if the case value is equal to the minimum value in the casebase (or query) for the attribute being compared, and a value between 0 and 1 if the case value is between the maximum and minimum values in the casebase (or query) for the attribute being compared.
+    </p>
+    <p><b>Formula: </b>
+        <code>"(1 - ((max - b) / (max - min)))"</code>
+        <br/><i>where "max" and "min" are the maximum and minimum values in the casebase (or query) for the attribute being compared, and b is the value of the attribute within the case</i>
+    </p>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Nearest Number/Date/Location</p>
+    <p><b>Suitable data types: </b>Integer, Float, Date</p>
+    <p><b>Description: </b>
+        Calculates the distance between two numbers using an exponential decay algorithm. The algorithm is configured to reduce the simiarity score
+        by 10% for every "10% interval" difference between the two numbers, where "10% interval" means 10% of the range of values within the casebase.
+        For example, if you have a casebase with values ranging from 0 to 100, a query value of 90 would return 0.9 against the value of 100.
+        Note that the algorithm is exponential, so a difference of 20% would return 0.81, a difference of 30% would return 0.729, and so on.
+    </p>
+    <p><b>Formula: </b><code>"0.9^(|(a-b)|/(0.1*(max-min)))"</code>
+    <br/><i>where "max" and "min" are the maximum and minimum values in the casebase (or query) for the attribute being compared</i>
+    </p>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Query Intersection</p>
+    <p><b>Suitable data types: </b>Categorical</p>
+    <p><b>Description: </b>
+        Calculates the similarity between two sets of categorical values. 
+        The similarity score is calculated by dividing the number of values in the intersection of the two sets by the length of the query set.
+    </p>
+    <p><b>Formula: </b><code>"|a & b| / |a|"</code>
+        <br/><i>where "a" is the query value and "b" is the case value</i>
+    </p>
+</div>
+
+<div class="modal-body" id="modal-body">
+    <p class="lead">Semantic SBERT</p>
+    <p><b>Suitable data types: </b>String</p>
+    <p><b>Description: </b>
+        Semantic SBERT creates a vector representation from the string data of size (768x768). 
+        The cosine similarity between these vector representations is then used to determine the similarity between strings.
+        A cosine similarity is calculated by dividing the dot product of the two vectors by the product of their magnitudes.
+        <br/>
+        <img src="config/views/modalviews/images/cosinesimilarity.svg"/>
+        <br/>
+        After the cosine similarity is calculated, the similarity score is determined by adding 1 to the cosine similarity and then dividing by 2. 
+        This is to renormalise the cosine similarity to a value between 0 and 1.
+    </p>
+    <p><b>Formula: </b><code>"(cosinesimilarity(a,b)+1)/2"</code>
+        <br/><i>where a is the query value and b is the case value</i></p>
+    </p>
+</div>
+<div class="modal-body" id="modal-body">
+    <p class="lead">Table</p>
+    <p><b>Suitable data types: </b>Categorical</p>
+    <p><b>Description: </b>
+        Compares the case value to the query value and returns a similarity score based on the value in the table.
+        The table is a 2D array of values, where the first row is the query values and the first column is the case values.
+        The first row and column are used to determine the similarity score for each combination of query and case values.
+        The similarity score is determined by the value in the table at the intersection of the query and case values.
+        For example:
+        <br/>
+        <table class="table table-responsive">
+            <tr>
+                <th></th>
+                <th>Query Value 1</th>
+                <th>Query Value 2</th>
+                <th>Query Value 3</th>
+            </tr>
+            <tr>
+                <td>Case Value 1</td>
+                <td>1</td>
+                <td>0</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>Case Value 2</td>
+                <td>0</td>
+                <td>1</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>Case Value 3</td>
+                <td>0</td>
+                <td>0</td>
+                <td>1</td>
+            </tr>
+        </table>
+    </p>
+    <p><b>Formula: </b><code>"table[query][case]"</code>
+        <br/><i>where "table" is the table of values, "query" is the query value, and "case" is the case value</i>
+    </p>
+</div>
+<div class="modal-footer">
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Close</button>
+</div>

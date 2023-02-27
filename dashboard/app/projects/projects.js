@@ -10,11 +10,6 @@ angular.module('cloodApp.projects', [])
   };
   $stateProvider.state(projectsState);
 }])
-.factory('Project', ['$resource', 'ENV_CONST', function($resource, ENV_CONST) {
-  return $resource(ENV_CONST.base_api_url + "/project" + '/:id', null, {
-    'update': { method: 'PUT'}
-  });
-}])
 .controller('ProjectCtrl', ['$scope', '$http', 'Project', 'ENV_CONST', function($scope, $http, Project, ENV_CONST) {
   $scope.menu.active = $scope.menu.items[0]; // ui active menu tag
   $scope.projects = [];
@@ -23,21 +18,26 @@ angular.module('cloodApp.projects', [])
   if (typeof ENV_CONST.base_api_url == 'undefined' || ENV_CONST.base_api_url == '') {
     $scope.pop("warn", null, "The root API to the serverless functions is not set. You can set this up in env.js");
   }
+  
 
+  // get all projects
   $scope.getAllProjects = function() {
-    $http.get(ENV_CONST.base_api_url + "/project").then(function(res) {
+    $http({method: 'GET', url: ENV_CONST.base_api_url + "/project", headers: {"Authorization":$scope.auth.token}}).then(function(res) {
       $scope.projects = res.data;
       console.log(res.data);
+    }, function(err) {
+      console.log(err.data);
     });
   };
 
-  // Creates new project
+
+  // create new project
   $scope.newProject = function() {
     var item = angular.copy($scope.newProj);
     var proj = new Project($scope.newProj);
-    proj.$save({}, function(res){
-      console.log(res);
-      item.id__ = res.project.id__;
+    $http.post(ENV_CONST.base_api_url + "/project/", proj, {headers:{"Authorization":$scope.auth.token}}).then(function(res){
+      console.log("res",res);
+      item.id__ = res.data.project.id__;
       $scope.projects.push(item); // refresh list
       $scope.pop("success", null, "New project save.");
       $scope.newProj = null; // reset form fields
@@ -56,12 +56,14 @@ angular.module('cloodApp.projects', [])
     $scope.newProj = null;
   };
 
-  // Updates a project
+
+  // update project
   $scope.updateProject = function() {
     var proj = angular.copy($scope.newProj);
     delete proj.id__;
-    Project.update({ id: $scope.newProj.id__ }, proj).$promise.then(function(res){
-      const index = $scope.projects.findIndex(p => p.id__ === res.project.id__);
+    $http.put(ENV_CONST.base_api_url + "/project/" + $scope.newProj.id__, proj, {headers: {"Authorization":$scope.auth.token}}).then(function(res){
+      console.log("res",res);
+      const index = $scope.projects.findIndex(p => p.id__ === res.data.project.id__);
       $scope.projects[index] = $scope.newProj;
       console.log(res);
       $scope.pop("success", null, "Project detail updated.");
@@ -72,11 +74,10 @@ angular.module('cloodApp.projects', [])
     });
   };
 
-  // Deletes a project
+
+  // delete project
   $scope.deleteProject = function(item) {
-    Project.delete({
-      id: item.id__
-    }).$promise.then(function(){
+    $http({method: 'DELETE', url: ENV_CONST.base_api_url + "/project/" + item.id__, headers: {"Authorization":$scope.auth.token}}).then(function(){
       $scope.projects = $scope.projects.filter(function(el) { return el.id__ != item.id__; });
       $scope.pop("success", null, "Project deleted!");
       $scope.newProj = null; // cancel any selection on ui
@@ -85,6 +86,7 @@ angular.module('cloodApp.projects', [])
       $scope.pop("error", null, "Item was not deleted as something went wrong.")
     })
   };
+
 
   // Export Project
   $scope.exportProject = function(item) {
@@ -100,15 +102,15 @@ angular.module('cloodApp.projects', [])
     $scope.pop("success", null, "Project Exporting!");
   };
 
+  
   // Import Project from File
   $scope.importProject = function () {
-
-    document.getElementById("importBtn").disabled = true;
-
     var files = document.getElementById('importFile').files;
     if (files.length <= 0) {
+        $scope.pop("error", null, "No file selected.")
         return false;
     }
+    document.getElementById("importBtn").disabled = true;
     var fr = new FileReader();
 
     fr.onload = function (e) {
@@ -124,9 +126,9 @@ angular.module('cloodApp.projects', [])
             }
         );
         console.log(importedProj)
-        importedProj.$save({}, function (res) {
+        $http.post(ENV_CONST.base_api_url + "/project/", importedProj, {headers:{"Authorization":$scope.auth.token}}).then(function(res){
           $scope.pop("success", null, "Succesfully imported project " + importedJSON.name + " !");
-          $scope.projects.push(res.proj); // refresh list
+          $scope.projects.push(res.data.project); // refresh list
           $scope.newProj = null;
           document.getElementById("importBtn").disabled = false;
           $('#importModal').modal('hide');

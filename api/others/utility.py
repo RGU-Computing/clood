@@ -1,4 +1,12 @@
+import base64
+import datetime
+import hashlib
+import hmac
+import json
+import re
 import time
+
+import config as cfg
 
 
 def indexHasDocWithFieldVal(es, index, field, value):
@@ -21,15 +29,15 @@ def createOrUpdateGlobalConfig(es, config_db="config", globalConfig=None):
   config = {}
   config['attributeOptions'] = []
   config['attributeOptions'].append(
-    {'type': 'String', 'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'Semantic SBERT', 'None'],
+    {'type': 'String', 'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'Semantic SBERT','Array', 'Array SBERT', 'None'],
      'reuseStrategy': ['Best Match']})
   config['attributeOptions'].append({'type': 'Integer',
                                      'similarityTypes': ['Equal', 'Nearest Number', 'McSherry More', 'McSherry Less',
-                                                         'INRECA More', 'INRECA Less', 'Interval', 'None'],
+                                                         'INRECA More', 'INRECA Less', 'Interval', 'Array', 'None'],
                                      'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median', 'Mode']})
   config['attributeOptions'].append({'type': 'Float',
                                      'similarityTypes': ['Equal', 'Nearest Number', 'McSherry More', 'McSherry Less',
-                                                         'INRECA More', 'INRECA Less', 'Interval', 'None'],
+                                                         'INRECA More', 'INRECA Less', 'Interval', 'Array','None'],
                                      'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median']})
   config['attributeOptions'].append({'type': 'Categorical',
                                      'similarityTypes': ['Equal', 'EqualIgnoreCase', 'Table', 'EnumDistance', 'Query Intersection', 'None'],
@@ -97,4 +105,66 @@ def getIndexEntries(es, index, start=0, size=100):
     doc = entry['_source']
     doc['id__'] = entry['_id']
     result.append(doc)
+  return result
+
+def verifyToken(token):
+  """
+  Verify the token
+  """
+  result = False
+  if token is not None:
+    # regex JWT token
+    JWTregex = r"^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$"
+    if re.match(JWTregex, token):
+
+      # split token into header, payload and signature
+      tokenParts = (token.split('.'))
+      print(tokenParts)
+
+      # HMAC of sha256 hash of header and payload using secret key
+      signature =  base64.b64encode(hmac.HMAC(cfg.SECRET.encode('utf-8'), (tokenParts[0] + '.' + tokenParts[1]).encode('utf-8'), hashlib.sha256).digest(),b"-_")
+      signature = signature.replace(b'=', b'').decode("utf-8") # strip padding
+      print(signature)
+      # compare the new signature with the provided signature
+      if signature == tokenParts[2]:
+        result = True
+        # Check if the token has passed its expiry time
+        payload = json.loads(base64.b64decode(tokenParts[1] + '=='))
+        if float(payload['expiry']) < (time.time()):
+          result = False
+
+  return result
+
+def generateToken(token):
+  """
+  Generate a token
+  """
+  result = None
+  if token is not None and token['name'] is not None and token['expiry'] is not None:
+    # get current time
+    now = time.time()
+    # create header
+    header = {}
+    header['alg'] = 'HS256'
+    header['typ'] = 'JWT'
+    # create payload
+    payload = {}
+    payload['name'] = token['name']
+    if 'description' in token:
+      payload['description'] = token['description']
+    payload['expiry'] = token['expiry']
+
+    # encode header and payload
+    encodedHeader = base64.b64encode(json.dumps(header).encode('utf-8'),b"-_")
+    encodedHeader = encodedHeader.replace(b'=', b'').decode("utf-8") # strip padding
+    encodedPayload = base64.b64encode(json.dumps(payload).encode('utf-8'),b"-_")
+    encodedPayload = encodedPayload.replace(b'=', b'').decode("utf-8") # strip padding
+
+    # HMAC of sha256 hash of header and payload using secret key
+    signature =  base64.b64encode(hmac.HMAC(cfg.SECRET.encode('utf-8'), (encodedHeader + '.' + encodedPayload).encode('utf-8'), hashlib.sha256).digest(),b"-_")
+    signature = signature.replace(b'=', b'').decode("utf-8") # strip padding
+
+    # create token
+    result = encodedHeader + '.' + encodedPayload + '.' + signature
+
   return result

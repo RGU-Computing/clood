@@ -14,6 +14,12 @@
   </button>
 </div>
 
+<div class="row" ng-if="requests.current.explanation && requests.response.bestK.length>0">
+  <h4 align="center">Parallel Coordinate Plot of Top 5 Cases</h4>
+  <div id="plotly-graph" ng-init="plotTest()"><p style="color: red;margin: auto;" ng-if="requests.response.bestK[0].match_explanation.length==0">Query against specific case attributes to see a plot of local similarities</p></div>
+  
+</div>
+
 <div class="row">
   <!-- Display recommended solution -->
   <div class="row" ng-show="objOrArrayHasContent(requests.response.recommended)">
@@ -71,14 +77,14 @@
                 <tr>
                   <th ng-repeat="attrib in selected.attributes">{{ attrib.name }}</th>
                   <th>Score</th>
-                  <th ng-if="requests.current.explanation">Local similarity measures</th>
+                  
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 <tr ng-repeat="entry in requests.response.bestK">
                   <td ng-repeat="attrib in selected.attributes" ng-if="entry">
-                    <span ng-if=" getDataType(entry[attrib.name])!='object' ">{{ entry[attrib.name] }}</span>
+                    <span ng-if=" getDataType(entry[attrib.name])!='object' ">{{ getDataType(entry[attrib.name]) === 'string' ? entry[attrib.name].substr(0, 50) : entry[attrib.name] }}{{ entry[attrib.name].length > 50 ? '...' : ''}}</span>
                     <code ng-if=" getDataType(entry[attrib.name])=='object' ">
                       <pre>{{ entry[attrib.name] | json }}</pre>
                     </code>
@@ -86,12 +92,13 @@
                   <td>
                     {{ entry['score__'] | number:3 }}
                   </td>
-                  <td ng-if="entry.match_explanation">
-                    <code>
-                      <pre>{{ entry['match_explanation'] | json }}</pre>
-                    </code>
-                  </td>
                   <td>
+                    <button type="button" class="btn btn-block btn-primary" ng-click="showCase(entry)">
+                      Details
+                    </button>
+                    <button type="button" class="btn btn-block btn-primary" ng-click="graphData(entry)">
+                      Graph
+                    </button>
                     <button type="button" class="btn btn-block btn-primary" ng-click="reuseCase(entry)">
                       Reuse
                     </button>

@@ -25,17 +25,20 @@
                   <tr ng-repeat="field in selected.attributes">
                     <!-- Field -->
                     <td ng-init="requests.current.data[$index].name = field.name">
-                      {{ field.name }} <span ng-init="requests.current.data[$index].type = field.type">({{ field.type }})</span>
+                      {{ field.name }} <span ng-init="requests.current.data[$index].type = field.type">({{ field.type }}){{ field.similarity == "Array" ? '(Array)' : '' }}</span>
                     </td>
                     <!-- Value -->
                     <td ng-init="requests.current.data[$index].similarity = field.similarity">
                       <!-- String type -->
-                      <div ng-if="field.type=='String' || field.type=='Ontology Concept'" class="form-group">
+                      <div ng-if="(field.type=='String' || field.type=='Ontology Concept')  && field.similarity != 'Array' && field.similarity != 'Array SBERT'" class="form-group">
                         <input type="text" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }}">
                       </div>
                       <!-- Numeric type -->
-                      <div ng-if="field.type=='Integer' || field.type=='Float'" class="form-group">
+                      <div ng-if="(field.type=='Integer' || field.type=='Float') && field.similarity != 'Array' && field.similarity != 'Array SBERT'" class="form-group">
                         <input type="number" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }}">
+                      </div>
+                      <div ng-if="field.similarity == 'Array' || field.similarity == 'Array SBERT'" class="form-group">
+                        <input class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }}">
                       </div>
                       <!-- Boolean type -->
                       <div ng-if="field.type=='Boolean'" class="form-group">
@@ -99,7 +102,7 @@
               </div>
 
               <div class="form-group col-sm-3">
-                <label for="includeExp">Include explanations</label>
+                <label for="includeExp">Include explanations and graphs of results</label>
                 <input id="includeExp" class="form-check-input" type="checkbox" ng-model="requests.current.explanation">
                 <label for="retrieveCases"></label>
                 <button id="retrieveCases" type="button" name="button" class="btn btn-block btn-primary" ng-click="retrieveCases()" ng-disabled="!requests.current.data.length>0">

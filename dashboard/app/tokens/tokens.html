@@ -1,0 +1,93 @@
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+    <h1 class="page-header">Manage JWT Tokens</h1>
+
+
+ <!-- New token form -->
+ <div class="row">
+    <div class="col-lg-6">
+      <div class="p-5">
+        <div class="text-center">
+          <h1 class="h4 text-gray-900 mb-4">Create New Token</h1>
+        </div>
+        <form id="newTokenForm">
+          <div class="form-group">
+            <label for="tokenName">Token name</label>
+            <input type="text" id="tokenName" class="form-control" ng-model="newToken.name" placeholder="Token Name" required>
+          </div>
+          <div class="form-group">
+            <label for="tokenDescription">Token description</label>
+            <textarea id="tokenDescription" class="form-control" ng-model="newToken.description" placeholder="Enter a brief description (optional)" rows="3" cols="80" maxlength="150"></textarea>
+          </div>
+          <!-- Set token expiry time -->
+            <div class="form-group">
+                <label for="tokenExpiry">Token expiry</label>
+                <!-- Set token expiry time checkboxes -->
+                <div id="tokenExpiry" class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="tokenExpiry" id="tokenExpiry0" value="0" ng-model="newToken.value" ng-change="getDate(0)">
+                    <label class="form-check-label" for="tokenExpiry0">90 minutes</label>
+                    <input class="form-check-input" type="radio" name="tokenExpiry" id="tokenExpiry1" value="1" ng-model="newToken.value" ng-change="getDate(1)">
+                    <label class="form-check-label" for="tokenExpiry1">1 day</label>
+                    <input class="form-check-input" type="radio" name="tokenExpiry" id="tokenExpiry2" value="2" ng-model="newToken.value" ng-change="getDate(2)">
+                    <label class="form-check-label" for="tokenExpiry2">1 Week</label>
+                    <input class="form-check-input" type="radio" name="tokenExpiry" id="tokenExpiry3" value="3" ng-model="newToken.value" ng-change="getDate(3)">
+                    <label class="form-check-label" for="tokenExpiry3">1 Month</label>
+                    <input class="form-check-input" type="radio" name="tokenExpiry" id="tokenExpiry4" value="4" ng-model="newToken.value" ng-change="getDate(4)">
+                    <label class="form-check-label" for="tokenExpiry4">Custom</label>
+                </div>
+                <div class="form-group">
+                    <div style="margin-top:15px;background-color: bisque;" id="tokenExpiryTime" class="form-check form-check-inline">
+                        <label style="margin:auto;padding:10px;" class="form-check form-check-inline" for="tokenExpiryTime">
+                          Your token will expire at: &nbsp; {{newToken.expiryDate}}
+                        </label>
+                        <div ng-if="newToken.value == 4">
+                          <input type="datetime-local" id="tokenExpiryTime" class="form-control" ng-model="newToken.expiryDate" placeholder="Token Expiry Time" ng-change="getDate(5)" required>
+                        </div>
+                    </div>
+                </div>
+                <div style="padding-left: 0px;vertical-align: auto;"  class="col-sm-4" ng-if="!newProj.id__">
+                    <button type="submit" ng-click="createToken()" class="btn btn-primary btn-block" ng-disabled="!newToken.name.length>0||!newToken.expiryDate">
+                    Create Token
+                    </button>
+                </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sub-header">Existing tokens</h2>
+
+  <div class="table-responsive">
+    <table ng-if="tokens.length > 0" class="table table-striped table-bordered" id="tokensTable" width="100%" cellspacing="0">
+    <!-- <table class="table table-striped"> -->
+      <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Expiry</th>
+            <th>Value</th>
+            <th>Remove</th>
+        </tr>
+      </thead>
+      <tbody id="tokensTableBody">
+        <tr ng-repeat="item in tokens">
+            <td class="nowrap">{{ item.name }}</td>
+            <td class="nowrap">{{ item.description }}</td>
+            <td class="nowrap">{{ item.expiryDate }}</td>
+            <td>
+              <input ng-click="copyToken(item.token)" style="width:100%;cursor: pointer;" type="text" value="{{item.token}}" readonly/>
+            </td>
+            <td class="nowrap">
+              <button ng-click="deleteToken(item)" class="btn btn-danger" title="Delete">
+                  <i class="fas fa-trash"></i>
+              </button>
+            </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p ng-if="!tokens || tokens.length < 1" class="lead">
+      No existing tokens
+    </p>
+  </div>
+</div>
