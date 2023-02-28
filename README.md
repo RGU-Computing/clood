@@ -1,16 +1,25 @@
+
 <img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/CloodV2.png" width="400">
 
 *Clood CBR: Towards Microservices Oriented Case-Based Reasoning*
+
+<img src="https://img.shields.io/badge/version-2.0.0-brightgreen" alt="Version"/>
+
+### 🚀 Version 2 Released!
+
 
 # What is Clood? 
 *(its **Cloud** in Scottish dialect)*
 
 
-Case-based Reasoning (CBR) applications have been deployed in a wide range of sectors, from pharmaceuticals; to defence and aerospace to IoT and transportation, to poetry and music generation; for example. However, a majority of CBR applications have been built using monolithic architectures which impose size and complexity constraints. As such these applications have a barrier to adopting new technologies and remain prohibitively expensive in both time and cost because changes in frameworks or languages affect the application directly. To address this challenge, we developed a distributed and highly scalable generic CBR system, Clood, which is based on a microservices architecture. This splits the application into a set of smaller, interconnected services that scale to meet varying demands. Microservices are cloud-native architectures and with the rapid increase in cloud-computing adoption, it is timely for the CBR community to have access to such a framework.
+Case-based Reasoning (CBR) applications have been widely deployed across various sectors, including pharmaceuticals, defense, aerospace, IoT, transportation, poetry, and music generation. However, a significant proportion of these applications have been developed using monolithic architectures, which present size and complexity constraints. Consequently, these applications face barriers to the adoption of new technologies, and changes in frameworks or languages directly impact them, making them prohibitively expensive in terms of time and cost. To tackle this challenge, **we have developed Clood CBR, a distributed and highly scalable generic CBR system based on a microservices architecture.** By splitting the application into smaller, interconnected services, Clood CBR can scale to meet varying demands. Microservices are cloud-native architectures that have become increasingly popular with the rapid adoption of cloud computing. Therefore, the CBR community can benefit from a framework such as Clood CBR at this opportune time.
+
 
 [CloodCBR Paper Published at ICCBR 2020](https://rgu-repository.worktribe.com/output/895530/clood-cbr-towards-microservices-oriented-case-based-reasoning) 📄 
 
 [CloodCBR Presentation and Demo from ICCBR 2020](https://www.dropbox.com/s/i4vadj9c0dkwrsn/Clood%20CBR%20Final%20-%20ICCBR%202020.mp4?dl=0) ▶️ 
+
+[Adapting Semantic Similarity Methods for Case-Based Reasoning in the Cloud from ICCBR 2022](https://rgu-repository.worktribe.com/output/1706158/adapting-semantic-similarity-methods-for-case-based-reasoning-in-the-cloud) 📄 
 
 ### Cite CloodCBR
 ```bib
@@ -23,6 +32,25 @@ Case-based Reasoning (CBR) applications have been deployed in a wide range of se
   organization={Springer}
 }
 ```
+
+### What's new in Clood CBR Version 2
+#### Core Updates
+- Semantic SBERT
+- Explanation API - Extracts the field names and local similarity values from explanations.
+- Minor normalisation fixes (e.g. mcsherry, inerca)
+- Array datatype functionality
+- Complete docker support
+- JWT Token based API authentication
+
+#### Dashboard Updates
+- Login Authentication support
+- Visual case representation (Parallel Cordinates)
+- Export functionality for retrievals
+- Import CSV  validation and templating
+- Add single cases from dashboard support
+- Explanations added for similarity types
+- Manage JWT Tokens
+
 
 ## Project Components
 
@@ -128,9 +156,10 @@ The Client Dashboard demonstrates the use of Clood through API calls to create a
 Guide to install and use the Clood Dashboard is available in the /dashboard folder. [Clood Dashboard](https://github.com/RGU-Computing/clood/tree/master/dashboard)
 
 
+
 ## License
 
 <p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><a property="dct:title" rel="cc:attributionURL" href="https://github.com/RGU-Computing/clood">Clood CBR: Towards Microservices Oriented Case-Based Reasoning</a> by <span property="cc:attributionName">Nkisi-Orji, Ikechukwu; Wiratunga, Nirmalie; Palihawadana, Chamath; Recio-García, Juan A.; Corsar, David; Robert Gordon University Aberdeen</span> is licensed under <a href="http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">Attribution 4.0 International<br><img width="22px" style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1"><img width="22px" style="width:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1"></a></p>
 
 ----
-Repo Maintained by [Ikechukwu Nkisi-Orji (RGU)](https://github.com/ike01) and [Chamath Palihawadana (RGU)](https://github.com/chamathpali)
+Repo Maintained by [Ikechukwu Nkisi-Orji (RGU)](https://github.com/ike01), [Chamath Palihawadana (RGU)](https://github.com/chamathpali) and [Andrew McLeman (RGU)](https://github.com/Andrew-McLeman)
