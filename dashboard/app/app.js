@@ -67,8 +67,8 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
     }).then(function(res) {
       if (res.data.authenticated) {
         $rootScope.auth.token = res.data.token;
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', $rootScope.auth.user);
+        localStorage.setItem('clood_token', res.data.token);
+        localStorage.setItem('clood_user', $rootScope.auth.user);
         $rootScope.auth.state = true;
         location.reload();
       } else {
@@ -79,15 +79,15 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
   };
   $rootScope.logout = function() {
     $rootScope.auth.state = false;
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('clood_token');
+    localStorage.removeItem('clood_user');
     location.reload();
   };
   $rootScope.checkauth = function() {
-    if (localStorage.getItem('token') && localStorage.getItem('user')) {
+    if (localStorage.getItem('clood_token') && localStorage.getItem('clood_user')) {
       $rootScope.auth.state = true;
-      $rootScope.auth.user = localStorage.getItem('user');
-      $rootScope.auth.token = localStorage.getItem('token');
+      $rootScope.auth.user = localStorage.getItem('clood_user');
+      $rootScope.auth.token = localStorage.getItem('clood_token');
       return $rootScope.auth.token
     } else {
       $rootScope.auth.state = false;
