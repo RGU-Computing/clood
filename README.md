@@ -3,7 +3,8 @@
 
 *Clood CBR: Towards Microservices Oriented Case-Based Reasoning*
 
-<img src="https://img.shields.io/badge/version-2.0.0-brightgreen" alt="Version"/>
+<img src="https://img.shields.io/badge/version-2.0.0-brightgreen" alt="Version"/> <a href="https://doi.org/10.5281/zenodo.7702458"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.7702458.svg" alt="DOI"></a>
+
 
 ### 🚀 Version 2 Released!
 
