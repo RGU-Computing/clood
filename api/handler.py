@@ -666,7 +666,7 @@ def get_config(event, context=None):
   es = getESConn()
   if not es.indices.exists(index=config_db):  # create config db if it does not exist
     utility.createOrUpdateGlobalConfig(es, config_db=config_db)
-    time.sleep(0.3)  # 0.3 sec wait to allow time for created index to be ready
+    time.sleep(1)  # 0.3 sec wait to allow time for created index to be ready
   query = {"query": retrieve.MatchAll()}
   res = es.search(index=config_db, body=query)
   if (res['hits']['total']['value'] > 0):
