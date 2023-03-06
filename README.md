@@ -52,9 +52,72 @@ Case-based Reasoning (CBR) applications have been widely deployed across various
 - Manage JWT Tokens
 
 
+## Available Similarity Metrics
+
+| Data type       | Similarity metric | Description                                                                                        |
+|-----------------|-------------------|----------------------------------------------------------------------------------------------------|
+| **All**         | Equal             | Similarity based on exact match (used as a filter)                                                 |
+| **String**      | EqualIgnoreCase   | Case-insensitive string matching                                                                   |
+|                 | BM25              | TF-IDF-like similarity based on Okapi BM25 ranking function                                        |
+|                 | Semantic USE      | Similarity measure based on word embedding vector representations using [Universal Sentence Encoder](https://github.com/tensorflow/tfjs-models/tree/master/universal-sentence-encoder) _(optional)_ |
+|                 | Semantic SBERT    | Similarity measure based on word embedding vector representations using [SBERT](https://www.sbert.net/) _(optional)_ |
+|                 | Array             | For array based string representation e.g. ["a", "b", "c"]                                         |
+|                 | Array SBERT       | For array based string representation with SBERT _(optional)_                                                    |
+| **Numeric**     | Interval          | Similarity between numbers in an interval                                                          |
+|                 | INRECA            | Similarities using INRECA More is Better and Less is Better algorithms                             |
+|                 | McSherry          | Similarities using McSherry More is Better and Less is Better algorithms                           |
+|                 | Nearest Number    | Similarity between numbers using a linear decay function                                           |
+|                 | Array             | For array based numeric representation e.g. [1,2,3]                                                |
+| **Categorical** | EnumDistance      | Similarity of values based on relative positions in an enumeration                                 |
+|                 | Table             | User-defined similarity between entries of a finite set of domain values                           |
+| **Date**        | Nearest Date      | Similarity between dates using a decay function                                                    |
+| **Location**    | Nearest Location  | Similarity based on separation distance of geo-coordinates using a decay function                  |
+| **Ontology**    | Path-based        | Similarity using Wu & Palmer path-based algorithm _(optional)_                                                 |
+|                 | Feature-based     | Similarity using Sanchez et al. feature-based algorithm _(optional)_                                            |
+
+
+## Start Using Clood? 🚀
+
+### Local Development
+
+We have simplified the entire CloodCBR development environment. You can easily start developing Clood CBR using the containarised environment now. Make sure you have [Docker](https://docs.docker.com/get-docker/)  installed.
+
+Once cloned this repo you just have to run the following commands
+1. Clone/Download the repo
+2. Build the docker image and run
+
+#### Minimal Stack
+
+```
+docker compose --env-file .env.dev up --build
+```
+_Does not include support for Semantic USE, Semantic SBERT and Ontology similarities._
+
+#### Full Stack
+```
+docker compose --profile other --env-file .env.dev up --build
+```
+
+* Please note that the docker build might take a bit longer depending on the internet speed (10-20mins)
+* The above command uses default configuration from .env.dev, when moving to proudction make sure to change config files inside ```api/config.py```, ```dashboard/app/env.js``` and other services (if using them).
+
+3. Open Clood CBR dashboard at [http://localhost:8000/](http://localhost:8000/) using default username and password (```clood:clood```)
+
+4. Start Using! Create a new project, configure, load and query cases.
+
+Development Ports
+- CloodCBR Dashboard - [http://localhost:8000/](http://localhost:8000/)
+- CloodCBR API - [http://localhost:3000/](http://localhost:3000/)
+- Clood USE Vectoriser API - [http://localhost:4100/](http://localhost:4100/)
+- Clood SBERT Vectoriser API - [http://localhost:4300/](http://localhost:4300/)
+- Clood Onotlogy Similarity API - [http://localhost:4200/](http://localhost:4200/)
+- OpenSearch Dashboard - [http://localhost:5601/](http://localhost:5601/)
+- OpenSearch API - [http://localhost:9200/](http://localhost:9200/)
+
 ## Project Components
 
 ### Implementation Architecture
+🚧 We are currently improving this section
 
 <img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/clood_architecture.jpg">
 
@@ -70,33 +133,35 @@ Project is available in the ```serverless-functions``` folder of the repository.
 ### Elasticsearch
 For the Clood implementation we have used [AWS Elasticsearch service](https://aws.amazon.com/elasticsearch-service/).
 
-## Start Using Clood? 🚀
+### API endpoints
 
-### Local Development
+End-point | Request Method | Description
+--- | --- | ---
+/project | HTTP GET | Retrieves all the CBR projects
+/project/{id} | HTTP GET | Retrieves a specific CBR project with specified id
+/project | HTTP POST | Creates a new CBR project. The details of the project are included as a JSON object in the request body
+/project/{id} | HTTP PUT | Updates the details of a CBR project. Modifications are included as a JSON object in the request body
+/project/{id} | HTTP DELETE | Removes a CBR project with specified id
+/case/{id}/list | HTTP POST | Bulk addition of cases to the casebase of the project with specified id. Cases are included in the request body as an array of objects
+/retrieve | HTTP POST | Performs the case retrieve task
+/retain | HTTP POST | Performs the case retain task
+/config | HTTP GET | Retrieves the system configuration
+/config | HTTP POST | Adds or updates the system configuration
 
-We have simplified the entire CloodCBR development environment. You can easily start developing Clood CBR using the containarised environment now. Make sure you have [Docker](https://docs.docker.com/get-docker/)  installed.
+🚧 We are currently improving this section
 
-Once cloned this repo you just have to run the following commands
+### Client Dashboard
 
-Copy the default Configuration files:
-```
-cp dashboard/app/env.sample.js dashboard/app/env.js && cp api/config.sample.py api/config.py && cp other-services/ontology-sim/config.sample.py other-services/ontology-sim/config.py && cp other-services/semantic-sim/config.sample.py other-services/semantic-sim/config.py
-```
+The Client Dashboard demonstrates the use of Clood through API calls to create and configure projects and perform CBR tasks. Project is available in the ```dashboard``` folder of the repository. The readme at ```dashboard``` describes how to instal the client dashboard.
 
-Create the docker containers and run
-```
-docker compose up --build
-```
+<img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/screenshots/client_projects.png">
 
-Development Ports
+Guide to install and use the Clood Dashboard is available in the /dashboard folder. [Clood Dashboard](https://github.com/RGU-Computing/clood/tree/master/dashboard)
 
-- CloodCBR Dashboard - [http://localhost:8000/](http://localhost:8000/)
-- CloodCBR API - [http://localhost:3000/](http://localhost:3000/)
-- OpenSearch Dashboard - [http://localhost:5601/](http://localhost:5601/)
-- OpenSearch API - [http://localhost:9200/](http://localhost:9200/)
-- Clood USE Vectoriser API - [http://localhost:4100/](http://localhost:4100/)
+🚧 We are currently improving this section
 
-### Deployment
+
+### Deployment Guide
 ### OpenSearch (Formerly ElasticSearch in AWS) 
 Follow the guide [Here](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html) on getting started with Elasticsearch in AWS. All you need next is the ES url and the AWS access keys.
 
@@ -131,29 +196,6 @@ serverless deploy
 
 * Make sure that [docker](https://docs.docker.com/get-docker/) is running in your computer when deploying (it is required to package the python dependencies)
 
-### API endpoints
-
-End-point | Request Method | Description
---- | --- | ---
-/project | HTTP GET | Retrieves all the CBR projects
-/project/{id} | HTTP GET | Retrieves a specific CBR project with specified id
-/project | HTTP POST | Creates a new CBR project. The details of the project are included as a JSON object in the request body
-/project/{id} | HTTP PUT | Updates the details of a CBR project. Modifications are included as a JSON object in the request body
-/project/{id} | HTTP DELETE | Removes a CBR project with specified id
-/case/{id}/list | HTTP POST | Bulk addition of cases to the casebase of the project with specified id. Cases are included in the request body as an array of objects
-/retrieve | HTTP POST | Performs the case retrieve task
-/retain | HTTP POST | Performs the case retain task
-/config | HTTP GET | Retrieves the system configuration
-/config | HTTP POST | Adds or updates the system configuration
-
-
-### Client Dashboard
-
-The Client Dashboard demonstrates the use of Clood through API calls to create and configure projects and perform CBR tasks. Project is available in the ```dashboard``` folder of the repository. The readme at ```dashboard``` describes how to instal the client dashboard.
-
-<img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/screenshots/client_projects.png">
-
-Guide to install and use the Clood Dashboard is available in the /dashboard folder. [Clood Dashboard](https://github.com/RGU-Computing/clood/tree/master/dashboard)
 
 
 
