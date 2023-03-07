@@ -73,6 +73,7 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
         location.reload();
       } else {
         $rootScope.auth.state = false;
+        $rootScope.logout();
         $rootScope.pop('error',null, 'Please check your username and password');
       }
     });
@@ -87,7 +88,7 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
     if (localStorage.getItem('token') && localStorage.getItem('user')) {
       $rootScope.auth.state = true;
       $rootScope.auth.user = localStorage.getItem('user');
-      $rootScope.auth.token = localStorage.getItem('token');
+      $rootScope.authUser()
       return $rootScope.auth.token
     } else {
       $rootScope.auth.state = false;
