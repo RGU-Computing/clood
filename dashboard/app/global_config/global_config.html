@@ -1,0 +1,53 @@
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+
+  <h1 class="h4 text-gray-900 mb-4">System Settings</h1>
+
+  <p>The CloodCBR Configuration Taxonomy specifies the data types and their corresponding similarity types and reuse strategies. 
+    Use the <em></b>Update Settings</em> button if there are changes to CloodCBR configuration that are not visible on the dashboard.</p>
+
+  <div class="row">
+    <!-- <div>
+      <code ng-if="globalConfig">
+        <pre>{{ globalConfig | json }}</pre>
+      </code>
+    </div> -->
+
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered" width="100%" cellspacing="0">
+        <thead>
+          <tr>
+            <th>Data Type</th>
+            <th>Similarity Metrics</th>
+            <th>Reuse Strategies</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="opt in globalConfig.attributeOptions">
+            <!-- type -->
+            <td>
+              {{ opt.type }}
+            </td>
+            <!-- similarityTypes -->
+            <td>
+              <ul>
+                <li ng-repeat="similarityOpt in opt.similarityTypes">{{ similarityOpt }}</li>
+              </ul>
+            </td>
+            <!-- reuseStrategy -->
+            <td>
+              <ul>
+                <li ng-repeat="reuseOpt in opt.reuseStrategy">{{ reuseOpt }}</li>
+              </ul>
+            </td>
+            
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <button type="button" name="button" class="btn btn-block btn-primary" ng-click="updateGlobalConfig()">
+    Update Settings
+  </button>
+
+</div>
