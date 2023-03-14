@@ -90,6 +90,7 @@ angular.module('cloodApp.tokens', [])
         }
         var item = angular.copy($scope.newToken);
         var token = new Token($scope.newToken);
+        token.expiry = token.expiry/1000;
         console.log("new token: ", token);
         $http.post(ENV_CONST.base_api_url + "/token", token, {headers:{"Authorization":$scope.auth.token}}).then(function(res){
             console.log("res",res);

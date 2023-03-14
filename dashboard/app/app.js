@@ -55,6 +55,9 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
       }
     }, function(err) {
       console.log(err.data);
+      if($rootScope.auth.state){
+        $rootScope.logout();
+      }
     });
   };
   $rootScope.getDataType = function(data) { // number, string, boolean, object, undefined
@@ -88,7 +91,7 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
     if (localStorage.getItem('token') && localStorage.getItem('user')) {
       $rootScope.auth.state = true;
       $rootScope.auth.user = localStorage.getItem('user');
-      $rootScope.authUser()
+      $rootScope.auth.token = localStorage.getItem('token');
       return $rootScope.auth.token
     } else {
       $rootScope.auth.state = false;
@@ -102,7 +105,6 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
     }
   };
   $rootScope.getGlobalConfig();
-  $rootScope.checkauth();
 }]).
 
 directive('disallowSpaces', [function(){

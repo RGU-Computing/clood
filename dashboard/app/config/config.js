@@ -530,7 +530,7 @@ angular.module('cloodApp.config', [])
     $http.post(ENV_CONST.base_api_url + '/retain', $scope.newCase, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
       console.log(res.data);
       $scope.pop("success", null, "New case added.");
-      $scope.newCase = {'data':[], 'project':null};
+      $scope.newCase = {'data':{}, 'project':null};
     }).catch(function(err) {
       console.log(err);
       $scope.pop("error", null, "Case added was not added. Duplicate cases are rejected when not allowing duplicates.");
