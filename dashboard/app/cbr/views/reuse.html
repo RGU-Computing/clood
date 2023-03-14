@@ -96,7 +96,7 @@
                     <button type="button" class="btn btn-block btn-primary" ng-click="showCase(entry)">
                       Details
                     </button>
-                    <button type="button" class="btn btn-block btn-primary" ng-click="graphData(entry)">
+                    <button type="button" class="btn btn-block btn-primary" ng-click="graphData(entry)" ng-if="requests.current.explanation">
                       Graph
                     </button>
                     <button type="button" class="btn btn-block btn-primary" ng-click="reuseCase(entry)">
