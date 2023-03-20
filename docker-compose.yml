@@ -5,6 +5,18 @@ services:
     container_name: cloodcbr
     build: './api'
     image: cloodcbr/app:latest
+    environment:
+      - CLOOD_IS_DEV=${CLOOD_IS_DEV}
+      - CLOOD_ADMIN_USERNAME=${CLOOD_ADMIN_USERNAME}
+      - CLOOD_ADMIN_PASSWORD=${CLOOD_ADMIN_PASSWORD}
+      - CLOOD_AUTH_SECRET=${CLOOD_AUTH_SECRET}
+      - CLOOD_USE_VECTORISER_URL=${CLOOD_USE_VECTORISER_URL}
+      - CLOOD_SBERT_VECTORISER_URL=${CLOOD_SBERT_VECTORISER_URL}
+      - CLOOD_SBERT_VECTORISER_ACCESS_KEY=${CLOOD_SBERT_VECTORISER_ACCESS_KEY}
+      - CLOOD_AWS_HOST=${CLOOD_AWS_HOST}
+      - CLOOD_AWS_REGION=${CLOOD_AWS_REGION}
+      - CLOOD_AWS_ACCESS_KEY=${CLOOD_AWS_ACCESS_KEY}
+      - CLOOD_AWS_SECRET_KEY_HERE=${CLOOD_AWS_SECRET_KEY_HERE}
     working_dir: /app
     networks:
       - cloodcbr-net
@@ -34,6 +46,8 @@ services:
       - cloodcbr-net
     ports:
       - 4100:4100
+    profiles:
+      - other
 
   cloodcbr-other-ontology-sim:
     container_name: cloodcbr-other-ontology-sim
@@ -47,12 +61,15 @@ services:
     volumes:
       - ./other-services/ontology-sim:/app
       - clood-ontology-nodemodules:/app/node_modules
-
+    profiles:
+      - other
   cloodcbr-other-semantic-sim:
     container_name: cloodcbr-other-semantic-sim
     build: './other-services/semantic-sim'
     image: cloodcbr/other-semantic-sim:latest
     working_dir: /app
+    environment:
+      - CLOOD_SEMANTIC_SIM_ACCESS_KEY=${CLOOD_SEMANTIC_SIM_ACCESS_KEY}
     networks:
       - cloodcbr-net
     ports:
@@ -60,7 +77,8 @@ services:
     volumes:
       - ./other-services/semantic-sim:/app
     restart: on-failure
-
+    profiles:
+      - other
   clood-opensearch:
     image: opensearchproject/opensearch:1.3.1
     container_name: clood-opensearch
@@ -99,6 +117,8 @@ services:
       - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true" # disables security dashboards plugin in OpenSearch Dashboards
     networks:
       - cloodcbr-net
+    profiles:
+      - other
 
 volumes:
   clood-opensearch-data: {}
