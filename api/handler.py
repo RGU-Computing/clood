@@ -1,3 +1,5 @@
+import base64
+import io
 from queue import Empty
 import sys
 import os
@@ -88,7 +90,7 @@ def auth(event, context=None):
   """
   token = event.get('authorizationToken', None)
 
-  response = "allow" if utility.verifyToken(token) else "deny"
+  response = "Allow" if utility.verifyToken(token) else "Deny"
 
   authResponse = {
     "principalId": "user",
@@ -480,6 +482,8 @@ def update_case(event, context=None):
           for attr in proj['attributes']:
             if attr['name'] == key:
               if attr['similarity'] == "Semantic SBERT":
+                if key not in oldCase or oldCase[key] is None or oldCase[key]['name'] is None:
+                  oldCase[key] = {'name':'', 'rep': ''}
                 oldCase[key]['name'] = value
                 oldCase[key]['rep'] = retrieve.getVectorSemanticSBERT(value)
               else:
@@ -740,11 +744,13 @@ def cbr_retrieve(event, context=None):
   params = json.loads(event['body'])  # parameters in request body
   queryFeatures = params.get('data')
   addExplanation = params.get('explanation')
+  addFeedback = params.get('feedback')
   proj = params.get('project')
   filter = params.get('filter', None)
   globalSim = params.get('globalSim', "Weighted Sum")  # not used as default aggregation is a weighted sum of local similarity values
 
   result = {'recommended': {}, 'bestK': []}
+  response = {"statusCode": 200, "headers": headers, "body": ""}
   queryAdded = False
   es = getESConn()
 
@@ -791,6 +797,8 @@ def cbr_retrieve(event, context=None):
     result['bestK'].append(entry)
     if addExplanation:  # if retrieval needs an explanation included
       entry['match_explanation'] = retrieve.get_explain_details(hit['_explanation'])
+    if addFeedback:  # if retrieval needs feedback included
+      entry['feedback'] = retrieve.get_feedback_details(queryFeatures, proj['casebase'], hit['_id'], es)
     counter += 1
 
   # Get the recommended result using chosen reuse strategies for unknown attribute values

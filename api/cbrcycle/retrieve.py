@@ -7,6 +7,7 @@ import dateutil.parser
 import requests
 import json
 import config as cfg
+import numpy as np
 
 
 def getVector(text):
@@ -221,6 +222,50 @@ def get_explain_details(match_explanation):
     elif len(re.findall("attrib=([a-zA-Z0-9_\-\s]+)", str(x))) == 1:
       expl.append({"field": re.search("attrib=([a-zA-Z0-9_\-\s]+)", str(x)).group(1), "similarity":x['value']})
   return expl
+
+
+def cosine_similarity(v1, v2):
+  """
+  Computes cosine similarity between two vectors.
+  """
+  return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+
+
+def get_feedback_details(queryFeatures, pId, cId, es):
+  """
+  Manually compares arrays and makes note of low scoring elements
+  """
+  values = {}
+  feedback = []
+  
+  # get case
+  query = {}
+  query['query'] = {}
+  query['query']['terms'] = {}
+  query['query']['terms']["_id"] = []
+  query['query']['terms']["_id"].append(cId)
+  res = es.search(index=pId, body=query)
+
+  # find attributes that are array sbert and store their values, also convert query array to vector array
+  for attrib in queryFeatures:
+    if attrib['similarity'] == 'Array SBERT':
+      temp = {"values": res['hits']['hits'][0]['_source'][attrib['name']]['name'], "vec": res['hits']['hits'][0]['_source'][attrib['name']]['rep'], "queryRep": getVectorSemanticSBERTArray(attrib['value'])}
+      values[attrib['name']] = temp
+
+  # perform a cosine similarity between query elements and case elements
+  for key, value in values.items():
+    for idx, vec in enumerate(value['vec']):
+      maxsim = 0
+      for idx2, vec2 in enumerate(value['queryRep']):
+        sim = cosine_similarity(vec['rep'], vec2)
+        if sim > maxsim:
+          maxsim = sim
+      if maxsim < 0.7:
+        feedback.append({"field": key, "value": value['values'][idx], "similarity": maxsim})
+  
+  #print("feedback: ", feedback)
+
+  return feedback
 
 
 def get_min_max_values(es,casebase,attribute):
