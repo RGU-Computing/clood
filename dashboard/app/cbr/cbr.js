@@ -354,4 +354,37 @@ angular.module('cloodApp.cbr', [])
   $scope.cancel = function() {
     $uibModalInstance.dismiss('cancel');
   };
-}]);
+}])
+.directive('truncateJson', function () {
+  return {
+    restrict: 'A',
+    scope: {
+      jsonData: '=truncateJson',
+    },
+    link: function (scope, element) {
+      if (!scope.jsonData) {
+        return;
+      }
+
+      const jsonDataStr = JSON.stringify(scope.jsonData, null, 2);
+
+      if (jsonDataStr.length < 50) {
+        element.html(jsonDataStr);
+        return;
+      }
+      const truncatedJsonDataStr = jsonDataStr.slice(0, 50) + '...';
+      element.html(truncatedJsonDataStr);
+      element.css('cursor', 'pointer');
+
+      let isTruncated = true;
+      element.on('click', function () {
+        if (isTruncated) {
+          element.html(jsonDataStr);
+        } else {
+          element.html(truncatedJsonDataStr);
+        }
+        isTruncated = !isTruncated;
+      });
+    },
+  };
+});

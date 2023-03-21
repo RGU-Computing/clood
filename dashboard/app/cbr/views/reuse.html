@@ -28,22 +28,23 @@
       <div class="p-5">
         <form id="reviseForm">
           <div class="table-responsive">
-            <table class="table table-striped table-bordered" width="100%" cellspacing="0">
+            <table style="table-layout:auto; width: 150%;" class="table table-striped table-bordered" width="100%" cellspacing="0">
               <thead>
                 <tr>
-                  <th ng-repeat="(key, value) in requests.response.recommended">{{ key }}</th>
-                  <th></th>
+                  <th style="min-width: 5px; max-width: 200px;" ng-repeat="(key, value) in requests.response.recommended">{{ key }}</th>
+                  <th style="min-width: 50px; max-width: 200px;"></th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td ng-repeat="(key, value) in requests.response.recommended">
-                    <span ng-if=" getDataType(value)!='object' ">{{ value }}</span>
+                  <td style="min-width: 50px; max-width: 200px;" ng-repeat="(key, value) in requests.response.recommended">
+                    <span style="word-wrap:break-word" ng-if=" getDataType(value)!='object' " truncate-json="value"></span>
                     <code ng-if=" getDataType(value)=='object' ">
-                      <pre>{{ value | json }}</pre>
+                      <!-- Create a code box showing only the first 50 characters -->
+                      <pre truncate-json="value"></pre>
                     </code>
                   </td>
-                  <td>
+                  <td style="min-width: 50px; max-width: 200px;">
                     <button type="button" class="btn btn-default" ng-click="reviseCase()">
                       Revise
                     </button>
@@ -72,27 +73,27 @@
       <div class="p-5">
         <form id="reuseForm">
           <div class="table-responsive">
-            <table class="table table-striped table-bordered" width="100%" cellspacing="0">
+            <table style="table-layout:auto;" class="table table-striped table-bordered" width="100%" cellspacing="0">
               <thead>
                 <tr>
-                  <th ng-repeat="attrib in selected.attributes">{{ attrib.name }}</th>
-                  <th>Score</th>
+                  <th style="min-width: 50px; max-width: 200px;" ng-repeat="attrib in selected.attributes">{{ attrib.name }}</th>
+                  <th style="min-width: 50px; max-width: 200px;">Score</th>
                   
-                  <th></th>
+                  <th style="min-width: 50px; max-width: 200px;"></th>
                 </tr>
               </thead>
               <tbody>
                 <tr ng-repeat="entry in requests.response.bestK">
-                  <td ng-repeat="attrib in selected.attributes" ng-if="entry">
-                    <span ng-if=" getDataType(entry[attrib.name])!='object' ">{{ getDataType(entry[attrib.name]) === 'string' ? entry[attrib.name].substr(0, 50) : entry[attrib.name] }}{{ entry[attrib.name].length > 50 ? '...' : ''}}</span>
+                  <td style="min-width: 50px; max-width: 200px;" ng-repeat="attrib in selected.attributes" ng-if="entry">
+                    <span style="word-wrap:break-word" ng-if=" getDataType(entry[attrib.name])!='object' " truncate-json="entry[attrib.name]"></span>
                     <code ng-if=" getDataType(entry[attrib.name])=='object' ">
-                      <pre>{{ entry[attrib.name] | json }}</pre>
+                      <pre truncate-json="entry[attrib.name]"></pre>
                     </code>
                   </td>
-                  <td>
+                  <td  style="min-width: 50px; max-width: 200px;">
                     {{ entry['score__'] | number:3 }}
                   </td>
-                  <td>
+                  <td style="min-width: 50px; max-width: 200px;">
                     <button type="button" class="btn btn-block btn-primary" ng-click="showCase(entry)">
                       Details
                     </button>
