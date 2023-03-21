@@ -159,30 +159,30 @@ angular.module('cloodApp.cbr', [])
     $state.transitionTo('cbr.reuse');
   };
 
-  //Export query results to csv file
+  //Export the results of the best k cases to a csv file
   $scope.exportResults = function(){
-    let itemJSON = ""
-    $scope.selected.attributes.forEach(function(value,index){
-      index == 0 ? itemJSON += value.name : itemJSON += ","+value.name
-    });
-    $scope.requests.response.bestK.forEach(function(item,index){
-      itemJSON += "\n"
-      let caseValue;
-      $scope.selected.attributes.forEach(function(key,index){
-        item[key.name] == null ? caseValue = "" : caseValue = item[key.name]
-        caseValue = caseValue.toString().replace(/[,\n]/gm, ' ');
-        index == 0 ? itemJSON += caseValue : itemJSON += ","+caseValue
-      });
+
+    // Get the attribute names for the header
+    let headers = $scope.selected.attributes.map(function (el) { return el.name; });
+    var replacer = function(key, value) { return value === null ? '' : value }
+
+    var csv = $scope.requests.response.bestK.map(function(row){
+      return headers.map(function(fieldName){
+        return JSON.stringify(row[fieldName], replacer)
+      }).join(',')
     });
 
-    let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(itemJSON);
-    let fileName = "clood-"+$scope.selected.id__+'-query.csv';
+    csv.unshift(headers.join(',')); // add header column
+    csv = csv.join('\r\n');
 
-    let downloadLink = document.createElement('a');
-    downloadLink.setAttribute('href', dataUri);
-    downloadLink.setAttribute('download', fileName);
-    downloadLink.click();
-
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement("a");
+    var url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "results.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
     $scope.pop("success", null, "Downloading cases as CSV");
   };
 
