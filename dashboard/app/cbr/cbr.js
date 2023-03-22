@@ -32,7 +32,20 @@ angular.module('cloodApp.cbr', [])
   $stateProvider.state(cbrReviseState);
   $stateProvider.state(cbrRetainState);
 }])
-
+.filter('displaySnippet', [function(){  // display snippets for long texts
+  return function(input, scope, num){  // num - max no. of characters to display
+    // if (typeof input != 'undefined' && scope.getDataType(input) == 'string' && scope.stringIsUrl(input)) { // returns the last part of a string if URL
+    //   if (input.lastIndexOf("#") != -1)
+    //     return input.substr(input.lastIndexOf("#") + 1);
+    //   if (input.lastIndexOf("/") != -1)
+    //     return input.substr(input.lastIndexOf("/") + 1);
+    // }
+    if (typeof input != 'undefined' && scope.getDataType(input) == 'string' && input.length > num) {
+      return input.substr(0, num) + '...'
+    }
+    return input;
+  }
+}])
 .controller('CBRCtrl', ['$scope', '$http', '$state', 'ENV_CONST', '$uibModal', function($scope, $http, $state, ENV_CONST, $uibModal ) {
   $scope.datenow = new Date();  // current date for any date field selection
   $scope.menu.active = $scope.menu.items[2]; // ui active menu tag
@@ -66,7 +79,7 @@ angular.module('cloodApp.cbr', [])
   $scope.retrieveCases = function() {
     $scope.requests.current.project = angular.copy($scope.selected);
     // Check if the type is Array
-    console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown
+    // console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown
     angular.forEach($scope.requests.current.data, function(value, key) {
       if ((value.similarity == "Array" || value.similarity == "Array SBERT") && value.value != "" && value.value != null) {
         value.value = value.value.split(",");
@@ -78,7 +91,7 @@ angular.module('cloodApp.cbr', [])
       }
     });
 
-    console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown)
+    // console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown)
     $http.post(ENV_CONST.base_api_url + '/retrieve', $scope.requests.current, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
       $scope.requests.response = res.data;
       console.log($scope.requests.response)
@@ -182,6 +195,28 @@ angular.module('cloodApp.cbr', [])
 
     $scope.pop("success", null, "Downloading cases as CSV");
   };
+
+  // Check if data type can be used as a filter
+  $scope.getIsFilterOptions = function(type) {
+    if (typeof type != 'undefined' && type != null) {
+      var res = $scope.globalConfig.attributeOptions.find(obj => {
+        return obj.type === type
+      });
+      return res.filterOptions;
+    }
+    return false;
+  };
+
+  // checks if string is a url
+  $scope.stringIsUrl = function(str) {
+    let url;
+    try {
+      url = new URL(str);
+    } catch (_) {
+      return false;
+    }
+    return url.protocol === "http:" || url.protocol === "https:";
+  }
 
   $scope.plotTest = function() {
     var attributes = [];
