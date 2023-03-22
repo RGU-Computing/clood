@@ -9,6 +9,27 @@ import json
 import config as cfg
 
 
+def get_filter_object(filterTerm, fieldName, filterValue=None, fieldValue=None):
+  """
+  Returns a filter object that can be included in a OpenSearch query (https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html)
+  filterTerm options: None, =, >, >=, <, <=. Not None filterTerm should be accompanied with values.
+  """
+  if fieldName is not None and filterTerm is not None and filterTerm != 'None':  # check that there is a filter
+    # construct object according to filter type
+    if filterTerm == '=' and fieldValue is not None:
+      return {'term': {fieldName: fieldValue}}
+    if filterValue is not None:
+      if filterTerm == '>':  # gt
+        return {'range': {fieldName: {'gt': filterValue}}}
+      if filterTerm == '>=':  # gte
+        return {'range': {fieldName: {'gte': filterValue}}}
+      if filterTerm == '<':  # lt
+        return {'range': {fieldName: {'lt': filterValue}}}
+      if filterTerm == '<=':  # lte
+        return {'range': {fieldName: {'lte': filterValue}}}
+  return None  # no filter
+
+
 def getVector(text):
   """
   Calls an external service to get the 512 dimensional vector representation of a piece of text.

@@ -19,6 +19,7 @@
             <th>Data Type</th>
             <th>Similarity Metrics</th>
             <th>Reuse Strategies</th>
+            <th>Filter Options</th>
           </tr>
         </thead>
         <tbody>
@@ -39,7 +40,12 @@
                 <li ng-repeat="reuseOpt in opt.reuseStrategy">{{ reuseOpt }}</li>
               </ul>
             </td>
-            
+            <!-- filterable -->
+            <td>
+              <ul>
+                <li ng-repeat="filterOpt in opt.filterOptions">{{ filterOpt }}</li>
+              </ul>
+            </td>
           </tr>
         </tbody>
       </table>
