@@ -30,54 +30,54 @@ def createOrUpdateGlobalConfig(es, config_db="config", globalConfig=None):
   config['attributeOptions'] = []
   config['attributeOptions'].append({'type': 'String',
                                      'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'Semantic SBERT', 'None'], 
-                                     'reuseStrategy': ['Best Match'],
+                                     'reuseStrategy': ['NN value'],
                                      'filterOptions': ['None', '=']
                                      })
   config['attributeOptions'].append({'type': 'Integer',
                                      'similarityTypes': ['Equal', 'Nearest Number', 'McSherry More', 'McSherry Less',
                                                          'INRECA More', 'INRECA Less', 'Interval', 'None'],
-                                     'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median', 'Mode'],
+                                     'reuseStrategy': ['NN value', 'Maximum', 'Minimum', 'Mean', 'Median', 'Mode'],
                                      'filterOptions': ['None', '=', '>', '>=', '<', '<=']
                                      })
   config['attributeOptions'].append({'type': 'Float',
                                      'similarityTypes': ['Equal', 'Nearest Number', 'McSherry More', 'McSherry Less',
                                                          'INRECA More', 'INRECA Less', 'Interval', 'None'],
-                                     'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median'],
+                                     'reuseStrategy': ['NN value', 'Maximum', 'Minimum', 'Mean', 'Median'],
                                      'filterOptions': ['None', '=', '>', '>=', '<', '<=']
                                      })
   config['attributeOptions'].append({'type': 'Categorical',
                                      'similarityTypes': ['Equal', 'EqualIgnoreCase', 'Table', 'EnumDistance', 'None'],
-                                     'reuseStrategy': ['Best Match'],
+                                     'reuseStrategy': ['NN value'],
                                      'filterOptions': ['None', '=']
                                      })
   config['attributeOptions'].append({'type': 'Boolean',
                                      'similarityTypes': ['Equal', 'None'],
-                                     'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median'],
+                                     'reuseStrategy': ['NN value', 'Majority', 'Minority'],
                                      'filterOptions': ['None', '=']
                                      })
   config['attributeOptions'].append({'type': 'Date',
                                      'similarityTypes': ['Nearest Date', 'None'], 
-                                     'reuseStrategy': ['Best Match'],
+                                     'reuseStrategy': ['NN value'],
                                      'filterOptions': ['None', '=', '>', '>=', '<', '<=']
                                      })
   config['attributeOptions'].append({'type': 'Array',
                                      'similarityTypes': ['Jaccard', 'Array SBERT', 'Query Intersection', 'None'],
-                                     'reuseStrategy': ['Best Match'],
+                                     'reuseStrategy': ['NN value'],
                                      'filterOptions': ['None']
                                      })
   config['attributeOptions'].append({'type': 'Location',
                                      'similarityTypes': ['Nearest Location', 'None'], 
-                                     'reuseStrategy': ['Best Match'],
+                                     'reuseStrategy': ['NN value'],
                                      'filterOptions': ['None']
                                      })
   config['attributeOptions'].append({'type': 'Ontology Concept',
                                      'similarityTypes': ['Path-based', 'Feature-based', 'None'], 
-                                     'reuseStrategy': ['Best Match'],
+                                     'reuseStrategy': ['NN value'],
                                      'filterOptions': ['None', '=']
                                      })
   config['attributeOptions'].append({'type': 'Object', 
                                      'similarityTypes': ['None'],
-                                     'reuseStrategy': ['Best Match'],
+                                     'reuseStrategy': ['NN value'],
                                      'filterOptions': ['None']
                                      })
   # print(config)

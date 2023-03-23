@@ -808,7 +808,7 @@ def cbr_retrieve(event, context=None):
   if counter > 0:
     for entry in queryFeatures:
       field = entry['name']
-      strategy = entry.get('strategy', "Best Match")
+      strategy = entry.get('strategy', "NN value")  # NN (nearest neighbour)
       if not entry.get('unknown', False) and entry.get('value') is not None and "" != entry['value']:  # copy known values
         result['recommended'][field] = entry['value']
       else:  # use reuse strategies for unknown fields
@@ -821,10 +821,13 @@ def cbr_retrieve(event, context=None):
             result['recommended'][field] = np.mean([x[field] for x in result['bestK']])
           elif strategy == "Median":
             result['recommended'][field] = np.median([x[field] for x in result['bestK']])
-          elif strategy == "Mode":
+          elif strategy == "Mode" or strategy == "Majority":
             result['recommended'][field] = statistics.mode([x[field] for x in result['bestK']])
+          elif strategy == "Minority":
+            lst = [x[field] for x in result['bestK']]
+            result['recommended'][field] = min(set(lst), key=lst.count)
           else:
-            result['recommended'][field] = result['bestK'][0][field]  # assign value of 'Best Match'
+            result['recommended'][field] = result['bestK'][0][field]  # assign value of 'NN value'
     # generate a new random id to make (if there was an id) to make it different from existing cases
     if result['recommended'].get('id') is not None:
       result['recommended']['id'] = uuid.uuid4().hex
