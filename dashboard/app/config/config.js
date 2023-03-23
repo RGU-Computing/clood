@@ -516,14 +516,14 @@ angular.module('cloodApp.config', [])
     
     // Convert csv input to array
     angular.forEach($scope.newCase.project.attributes, function(value, key) {
-      if ((value.similarity == "Array" || value.similarity == "Array SBERT") && $scope.newCase.data[value.name] != null && $scope.newCase.data[value.name] != "") {
-        $scope.newCase.data[value.name] = $scope.newCase.data[value.name].split(",");
+      if ((value.type == "Array") && $scope.newCase.data[value.name] != null && $scope.newCase.data[value.name] != "") {
+        $scope.newCase.data[value.name] = $scope.newCase.data[value.name].split(",").map(item=>item.trim());
         if (value.type == "Integer") {
           $scope.newCase.data[value.name] = $scope.newCase.data[value.name].map(function (el) { return parseInt(el); });
         } else if (value.type == "Float") {
           $scope.newCase.data[value.name] = $scope.newCase.data[value.name].map(function (el) { return parseFloat(el); });
         }
-      console.log("newCase",$scope.newCase);
+      // console.log("newCase",$scope.newCase);
       }
     });
 

@@ -351,8 +351,8 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
   elif simMetric == "Feature-based":
     sim_grid = getOntoSimilarity(projId + "_ontology_" + options['name'], queryValue)
     return OntologySimilarity(caseAttrib, queryValue, weight, sim_grid)
-  elif simMetric == "Array":
-    return Array(caseAttrib, queryValue, weight)
+  elif simMetric == "Jaccard" or simMetric == "Array":  # Array was renamed to Jaccard. "Array" kept on until adequate notice is given to update existing applications.
+    return Jaccard(caseAttrib, queryValue, weight)
   elif simMetric == "Array SBERT":
     return ArraySBERT(caseAttrib, getVectorSemanticSBERTArray(queryValue), weight)
   else:
@@ -363,7 +363,7 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
 # Each similarity function returns a Painless script for Elasticsearch. 
 # Each function requires field name and set of functions-specific parameters.
 
-def Array(caseAttrib, queryValue, weight):
+def Jaccard(caseAttrib, queryValue, weight):
   """
   Returns the similarity between two arrays
   """

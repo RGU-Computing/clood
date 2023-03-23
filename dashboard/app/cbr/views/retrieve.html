@@ -26,20 +26,18 @@
                   <tr ng-repeat="field in selected.attributes">
                     <!-- Field -->
                     <td ng-init="requests.current.data[$index].name = field.name">
-                      {{ field.name }} <span ng-init="requests.current.data[$index].type = field.type">({{ field.type }}){{ field.similarity == "Array" ? '(Array)' : '' }}</span>
+                      {{ field.name }} <span ng-init="requests.current.data[$index].type = field.type">({{ field.type }})</span>
+                      <i class="fas fa-info-circle" ng-if="field.type == 'Array'" data-toggle="tooltip" data-placement="right" title="Use commas to separate multiple values."></i>
                     </td>
                     <!-- Value -->
                     <td ng-init="requests.current.data[$index].similarity = field.similarity">
                       <!-- String type -->
-                      <div ng-if="(field.type=='String' || field.type=='Ontology Concept')  && field.similarity != 'Array' && field.similarity != 'Array SBERT'" class="form-group">
+                      <div ng-if="(field.type=='String' || field.type=='Ontology Concept')" class="form-group">
                         <input type="text" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }}">
                       </div>
                       <!-- Numeric type -->
-                      <div ng-if="(field.type=='Integer' || field.type=='Float') && field.similarity != 'Array' && field.similarity != 'Array SBERT'" class="form-group">
+                      <div ng-if="(field.type=='Integer' || field.type=='Float')" class="form-group">
                         <input type="number" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }}">
-                      </div>
-                      <div ng-if="field.similarity == 'Array' || field.similarity == 'Array SBERT'" class="form-group">
-                        <input class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }}">
                       </div>
                       <!-- Boolean type -->
                       <div ng-if="field.type=='Boolean'" class="form-group">
@@ -54,11 +52,11 @@
                         <input type="text" class="form-control" ng-model="requests.current.data[$index].value" placeholder="{{ field.name }} as 'lat,lon'">
                       </div>
                       <!-- Categorical type -->
-                      <div ng-if="field.type=='Categorical' && field.similarity!='Query Intersection'" class="form-group">
+                      <div ng-if="field.type=='Categorical'" class="form-group">
                         <select class="form-control" ng-model="requests.current.data[$index].value" ng-options="val as val for val in field.options.values" placeholder="{{ field.name }}"></select>
                       </div>
-
-                      <div ng-if="field.similarity=='Query Intersection'" class="form-group">
+                      <!-- Array type -->
+                      <div ng-if="field.type=='Array'" class="form-group">
                         <textarea class="form-control" ng-model="requests.current.data[$index].value" ng-list rows="1" placeholder="{{ field.name }}"></textarea>
                       </div>
                     </td>
