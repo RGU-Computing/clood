@@ -907,6 +907,8 @@ def cbr_retain(event, context=None):
                                     root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
     new_case = params['data']
+    if isinstance(new_case, str):  # new_case could be str or dict
+      new_case = json.loads(new_case)
     case_id = new_case.get('_id') # check for optional id in case description
     new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
 

@@ -530,7 +530,7 @@ angular.module('cloodApp.config', [])
     $http.post(ENV_CONST.base_api_url + '/retain', $scope.newCase, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
       console.log(res.data);
       $scope.pop("success", null, "New case added.");
-      $scope.newCase = {'data':[], 'project':null};
+      $scope.newCase = {'data':{}, 'project':{}};
     }).catch(function(err) {
       console.log(err);
       $scope.pop("error", null, "Case added was not added. Duplicate cases are rejected when not allowing duplicates.");
@@ -625,8 +625,13 @@ angular.module('cloodApp.config', [])
 
   $scope.save = function() {
     console.log($scope.sim_grid);
+    console.log($scope.data.options);
     //{...}
     if ($scope.data.options.values.length > 0) { // if there are values specified
+      if (typeof $scope.data.options.sim_grid == 'undefined') {
+        console.log('sim_grid is undefined');
+        $scope.data.options.sim_grid = {}
+      }
       // Add the new sim values from temp copy.
       // Attribute values are used as keys to ensure that sim values are not kept for remove attribute values.
       angular.forEach($scope.data.options.values, function(value1){
