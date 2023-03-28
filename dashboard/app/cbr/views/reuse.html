@@ -15,9 +15,13 @@
 </div>
 
 <div class="row" ng-if="requests.current.explanation && requests.response.bestK.length>0">
-  <h4 align="center">Parallel Coordinate Plot of Top 5 Cases</h4>
-  <div id="plotly-graph" ng-init="plotTest()"><p style="color: red;margin: auto;" ng-if="requests.response.bestK[0].match_explanation.length==0">Query against specific case attributes to see a plot of local similarities</p></div>
-  
+  <h4 align="center">Plot of Top 5 Cases</h4>
+  <div id="plotly-graph" ng-init="reusePlot()"><p style="color: red;margin: auto;" ng-if="requests.response.bestK[0].match_explanation.length==0">Query against specific case attributes to see a plot of local similarities</p></div>
+  <div class="plot-buttons">
+    <button type="button" class="btn btn-primary" id="scatter-button">Scatter</button>
+    <button type="button" class="btn btn-primary" id="bar-button">Bar</button>
+    <button type="button" class="btn btn-primary" id="parallel-button">Parallel</button>
+  </div>
 </div>
 
 <div class="row">

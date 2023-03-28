@@ -186,37 +186,119 @@ angular.module('cloodApp.cbr', [])
     $scope.pop("success", null, "Downloading cases as CSV");
   };
 
-  $scope.plotTest = function() {
-    var attributes = [];
-    var scores = [];
-
-    $scope.requests.response.bestK.forEach(function(value, index) {
-      var temp = [];
-      var temp2 = [];
-      value.match_explanation.forEach(function(value, index) {
-        temp.push(value.similarity);
-        temp2.push(value.field);
-      });
-      temp.push(value.score__);
-      temp2.push("<b>Global Similarity</b>");
-      scores.push(temp);
-      attributes.push(temp2);
-    });
-
-    var traces = [];
-    for (var i = 0; i < Math.min(scores.length,5); i++) {
-      traces.push({
-        x: attributes[i],
-        y: scores[i],
-        type: 'scatter',
-        line: {shape: 'hvh'},
-        name: "Case " + (i + 1)
-      });
-    }
+  $scope.reusePlot = function() {
+    updatePlotType('scatter');
     
-    var data = traces;
-    Plotly.newPlot('plotly-graph', data);
+    // add event listeners to buttons
+    document.getElementById('scatter-button').addEventListener('click', () => updatePlotType('scatter'));
+    document.getElementById('bar-button').addEventListener('click', () => updatePlotType('bar'));
+    document.getElementById('parallel-button').addEventListener('click', () => updatePlotType('parcoords'));
   };
+  
+  function getTraces(bestK, type) {
+    return bestK.map((value, index) => {
+      const { match_explanation, score__ } = value;
+      const attributes = match_explanation.map(({ similarity, field }) => field);
+      attributes.push("<b>Global Similarity</b>");
+      const scores = match_explanation.map(({ similarity }) => similarity);
+      scores.push(score__);
+      return {
+        x: attributes,
+        y: scores,
+        type: type,
+        line: {shape: 'hvh'},
+        name: `Case ${index + 1}`
+      };
+    });
+  }
+  
+  function updatePlotType(type) {
+    const plotlyGraph = document.getElementById('plotly-graph');
+    const plotData = plotlyGraph.data;
+    const { bestK } = $scope.requests.response;
+    const updatedData = getTraces(bestK.slice(0, 5), type);
+  
+    const layout = {
+      title: {
+        text: type === 'scatter' ? 'Scatter Plot' : 'Bar Plot',
+        font: {
+          family: 'Arial',
+          size: 24,
+          color: 'rgb(120,120,120)'
+        }
+      },
+      paper_bgcolor: 'rgb(243, 243, 243)',
+      plot_bgcolor: 'rgb(243, 243, 243)',
+      margin: {
+        l: 100,
+        r: 100,
+        t: 100,
+        b: 100
+      },
+      showlegend: true
+    };
+  
+    if (type === 'parcoords') {
+      const numDimensions = plotData[0].x.length;
+      const dimensions = plotData[0].x.map((attribute, index) => {
+        const isLastDimension = index === numDimensions - 1;
+        const label = attribute.replace('<b>', '').replace('</b>', '');
+        const range = isLastDimension ? [0, numDimensions - 1] : [0, 1];
+        const values = plotData.map(trace => trace.y[index]);
+        return { label, range, values };
+      });
+  
+      const trace = {
+        type: 'parcoords',
+        line: {
+          color: plotData.map(trace => trace.y[numDimensions - 1]),
+          showscale: true,
+          reversescale: true,
+          colorscale: 'Jet',
+          cmin: 0,
+          cmax: numDimensions - 1,
+        },
+        dimensions: dimensions,
+        name: 'Series 1'
+      };
+  
+      layout.title.text = 'Parallel Coordinates Plot';
+      layout.legend = {
+        orientation: 'h',
+        yanchor: 'bottom',
+        y: 1.02,
+        xanchor: 'right',
+        x: 1
+      };
+  
+      Plotly.newPlot(plotlyGraph, [trace], layout);
+    } else {
+      layout.legend = {};
+  
+      layout.xaxis = {
+        title: {
+          text: 'Attributes',
+          font: {
+            family: 'Arial',
+            size: 18,
+            color: 'rgb(120,120,120)'
+          }
+        }
+      };
+      layout.yaxis = {
+        title: {
+          text: 'Similarity',
+          font: {
+            family: 'Arial',
+            size: 18,
+            color: 'rgb(120,120,120)'
+          }
+        }
+      };
+  
+      Plotly.newPlot(plotlyGraph, updatedData, layout);
+    }
+  }
 
   $scope.reuse = function() {
     $state.transitionTo('cbr.reuse');
