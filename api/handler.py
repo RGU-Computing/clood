@@ -220,6 +220,7 @@ def new_project(event, context=None):
     proj['hasCasebase'] = False
 
     try:
+      print(proj)
       result = es.index(index=projects_db, body=proj, id=proj_id)
       result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "project": proj}
     except:
@@ -738,10 +739,11 @@ def cbr_retrieve(event, context=None):
   start = timer()  # start timer
 
   params = json.loads(event['body'])  # parameters in request body
+  # print(params)
   queryFeatures = params.get('data')
   addExplanation = params.get('explanation')
   proj = params.get('project')
-  filter = params.get('filter', None)
+  # filter = params.get('filter', None)
   globalSim = params.get('globalSim', "Weighted Sum")  # not used as default aggregation is a weighted sum of local similarity values
 
   result = {'recommended': {}, 'bestK': []}
@@ -754,10 +756,19 @@ def cbr_retrieve(event, context=None):
 
   proj_attributes = proj['attributes']
   
-  query = {"query": {"bool": {"should": []}}}
+  query = {"query": {"bool": {"filter": [], "should": []}}}
   query["size"] = int(params.get('topk', 5))  # number of cases to retrieve, default is 5
 
-  for entry in queryFeatures:
+  for entry in queryFeatures: # add term filters (extend to include range filters for numbers and dates)
+    if entry.get('filterTerm') is not None and entry.get('filterTerm') != 'None':
+      field = entry.get('name')
+      value = entry.get('value')
+      # filter = { "term":  { field: value }}
+      filter = retrieve.get_filter_object(entry.get('filterTerm'), field, entry.get('filterValue'), value)
+      if filter is not None:
+        query["query"]["bool"]["filter"].append(filter)
+        queryAdded = True
+
     if entry.get('value') is not None and "" != entry['value'] and int(
             entry.get('weight', 1)) > 0 and entry.get('similarity') != "None":
       field = entry['name']
@@ -770,8 +781,8 @@ def cbr_retrieve(event, context=None):
       qfnc = retrieve.getQueryFunction(proj['id__'], field, value, weight, similarityType, options)
       query["query"]["bool"]["should"].append(qfnc)
 
-  if filter is not None and filter != "" and filter != {}:   # add filter to query if specified
-    query["query"]["bool"].update({"filter": {"term": filter} })
+  # if filter is not None and filter != "" and filter != {}:   # add filter to query if specified
+  #   query["query"]["bool"].update({"filter": {"term": filter} })
 
   if not queryAdded:  # If no query features are specified, return all cases up to topk
     query["query"]["bool"]["should"].append(retrieve.MatchAll())
@@ -797,7 +808,7 @@ def cbr_retrieve(event, context=None):
   if counter > 0:
     for entry in queryFeatures:
       field = entry['name']
-      strategy = entry.get('strategy', "Best Match")
+      strategy = entry.get('strategy', "NN value")  # NN (nearest neighbour)
       if not entry.get('unknown', False) and entry.get('value') is not None and "" != entry['value']:  # copy known values
         result['recommended'][field] = entry['value']
       else:  # use reuse strategies for unknown fields
@@ -810,10 +821,13 @@ def cbr_retrieve(event, context=None):
             result['recommended'][field] = np.mean([x[field] for x in result['bestK']])
           elif strategy == "Median":
             result['recommended'][field] = np.median([x[field] for x in result['bestK']])
-          elif strategy == "Mode":
+          elif strategy == "Mode" or strategy == "Majority":
             result['recommended'][field] = statistics.mode([x[field] for x in result['bestK']])
+          elif strategy == "Minority":
+            lst = [x[field] for x in result['bestK']]
+            result['recommended'][field] = min(set(lst), key=lst.count)
           else:
-            result['recommended'][field] = result['bestK'][0][field]  # assign value of 'Best Match'
+            result['recommended'][field] = result['bestK'][0][field]  # assign value of 'NN value'
     # generate a new random id to make (if there was an id) to make it different from existing cases
     if result['recommended'].get('id') is not None:
       result['recommended']['id'] = uuid.uuid4().hex
@@ -893,6 +907,8 @@ def cbr_retain(event, context=None):
                                     root_node=attrib['options'].get('root'), similarity_method=sim_method)
 
     new_case = params['data']
+    if isinstance(new_case, str):  # new_case could be str or dict
+      new_case = json.loads(new_case)
     case_id = new_case.get('_id') # check for optional id in case description
     new_case = retrieve.add_vector_fields(proj['attributes'], new_case)  # add vectors to Semantic USE fields
 

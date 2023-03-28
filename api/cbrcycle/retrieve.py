@@ -9,6 +9,27 @@ import json
 import config as cfg
 
 
+def get_filter_object(filterTerm, fieldName, filterValue=None, fieldValue=None):
+  """
+  Returns a filter object that can be included in a OpenSearch query (https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html)
+  filterTerm options: None, =, >, >=, <, <=. Not None filterTerm should be accompanied with values.
+  """
+  if fieldName is not None and filterTerm is not None and filterTerm != 'None':  # check that there is a filter
+    # construct object according to filter type
+    if filterTerm == '=' and fieldValue is not None:
+      return {'term': {fieldName: fieldValue}}
+    if filterValue is not None:
+      if filterTerm == '>':  # gt
+        return {'range': {fieldName: {'gt': filterValue}}}
+      if filterTerm == '>=':  # gte
+        return {'range': {fieldName: {'gte': filterValue}}}
+      if filterTerm == '<':  # lt
+        return {'range': {fieldName: {'lt': filterValue}}}
+      if filterTerm == '<=':  # lte
+        return {'range': {fieldName: {'lte': filterValue}}}
+  return None  # no filter
+
+
 def getVector(text):
   """
   Calls an external service to get the 512 dimensional vector representation of a piece of text.
@@ -330,8 +351,8 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
   elif simMetric == "Feature-based":
     sim_grid = getOntoSimilarity(projId + "_ontology_" + options['name'], queryValue)
     return OntologySimilarity(caseAttrib, queryValue, weight, sim_grid)
-  elif simMetric == "Array":
-    return Array(caseAttrib, queryValue, weight)
+  elif simMetric == "Jaccard" or simMetric == "Array":  # Array was renamed to Jaccard. "Array" kept on until adequate notice is given to update existing applications.
+    return Jaccard(caseAttrib, queryValue, weight)
   elif simMetric == "Array SBERT":
     return ArraySBERT(caseAttrib, getVectorSemanticSBERTArray(queryValue), weight)
   else:
@@ -342,7 +363,7 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
 # Each similarity function returns a Painless script for Elasticsearch. 
 # Each function requires field name and set of functions-specific parameters.
 
-def Array(caseAttrib, queryValue, weight):
+def Jaccard(caseAttrib, queryValue, weight):
   """
   Returns the similarity between two arrays
   """

@@ -10,6 +10,7 @@ angular.module('cloodApp', [
   'ngTouch',
   'ui.bootstrap',
   'toaster',
+  'cloodApp.global_config',
   'cloodApp.projects',
   'cloodApp.config',
   'cloodApp.cbr',
@@ -52,6 +53,15 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
     $http.get(ENV_CONST.base_api_url + "/config", {headers: {"Authorization":$rootScope.checkauth()}}).then(function(res) {
       if (typeof res.data.attributeOptions != 'undefined'){
         $rootScope.globalConfig = res.data; // should allow update in settings
+      }
+    }, function(err) {
+      console.log(err.data);
+    });
+  };
+  $rootScope.createGlobalConfig = function() {  // re-creates global config
+    $http.get(ENV_CONST.base_api_url + "/config/create", {headers: {"Authorization":$rootScope.checkauth()}}).then(function(res) {
+      if (typeof res.data.attributeOptions != 'undefined'){
+        $rootScope.globalConfig = res.data;
       }
     }, function(err) {
       console.log(err.data);
