@@ -24,7 +24,37 @@
                             <i class="fas fa-info-circle" ng-if="attribute.similarity == 'Array' || attribute.similarity == 'Array SBERT'" data-toggle="tooltip" data-placement="right" title="Array values are created by seperating values with commas."></i>
                         </td>
                         <td>
-                            <input type="text" class="form-control" ng-model="newCase['data'][attribute.name]" ng-disabled="!selected.attributes.length>0">
+                            <div ng-if="(attribute.type=='String' || attribute.type=='Ontology Concept')" class="form-group">
+                                <input type="text" class="form-control" ng-model="newCase['data'][attribute.name]" placeholder="{{ attribute.name }}">
+                            </div>
+                            <!-- Numeric type -->
+                            <div ng-if="(attribute.type=='Integer' || attribute.type=='Float')" class="form-group">
+                                <input type="number" class="form-control" ng-model="newCase['data'][attribute.name]" placeholder="{{ attribute.name }}">
+                            </div>
+                            <!-- Boolean type -->
+                            <div ng-if="attribute.type=='Boolean'" class="form-group">
+                                <input class="form-check-input" type="checkbox" ng-model="newCase['data'][attribute.name]">
+                            </div>
+                            <!-- Date type -->
+                            <div ng-if="attribute.type=='Date'" class="form-group">
+                                <input type="date" class="form-control" ng-init="model=(datenow | date:'dd-MM-yyyy')" ng-model="newCase['data'][attribute.name]">
+                            </div>
+                            <!-- Location type -->
+                            <div ng-if="attribute.type=='Location'" class="form-group">
+                                <input type="text" class="form-control" ng-model="newCase['data'][attribute.name]" placeholder="{{ attribute.name }} as 'lat,lon'">
+                            </div>
+                            <!-- Categorical type -->
+                            <div ng-if="attribute.type=='Categorical'" class="form-group">
+                                <select class="form-control" ng-model="newCase['data'][attribute.name]" ng-options="val as val for val in attribute.options.values" placeholder="{{ attribute.name }}"></select>
+                            </div>
+                            <!-- Array type -->
+                            <div ng-if="attribute.type=='Array'" class="form-group">
+                                <textarea type="text" class="form-control" ng-model="newCase['data'][attribute.name]" ng-list rows="1" placeholder="{{ attribute.name }}"></textarea>
+                            </div>
+                            <!-- Object type -->
+                            <div ng-if="attribute.type=='Object'" class="form-group">
+                                <textarea class="form-control" ng-model="newCase['data'][attribute.name]" rows="1" placeholder="{{ attribute.name }}"></textarea>
+                            </div>
                         </td>
                     </tr>
                 </tbody>

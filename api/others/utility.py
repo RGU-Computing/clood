@@ -28,29 +28,58 @@ def createOrUpdateGlobalConfig(es, config_db="config", globalConfig=None):
   # print("Adding global configuration to ES.")
   config = {}
   config['attributeOptions'] = []
-  config['attributeOptions'].append(
-    {'type': 'String', 'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'Semantic SBERT','Array', 'Array SBERT', 'None'],
-     'reuseStrategy': ['Best Match']})
+  config['attributeOptions'].append({'type': 'String',
+                                     'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'Semantic SBERT', 'None'], 
+                                     'reuseStrategy': ['NN value'],
+                                     'filterOptions': ['None', '=']
+                                     })
   config['attributeOptions'].append({'type': 'Integer',
                                      'similarityTypes': ['Equal', 'Nearest Number', 'McSherry More', 'McSherry Less',
-                                                         'INRECA More', 'INRECA Less', 'Interval', 'Array', 'None'],
-                                     'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median', 'Mode']})
+                                                         'INRECA More', 'INRECA Less', 'Interval', 'None'],
+                                     'reuseStrategy': ['NN value', 'Maximum', 'Minimum', 'Mean', 'Median', 'Mode'],
+                                     'filterOptions': ['None', '=', '>', '>=', '<', '<=']
+                                     })
   config['attributeOptions'].append({'type': 'Float',
                                      'similarityTypes': ['Equal', 'Nearest Number', 'McSherry More', 'McSherry Less',
-                                                         'INRECA More', 'INRECA Less', 'Interval', 'Array','None'],
-                                     'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median']})
+                                                         'INRECA More', 'INRECA Less', 'Interval', 'None'],
+                                     'reuseStrategy': ['NN value', 'Maximum', 'Minimum', 'Mean', 'Median'],
+                                     'filterOptions': ['None', '=', '>', '>=', '<', '<=']
+                                     })
   config['attributeOptions'].append({'type': 'Categorical',
-                                     'similarityTypes': ['Equal', 'EqualIgnoreCase', 'Table', 'EnumDistance', 'Query Intersection', 'None'],
-                                     'reuseStrategy': ['Best Match']})
-  config['attributeOptions'].append({'type': 'Boolean', 'similarityTypes': ['Equal', 'None'],
-                                     'reuseStrategy': ['Best Match', 'Maximum', 'Minimum', 'Mean', 'Median']})
-  config['attributeOptions'].append(
-    {'type': 'Date', 'similarityTypes': ['Nearest Date', 'None'], 'reuseStrategy': ['Best Match']})
-  config['attributeOptions'].append(
-    {'type': 'Location', 'similarityTypes': ['Nearest Location', 'None'], 'reuseStrategy': ['Best Match']})
-  config['attributeOptions'].append(
-    {'type': 'Ontology Concept', 'similarityTypes': ['Path-based', 'Feature-based', 'None'], 'reuseStrategy': ['Best Match']})
-  config['attributeOptions'].append({'type': 'Object', 'similarityTypes': ['None'], 'reuseStrategy': ['Best Match']})
+                                     'similarityTypes': ['Equal', 'EqualIgnoreCase', 'Table', 'EnumDistance', 'None'],
+                                     'reuseStrategy': ['NN value'],
+                                     'filterOptions': ['None', '=']
+                                     })
+  config['attributeOptions'].append({'type': 'Boolean',
+                                     'similarityTypes': ['Equal', 'None'],
+                                     'reuseStrategy': ['NN value', 'Majority', 'Minority'],
+                                     'filterOptions': ['None', '=']
+                                     })
+  config['attributeOptions'].append({'type': 'Date',
+                                     'similarityTypes': ['Nearest Date', 'None'], 
+                                     'reuseStrategy': ['NN value'],
+                                     'filterOptions': ['None', '=', '>', '>=', '<', '<=']
+                                     })
+  config['attributeOptions'].append({'type': 'Array',
+                                     'similarityTypes': ['Jaccard', 'Array SBERT', 'Query Intersection', 'None'],
+                                     'reuseStrategy': ['NN value'],
+                                     'filterOptions': ['None']
+                                     })
+  config['attributeOptions'].append({'type': 'Location',
+                                     'similarityTypes': ['Nearest Location', 'None'], 
+                                     'reuseStrategy': ['NN value'],
+                                     'filterOptions': ['None']
+                                     })
+  config['attributeOptions'].append({'type': 'Ontology Concept',
+                                     'similarityTypes': ['Path-based', 'Feature-based', 'None'], 
+                                     'reuseStrategy': ['NN value'],
+                                     'filterOptions': ['None', '=']
+                                     })
+  config['attributeOptions'].append({'type': 'Object', 
+                                     'similarityTypes': ['None'],
+                                     'reuseStrategy': ['NN value'],
+                                     'filterOptions': ['None']
+                                     })
   # print(config)
   time.sleep(0.2) # wait before index create finishes 
   res2 = es.index(index=config_db, body=config)

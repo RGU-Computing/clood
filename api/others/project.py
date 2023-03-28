@@ -88,7 +88,9 @@ def getMappingFrag(attrType, simMetric):
                     }
             }
         }
-    elif attrType == "String" and (simMetric == "Equal" or simMetric == "EqualIgnoreCase" or simMetric == "Array"):
+    elif simMetric == "Jaccard":
+        res['type'] = "keyword"
+    elif attrType == "String" and (simMetric == "Equal" or simMetric == "EqualIgnoreCase"):
         res['type'] = "keyword"
     elif attrType == "String":
         res['type'] = "text"

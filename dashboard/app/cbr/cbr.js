@@ -32,7 +32,20 @@ angular.module('cloodApp.cbr', [])
   $stateProvider.state(cbrReviseState);
   $stateProvider.state(cbrRetainState);
 }])
-
+.filter('displaySnippet', [function(){  // display snippets for long texts
+  return function(input, scope, num){  // num - max no. of characters to display
+    // if (typeof input != 'undefined' && scope.getDataType(input) == 'string' && scope.stringIsUrl(input)) { // returns the last part of a string if URL
+    //   if (input.lastIndexOf("#") != -1)
+    //     return input.substr(input.lastIndexOf("#") + 1);
+    //   if (input.lastIndexOf("/") != -1)
+    //     return input.substr(input.lastIndexOf("/") + 1);
+    // }
+    if (typeof input != 'undefined' && scope.getDataType(input) == 'string' && input.length > num) {
+      return input.substr(0, num) + '...'
+    }
+    return input;
+  }
+}])
 .controller('CBRCtrl', ['$scope', '$http', '$state', 'ENV_CONST', '$uibModal', function($scope, $http, $state, ENV_CONST, $uibModal ) {
   $scope.datenow = new Date();  // current date for any date field selection
   $scope.menu.active = $scope.menu.items[2]; // ui active menu tag
@@ -65,22 +78,8 @@ angular.module('cloodApp.cbr', [])
   // retrieves cases from the casebase using specified request features
   $scope.retrieveCases = function() {
     $scope.requests.current.project = angular.copy($scope.selected);
-    // Check if the type is Array
-    console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown
-    angular.forEach($scope.requests.current.data, function(value, key) {
-      if ((value.similarity == "Array" || value.similarity == "Array SBERT") && value.value != "" && value.value != null) {
-        if(typeof value.value == "string"){
-          value.value = value.value.split(",");
-        }
-        if(value.type == "Integer") {
-          value.value = value.value.map(function (el) { return parseInt(el); });
-        } else if (value.type == "Float") {
-          value.value = value.value.map(function (el) { return parseFloat(el); });
-        }
-      }
-    });
 
-    console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown)
+    // console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown)
     $http.post(ENV_CONST.base_api_url + '/retrieve', $scope.requests.current, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
       $scope.requests.response = res.data;
       console.log($scope.requests.response)
@@ -121,14 +120,14 @@ angular.module('cloodApp.cbr', [])
 
     // Convert csv input to array
     angular.forEach(newCase.project.attributes, function(value, key) {
-      if ((value.similarity == "Array"  || value.similarity == "Array SBERT") && newCase.data[value.name] != null && newCase.data[value.name] != "") {
-        newCase.data[value.name] = newCase.data[value.name].split(",");
+      if ((value.type == "Array") && newCase.data[value.name] != null && newCase.data[value.name] != "") {
+        newCase.data[value.name] = newCase.data[value.name].split(",").map(item=>item.trim());
         if (value.type == "Integer") {
           newCase.data[value.name] = newCase.data[value.name].map(function (el) { return parseInt(el); });
         } else if (value.type == "Float") {
           newCase.data[value.name] = newCase.data[value.name].map(function (el) { return parseFloat(el); });
         }
-      console.log("newCase",newCase);
+      // console.log("newCase",newCase);
       }
     });
 
@@ -185,6 +184,28 @@ angular.module('cloodApp.cbr', [])
     link.click();
     $scope.pop("success", null, "Downloading cases as CSV");
   };
+
+  // Check if data type can be used as a filter
+  $scope.getIsFilterOptions = function(type) {
+    if (typeof type != 'undefined' && type != null) {
+      var res = $scope.globalConfig.attributeOptions.find(obj => {
+        return obj.type === type
+      });
+      return res.filterOptions;
+    }
+    return false;
+  };
+
+  // checks if string is a url
+  $scope.stringIsUrl = function(str) {
+    let url;
+    try {
+      url = new URL(str);
+    } catch (_) {
+      return false;
+    }
+    return url.protocol === "http:" || url.protocol === "https:";
+  }
 
   $scope.reusePlot = function() {
     updatePlotType('scatter');

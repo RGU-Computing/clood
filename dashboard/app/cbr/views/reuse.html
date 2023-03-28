@@ -27,7 +27,7 @@
 <div class="row">
   <!-- Display recommended solution -->
   <div class="row" ng-show="objOrArrayHasContent(requests.response.recommended)">
-    <h4 align="center">Recommendation</h4>
+    <h4 align="center">Recommendation (with chosen reuse strategies)</h4>
     <div class="col-lg-12">
       <div class="p-5">
         <form id="reviseForm">
@@ -67,6 +67,12 @@
   <div class="row" ng-show="!objOrArrayHasContent(requests.response.recommended)">
     <p>   The query values are too restrictive, or there are no cases in the casebase, or the retrieve step not was completed.</p>
   </div>
+</div>
+
+<div class="row" ng-if="requests.current.explanation && requests.response.bestK.length>0">
+  <h4 align="center">Parallel Coordinate Plot of Nearest Cases (5 max)</h4>
+  <div id="plotly-graph" ng-init="plotTest()"><p style="color: red;margin: auto;" ng-if="requests.response.bestK[0].match_explanation.length==0">Query against specific case attributes to see a plot of local similarities</p></div>
+  
 </div>
 
 <div class="row">

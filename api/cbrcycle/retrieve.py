@@ -10,6 +10,27 @@ import config as cfg
 import numpy as np
 
 
+def get_filter_object(filterTerm, fieldName, filterValue=None, fieldValue=None):
+  """
+  Returns a filter object that can be included in a OpenSearch query (https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html)
+  filterTerm options: None, =, >, >=, <, <=. Not None filterTerm should be accompanied with values.
+  """
+  if fieldName is not None and filterTerm is not None and filterTerm != 'None':  # check that there is a filter
+    # construct object according to filter type
+    if filterTerm == '=' and fieldValue is not None:
+      return {'term': {fieldName: fieldValue}}
+    if filterValue is not None:
+      if filterTerm == '>':  # gt
+        return {'range': {fieldName: {'gt': filterValue}}}
+      if filterTerm == '>=':  # gte
+        return {'range': {fieldName: {'gte': filterValue}}}
+      if filterTerm == '<':  # lt
+        return {'range': {fieldName: {'lt': filterValue}}}
+      if filterTerm == '<=':  # lte
+        return {'range': {fieldName: {'lte': filterValue}}}
+  return None  # no filter
+
+
 def getVector(text):
   """
   Calls an external service to get the 512 dimensional vector representation of a piece of text.
@@ -317,14 +338,18 @@ def update_attribute_options(es,proj,attrNames = []):
   return result
 
 
-def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options):
+def getQueryFunction(projId, caseAttrib, queryValue, type, weight, simMetric, options):
   """
   Determine query function to use base on attribute specification and retrieval features.
   Add new query functions in the if..else statement as elif.
   """
+  print("all info: ", projId, caseAttrib, queryValue, weight, simMetric, options)
   # minVal = kwargs.get('minVal', None) # optional parameter, minVal (name 'minVal' in function params when calling function e.g. minVal=5)
   if simMetric == "Equal":
-    return Exact(caseAttrib, queryValue, weight)
+    if type == "String" or type == "Text" or type == "Keyword" or type == "Integer":
+      return Exact(caseAttrib, queryValue, weight)
+    elif type == "Float":
+      return ExactFloat(caseAttrib, queryValue, weight)
   elif simMetric == "EqualIgnoreCase":
     queryValue = queryValue.lower()
     return Exact(caseAttrib, queryValue, weight)
@@ -375,8 +400,8 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
   elif simMetric == "Feature-based":
     sim_grid = getOntoSimilarity(projId + "_ontology_" + options['name'], queryValue)
     return OntologySimilarity(caseAttrib, queryValue, weight, sim_grid)
-  elif simMetric == "Array":
-    return Array(caseAttrib, queryValue, weight)
+  elif simMetric == "Jaccard" or simMetric == "Array":  # Array was renamed to Jaccard. "Array" kept on until adequate notice is given to update existing applications.
+    return Jaccard(caseAttrib, queryValue, weight)
   elif simMetric == "Array SBERT":
     return ArraySBERT(caseAttrib, getVectorSemanticSBERTArray(queryValue), weight)
   else:
@@ -387,7 +412,7 @@ def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options)
 # Each similarity function returns a Painless script for Elasticsearch. 
 # Each function requires field name and set of functions-specific parameters.
 
-def Array(caseAttrib, queryValue, weight):
+def Jaccard(caseAttrib, queryValue, weight):
   """
   Returns the similarity between two arrays
   """
@@ -678,6 +703,31 @@ def Exact(caseAttrib, queryValue, weight):
           "weight": weight
         },
         "source": "if (params.queryValue == doc[params.attrib].value) { return (1.0 * params.weight) }"
+      },
+      "_name": caseAttrib
+    }
+  }
+  return queryFnc
+
+def ExactFloat(caseAttrib, queryValue, weight):
+  """
+  Exact matches for fields defined as equal. Attributes that use this are indexed using 'keyword'.
+  """
+# build query string
+  queryFnc = {
+    "script_score": {
+      "query": {
+        "match": {
+          caseAttrib: queryValue
+        }
+      },
+      "script": {
+        "params": {
+          "attrib": caseAttrib,
+          "queryValue": queryValue,
+          "weight": weight
+        },
+        "source": "if (Math.abs(params.queryValue - doc[params.attrib].value) < 0.0001) {return (1.0 * params.weight) }"
       },
       "_name": caseAttrib
     }

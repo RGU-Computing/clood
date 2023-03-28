@@ -1,9 +1,9 @@
 <div class="modal-header">
-    <h3 class="modal-title" id="modal-title">List of All Similarities</h3>
+    <h3 class="modal-title" id="modal-title">List of Similarity Metrics</h3>
 </div>
 <div class="modal-body" id="modal-body">
-    <p class="lead">Array (Jaccard)</p>
-    <p><b>Suitable data types: </b>String, Integer, Float</p>
+    <p class="lead">Jaccard</p>
+    <p><b>Suitable data types: </b>Arrays of String, Integer, Float</p>
     <p><b>Description: </b>Uses the Jaccard similarity metric to compare two arrays. Returns a score equal to the intersection of the two arrays over
         the union of the two arrays. Intersection is the number of elements in both arrays, union is the number of elements in either array.
          Returns a score between 0 and 1, with 1 being an exact match. 
@@ -119,7 +119,7 @@
         Calculates the similarity between two sets of categorical values. 
         The similarity score is calculated by dividing the number of values in the intersection of the two sets by the length of the query set.
     </p>
-    <p><b>Formula: </b><code>"|a & b| / |a|"</code>
+    <p><b>Formula: </b><code>"|a ∩ b| / |a|"</code>
         <br/><i>where "a" is the query value and "b" is the case value</i>
     </p>
 </div>
