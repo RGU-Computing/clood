@@ -78,18 +78,6 @@ angular.module('cloodApp.cbr', [])
   // retrieves cases from the casebase using specified request features
   $scope.retrieveCases = function() {
     $scope.requests.current.project = angular.copy($scope.selected);
-    // Check if the type is Array
-    // console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown
-    angular.forEach($scope.requests.current.data, function(value, key) {
-      if (value.type == "Array" && value.value != "" && value.value != null) {
-        value.value = value.value.split(",").map(item=>item.trim());
-        if(value.type == "Integer") {
-          value.value = value.value.map(function (el) { return parseInt(el); });
-        } else if (value.type == "Float") {
-          value.value = value.value.map(function (el) { return parseFloat(el); });
-        }
-      }
-    });
 
     // console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown)
     $http.post(ENV_CONST.base_api_url + '/retrieve', $scope.requests.current, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
@@ -123,6 +111,7 @@ angular.module('cloodApp.cbr', [])
     $state.transitionTo('cbr.retain');
   };
 
+  
   // saves a new case to the casebase
   $scope.saveCase = function() {
     var newCase = {};
@@ -169,30 +158,30 @@ angular.module('cloodApp.cbr', [])
     $state.transitionTo('cbr.reuse');
   };
 
-  //Export query results to csv file
+  //Export the results of the best k cases to a csv file
   $scope.exportResults = function(){
-    let itemJSON = ""
-    $scope.selected.attributes.forEach(function(value,index){
-      index == 0 ? itemJSON += value.name : itemJSON += ","+value.name
-    });
-    $scope.requests.response.bestK.forEach(function(item,index){
-      itemJSON += "\n"
-      let caseValue;
-      $scope.selected.attributes.forEach(function(key,index){
-        item[key.name] == null ? caseValue = "" : caseValue = item[key.name]
-        caseValue = caseValue.toString().replace(/[,\n]/gm, ' ');
-        index == 0 ? itemJSON += caseValue : itemJSON += ","+caseValue
-      });
+
+    // Get the attribute names for the header
+    let headers = $scope.selected.attributes.map(function (el) { return el.name; });
+    var replacer = function(key, value) { return value === null ? '' : value }
+
+    var csv = $scope.requests.response.bestK.map(function(row){
+      return headers.map(function(fieldName){
+        return JSON.stringify(row[fieldName], replacer)
+      }).join(',')
     });
 
-    let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(itemJSON);
-    let fileName = "clood-"+$scope.selected.id__+'-query.csv';
+    csv.unshift(headers.join(',')); // add header column
+    csv = csv.join('\r\n');
 
-    let downloadLink = document.createElement('a');
-    downloadLink.setAttribute('href', dataUri);
-    downloadLink.setAttribute('download', fileName);
-    downloadLink.click();
-
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement("a");
+    var url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "results.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
     $scope.pop("success", null, "Downloading cases as CSV");
   };
 
@@ -218,37 +207,119 @@ angular.module('cloodApp.cbr', [])
     return url.protocol === "http:" || url.protocol === "https:";
   }
 
-  $scope.plotTest = function() {
-    var attributes = [];
-    var scores = [];
-
-    $scope.requests.response.bestK.forEach(function(value, index) {
-      var temp = [];
-      var temp2 = [];
-      value.match_explanation.forEach(function(value, index) {
-        temp.push(value.similarity);
-        temp2.push(value.field);
-      });
-      temp.push(value.score__);
-      temp2.push("<b>Global Similarity</b>");
-      scores.push(temp);
-      attributes.push(temp2);
-    });
-
-    var traces = [];
-    for (var i = 0; i < Math.min(scores.length,5); i++) {
-      traces.push({
-        x: attributes[i],
-        y: scores[i],
-        type: 'scatter',
-        line: {shape: 'hvh'},
-        name: "Case " + (i + 1)
-      });
-    }
+  $scope.reusePlot = function() {
+    updatePlotType('scatter');
     
-    var data = traces;
-    Plotly.newPlot('plotly-graph', data);
+    // add event listeners to buttons
+    document.getElementById('scatter-button').addEventListener('click', () => updatePlotType('scatter'));
+    document.getElementById('bar-button').addEventListener('click', () => updatePlotType('bar'));
+    document.getElementById('parallel-button').addEventListener('click', () => updatePlotType('parcoords'));
   };
+  
+  function getTraces(bestK, type) {
+    return bestK.map((value, index) => {
+      const { match_explanation, score__ } = value;
+      const attributes = match_explanation.map(({ similarity, field }) => field);
+      attributes.push("<b>Global Similarity</b>");
+      const scores = match_explanation.map(({ similarity }) => similarity);
+      scores.push(score__);
+      return {
+        x: attributes,
+        y: scores,
+        type: type,
+        line: {shape: 'hvh'},
+        name: `Case ${index + 1}`
+      };
+    });
+  }
+  
+  function updatePlotType(type) {
+    const plotlyGraph = document.getElementById('plotly-graph');
+    const plotData = plotlyGraph.data;
+    const { bestK } = $scope.requests.response;
+    const updatedData = getTraces(bestK.slice(0, 5), type);
+  
+    const layout = {
+      title: {
+        text: type === 'scatter' ? 'Scatter Plot' : 'Bar Plot',
+        font: {
+          family: 'Arial',
+          size: 24,
+          color: 'rgb(120,120,120)'
+        }
+      },
+      paper_bgcolor: 'rgb(243, 243, 243)',
+      plot_bgcolor: 'rgb(243, 243, 243)',
+      margin: {
+        l: 100,
+        r: 100,
+        t: 100,
+        b: 100
+      },
+      showlegend: true
+    };
+  
+    if (type === 'parcoords') {
+      const numDimensions = plotData[0].x.length;
+      const dimensions = plotData[0].x.map((attribute, index) => {
+        const isLastDimension = index === numDimensions - 1;
+        const label = attribute.replace('<b>', '').replace('</b>', '');
+        const range = isLastDimension ? [0, numDimensions - 1] : [0, 1];
+        const values = plotData.map(trace => trace.y[index]);
+        return { label, range, values };
+      });
+  
+      const trace = {
+        type: 'parcoords',
+        line: {
+          color: plotData.map(trace => trace.y[numDimensions - 1]),
+          showscale: true,
+          reversescale: true,
+          colorscale: 'Jet',
+          cmin: 0,
+          cmax: numDimensions - 1,
+        },
+        dimensions: dimensions,
+        name: 'Series 1'
+      };
+  
+      layout.title.text = 'Parallel Coordinates Plot';
+      layout.legend = {
+        orientation: 'h',
+        yanchor: 'bottom',
+        y: 1.02,
+        xanchor: 'right',
+        x: 1
+      };
+  
+      Plotly.newPlot(plotlyGraph, [trace], layout);
+    } else {
+      layout.legend = {};
+  
+      layout.xaxis = {
+        title: {
+          text: 'Attributes',
+          font: {
+            family: 'Arial',
+            size: 18,
+            color: 'rgb(120,120,120)'
+          }
+        }
+      };
+      layout.yaxis = {
+        title: {
+          text: 'Similarity',
+          font: {
+            family: 'Arial',
+            size: 18,
+            color: 'rgb(120,120,120)'
+          }
+        }
+      };
+  
+      Plotly.newPlot(plotlyGraph, updatedData, layout);
+    }
+  }
 
   $scope.reuse = function() {
     $state.transitionTo('cbr.reuse');
@@ -386,4 +457,37 @@ angular.module('cloodApp.cbr', [])
   $scope.cancel = function() {
     $uibModalInstance.dismiss('cancel');
   };
-}]);
+}])
+.directive('truncateJson', function () {
+  return {
+    restrict: 'A',
+    scope: {
+      jsonData: '=truncateJson',
+    },
+    link: function (scope, element) {
+      if (!scope.jsonData) {
+        return;
+      }
+
+      const jsonDataStr = JSON.stringify(scope.jsonData, null, 2);
+
+      if (jsonDataStr.length < 50) {
+        element.html(jsonDataStr);
+        return;
+      }
+      const truncatedJsonDataStr = jsonDataStr.slice(0, 50) + '...';
+      element.html(truncatedJsonDataStr);
+      element.css('cursor', 'pointer');
+
+      let isTruncated = true;
+      element.on('click', function () {
+        if (isTruncated) {
+          element.html(jsonDataStr);
+        } else {
+          element.html(truncatedJsonDataStr);
+        }
+        isTruncated = !isTruncated;
+      });
+    },
+  };
+});

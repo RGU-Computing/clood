@@ -56,6 +56,9 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
       }
     }, function(err) {
       console.log(err.data);
+      if($rootScope.auth.state){
+        $rootScope.logout();
+      }
     });
   };
   $rootScope.createGlobalConfig = function() {  // re-creates global config
@@ -83,6 +86,7 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
         location.reload();
       } else {
         $rootScope.auth.state = false;
+        $rootScope.logout();
         $rootScope.pop('error',null, 'Please check your username and password');
       }
     });
@@ -111,7 +115,6 @@ run(['$rootScope', '$http', 'ENV_CONST', function($rootScope, $http, ENV_CONST){
     }
   };
   $rootScope.getGlobalConfig();
-  $rootScope.checkauth();
 }]).
 
 directive('disallowSpaces', [function(){

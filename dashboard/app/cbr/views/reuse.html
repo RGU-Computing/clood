@@ -14,6 +14,16 @@
   </button>
 </div>
 
+<div class="row" ng-if="requests.current.explanation && requests.response.bestK.length>0">
+  <h4 align="center">Plot of Top 5 Cases</h4>
+  <div id="plotly-graph" ng-init="reusePlot()"><p style="color: red;margin: auto;" ng-if="requests.response.bestK[0].match_explanation.length==0">Query against specific case attributes to see a plot of local similarities</p></div>
+  <div class="plot-buttons">
+    <button type="button" class="btn btn-primary" id="scatter-button">Scatter</button>
+    <button type="button" class="btn btn-primary" id="bar-button">Bar</button>
+    <button type="button" class="btn btn-primary" id="parallel-button">Parallel</button>
+  </div>
+</div>
+
 <div class="row">
   <!-- Display recommended solution -->
   <div class="row" ng-show="objOrArrayHasContent(requests.response.recommended)">
@@ -22,22 +32,23 @@
       <div class="p-5">
         <form id="reviseForm">
           <div class="table-responsive">
-            <table class="table table-striped table-bordered" width="100%" cellspacing="0">
+            <table style="table-layout:auto; width: 150%;" class="table table-striped table-bordered" width="100%" cellspacing="0">
               <thead>
                 <tr>
-                  <th ng-repeat="(key, value) in requests.response.recommended">{{ key }}</th>
-                  <th></th>
+                  <th style="min-width: 5px; max-width: 200px;" ng-repeat="(key, value) in requests.response.recommended">{{ key }}</th>
+                  <th style="min-width: 50px; max-width: 200px;"></th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td ng-repeat="(key, value) in requests.response.recommended">
-                    <span ng-if=" getDataType(value)!='object' ">{{ value | displaySnippet:this:70 }}</span>
+                  <td style="min-width: 50px; max-width: 200px;" ng-repeat="(key, value) in requests.response.recommended">
+                    <span style="word-wrap:break-word" ng-if=" getDataType(value)!='object' " truncate-json="value"></span>
                     <code ng-if=" getDataType(value)=='object' ">
-                      <pre>{{ value | json }}</pre>
+                      <!-- Create a code box showing only the first 50 characters -->
+                      <pre truncate-json="value"></pre>
                     </code>
                   </td>
-                  <td>
+                  <td style="min-width: 50px; max-width: 200px;">
                     <button type="button" class="btn btn-default" ng-click="reviseCase()">
                       Revise
                     </button>
@@ -72,31 +83,31 @@
       <div class="p-5">
         <form id="reuseForm">
           <div class="table-responsive">
-            <table class="table table-striped table-bordered" width="100%" cellspacing="0">
+            <table style="table-layout:auto;" class="table table-striped table-bordered" width="100%" cellspacing="0">
               <thead>
                 <tr>
-                  <th ng-repeat="attrib in selected.attributes">{{ attrib.name }}</th>
-                  <th>Score</th>
+                  <th style="min-width: 50px; max-width: 200px;" ng-repeat="attrib in selected.attributes">{{ attrib.name }}</th>
+                  <th style="min-width: 50px; max-width: 200px;">Score</th>
                   
-                  <th></th>
+                  <th style="min-width: 50px; max-width: 200px;"></th>
                 </tr>
               </thead>
               <tbody>
                 <tr ng-repeat="entry in requests.response.bestK">
-                  <td ng-repeat="attrib in selected.attributes" ng-if="entry">
-                    <span ng-if=" getDataType(entry[attrib.name])!='object' ">{{ entry[attrib.name] | displaySnippet:this:70 }}</span>
+                  <td style="min-width: 50px; max-width: 200px;" ng-repeat="attrib in selected.attributes" ng-if="entry">
+                    <span style="word-wrap:break-word" ng-if=" getDataType(entry[attrib.name])!='object' " truncate-json="entry[attrib.name]"></span>
                     <code ng-if=" getDataType(entry[attrib.name])=='object' ">
-                      <pre>{{ entry[attrib.name] | json }}</pre>
+                      <pre truncate-json="entry[attrib.name]"></pre>
                     </code>
                   </td>
-                  <td>
+                  <td  style="min-width: 50px; max-width: 200px;">
                     {{ entry['score__'] | number:3 }}
                   </td>
-                  <td>
+                  <td style="min-width: 50px; max-width: 200px;">
                     <button type="button" class="btn btn-block btn-primary" ng-click="showCase(entry)">
                       Details
                     </button>
-                    <button type="button" class="btn btn-block btn-primary" ng-click="graphData(entry)">
+                    <button type="button" class="btn btn-block btn-primary" ng-click="graphData(entry)" ng-if="requests.current.explanation && requests.response.bestK[0].match_explanation.length>0">
                       Graph
                     </button>
                     <button type="button" class="btn btn-block btn-primary" ng-click="reuseCase(entry)">

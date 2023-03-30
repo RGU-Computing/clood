@@ -7,6 +7,7 @@ import dateutil.parser
 import requests
 import json
 import config as cfg
+import numpy as np
 
 
 def get_filter_object(filterTerm, fieldName, filterValue=None, fieldValue=None):
@@ -244,6 +245,50 @@ def get_explain_details(match_explanation):
   return expl
 
 
+def cosine_similarity(v1, v2):
+  """
+  Computes cosine similarity between two vectors.
+  """
+  return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+
+
+def get_feedback_details(queryFeatures, pId, cId, es):
+  """
+  Manually compares arrays and makes note of low scoring elements
+  """
+  values = {}
+  feedback = []
+  
+  # get case
+  query = {}
+  query['query'] = {}
+  query['query']['terms'] = {}
+  query['query']['terms']["_id"] = []
+  query['query']['terms']["_id"].append(cId)
+  res = es.search(index=pId, body=query)
+
+  # find attributes that are array sbert and store their values, also convert query array to vector array
+  for attrib in queryFeatures:
+    if attrib['similarity'] == 'Array SBERT':
+      temp = {"values": res['hits']['hits'][0]['_source'][attrib['name']]['name'], "vec": res['hits']['hits'][0]['_source'][attrib['name']]['rep'], "queryRep": getVectorSemanticSBERTArray(attrib['value'])}
+      values[attrib['name']] = temp
+
+  # perform a cosine similarity between query elements and case elements
+  for key, value in values.items():
+    for idx, vec in enumerate(value['vec']):
+      maxsim = 0
+      for idx2, vec2 in enumerate(value['queryRep']):
+        sim = cosine_similarity(vec['rep'], vec2)
+        if sim > maxsim:
+          maxsim = sim
+      if maxsim < 0.7:
+        feedback.append({"field": key, "value": value['values'][idx], "similarity": maxsim})
+  
+  #print("feedback: ", feedback)
+
+  return feedback
+
+
 def get_min_max_values(es,casebase,attribute):
   query = {
     "aggs": {
@@ -293,14 +338,18 @@ def update_attribute_options(es,proj,attrNames = []):
   return result
 
 
-def getQueryFunction(projId, caseAttrib, queryValue, weight, simMetric, options):
+def getQueryFunction(projId, caseAttrib, queryValue, type, weight, simMetric, options):
   """
   Determine query function to use base on attribute specification and retrieval features.
   Add new query functions in the if..else statement as elif.
   """
+  print("all info: ", projId, caseAttrib, queryValue, weight, simMetric, options)
   # minVal = kwargs.get('minVal', None) # optional parameter, minVal (name 'minVal' in function params when calling function e.g. minVal=5)
   if simMetric == "Equal":
-    return Exact(caseAttrib, queryValue, weight)
+    if type == "String" or type == "Text" or type == "Keyword" or type == "Integer":
+      return Exact(caseAttrib, queryValue, weight)
+    elif type == "Float":
+      return ExactFloat(caseAttrib, queryValue, weight)
   elif simMetric == "EqualIgnoreCase":
     queryValue = queryValue.lower()
     return Exact(caseAttrib, queryValue, weight)
@@ -654,6 +703,31 @@ def Exact(caseAttrib, queryValue, weight):
           "weight": weight
         },
         "source": "if (params.queryValue == doc[params.attrib].value) { return (1.0 * params.weight) }"
+      },
+      "_name": caseAttrib
+    }
+  }
+  return queryFnc
+
+def ExactFloat(caseAttrib, queryValue, weight):
+  """
+  Exact matches for fields defined as equal. Attributes that use this are indexed using 'keyword'.
+  """
+# build query string
+  queryFnc = {
+    "script_score": {
+      "query": {
+        "match": {
+          caseAttrib: queryValue
+        }
+      },
+      "script": {
+        "params": {
+          "attrib": caseAttrib,
+          "queryValue": queryValue,
+          "weight": weight
+        },
+        "source": "if (Math.abs(params.queryValue - doc[params.attrib].value) < 0.0001) {return (1.0 * params.weight) }"
       },
       "_name": caseAttrib
     }

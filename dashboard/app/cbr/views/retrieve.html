@@ -57,7 +57,11 @@
                       </div>
                       <!-- Array type -->
                       <div ng-if="field.type=='Array'" class="form-group">
-                        <textarea class="form-control" ng-model="requests.current.data[$index].value" ng-list rows="1" placeholder="{{ field.name }}"></textarea>
+                        <textarea type="text" class="form-control" ng-model="requests.current.data[$index].value" ng-list rows="1" placeholder="{{ field.name }}"></textarea>
+                      </div>
+                      <!-- Object type -->
+                      <div ng-if="field.type=='Object'" class="form-group">
+                        <textarea type="text" class="form-control" ng-model="requests.current.data[$index].value" rows="1" placeholder="{{ field.name }}"></textarea>
                       </div>
                     </td>
                     <!-- Weight -->

@@ -439,57 +439,115 @@ angular.module('cloodApp.config', [])
     $scope.pop("success", null, "Downloading CSV template");
   };
 
+
+  // Need to create a new csv parser using manual rules and not papa parse
   $scope.parseFile = function(file) {
-    $scope.newCasebase = {'data':[], 'columnHeads':[], 'preview':false}; // reset
-    $scope.displayWarning = "";
-    Papa.parse(file, {
-      header: true,
-      dynamicTyping: true,
-    	complete: function(results) {
-    		console.log(results); // results.data is the json object
-        console.log(results.errors.length + " error(s) while parsing file.");
-        if ("," === results.meta.delimiter.trim() || "\t" === results.meta.delimiter.trim()) { // we only accept commas and tabs as delimiters of valid csv
-          $scope.newCasebase.columnHeads = results.meta.fields; // array of column headers
-          $scope.newCasebase.data = results.data;
-          // Attempt fix for error where last lines are empty (type: "FieldMismatch" code: "TooFewFields")
-          var i;
-          for (i = results.errors.length-1; i >= 0; i--) { // reverse so that subsequent rows and data indices match after any deletions
-            if (results.errors[i].type === "FieldMismatch" && results.errors[i].code === "TooFewFields") {
-              var numOfFields = Object.keys($scope.newCasebase.data[results.errors[i].row]).length;
-              var valOfFirstField = $scope.newCasebase.data[results.errors[i].row][Object.keys($scope.newCasebase.data[results.errors[i].row])[0]];
-              if (numOfFields === 1 && (valOfFirstField === null || "" === valOfFirstField.trim())) {
-                $scope.newCasebase.data.splice(results.errors[i].row, 1);
+    // open file
+    var reader = new FileReader();
+    reader.readAsText(file);
+    reader.onload = function(event) {
+      var lines = event.target.result.split("\n");
+      //Get an array of the column headers and data rows
+      var columnHeads = lines[0].split(",");
+      var data = lines.slice(1,lines.length);
+
+      // Check number and name of column headers against the current project attributes
+      var projectAttributes = $scope.selected.attributes.map(function (el) { return el.name; });
+      var columnHeaders = columnHeads.map(function (el) { return el.trim(); });
+      if (columnHeaders.length != projectAttributes.length) {
+        $scope.displayWarning = "The number of columns in the file does not match the number of attributes for this project.";
+        return;
+      }
+      else if (!columnHeaders.every(function (el) { return projectAttributes.includes(el); })) {
+        $scope.displayWarning = "The column headers in the file do not match the attributes for this project. The following attributes are wrong: " + columnHeaders.filter(function (el) { return !projectAttributes.includes(el); }).join(", ") + ".";
+        return;
+      }
+
+      var formattedData = [];
+      // Check each line of data for the correct number of columns
+      for (var i = 0; i < data.length; i++) {
+        // Create an array of proper comma locations
+        var commas = [];
+        for (var j = 0; j < data[i].length; j++) {
+          if (data[i][j] == ",") {
+            //calculate the number of double quotes, and parentheses before the comma
+            let numQuotes = 0;
+            let numCurlyBrace = 0;
+            let numSquareBrace = 0;
+
+            for (let k = 0; k < j; k++) {
+              switch (data[i][k]) {
+                case "\"":
+                  numQuotes++;
+                  break;
+                case "{":
+                  numCurlyBrace++;
+                  break;
+                case "}":
+                  numCurlyBrace--;
+                  break;
+                case "[":
+                  numSquareBrace++;
+                  break;
+                case "]":
+                  numSquareBrace--;
+                  break;
               }
             }
-          }
-          // Check if supplied column heads match the expected fields
-          var attribNameArray = $scope.selected.attributes.map(function (el) { return el.name; });
-          if (!(attribNameArray.length === $scope.newCasebase.columnHeads.length && attribNameArray.sort().every(function(value, index) { return value === $scope.newCasebase.columnHeads.sort()[index]}))) {
-            var dif = $scope.newCasebase.columnHeads.filter(x => attribNameArray.indexOf(x) === -1); // get difference
-            if(dif.length != 1 || dif[0] != "_id") { // if difference is not just _id
-              $scope.displayWarning = "Warning: One or more field names in CSV file are different from defined attributes. Names are case-sensitive. \n";
-              $scope.displayWarning += "Attribute names: " + attribNameArray.toString() + ". \n";
-              $scope.displayWarning += "CSV column names: " + $scope.newCasebase.columnHeads.toString() + ".";
+
+            // If the number of double quotes is even, and the number of parentheses is 0, then the comma is a proper comma
+            if (numQuotes % 2 == 0 && numCurlyBrace == 0 && numSquareBrace == 0) {
+              console.log("proper comma at " + j);
+              commas.push(j);
             }
           }
-          console.log($scope.newCasebase);
-        } else {
-          alert('Could not parse file as file may not be CSV. No valid delimiter found.');
         }
-    	}
-    });
+
+        // If the number of commas found is not equal to the number of column headers - 1, then there is an error
+        if (commas.length != columnHeaders.length - 1) {
+          $scope.displayWarning = "There is an error in the data on line " + (i+1) + ". Number of values does not match number of column headers.";
+          return;
+        }
+
+        // If there are no errors, then begin formatting the data
+        $scope.newCasebase.columnHeads = columnHeaders;
+
+        let obj = {};
+        function getTempString(data, i, commas, j) {
+          if (j === 0) {
+            return data[i].slice(0, commas[j]);
+          } else if (j === commas.length) {
+            return data[i].slice(commas[j - 1] + 1);
+          } else {
+            return data[i].slice(commas[j - 1] + 1, commas[j]);
+          }
+        }
+
+        columnHeaders.forEach((header, j) => {
+          const tempString = getTempString(data, i, commas, j);
+          // Check if tempString has a value, if not, set it to null
+          if (tempString.trim() === "") {
+            obj[header] = null;
+          }
+          else {
+            obj[header] = JSON.parse(tempString.trim());
+          }
+        });
+
+        formattedData.push(obj);
+        $scope.newCasebase.data = formattedData;
+      }
+    };
+    reader.onerror = function() {
+      $scope.displayWarning = "Unable to read " + file.fileName;
+    };
   };
 
-  // jQuery!
-  // $("#customFile").change(function() {
-  //   console.log('Here');
-  //   $scope.$apply(parseFile(this));
-  // });
 
   $scope.readFile = function(event) {
     var files = event.target.files;
     console.log(files);
-    // $scope.$apply(parseFile(files));
+    $scope.displayWarning = "";
     $scope.parseFile(files[0]);
   };
 
@@ -503,6 +561,8 @@ angular.module('cloodApp.config', [])
           $scope.newCasebase = {'data':[], 'columnHeads':[], 'preview':false}; // reset
           $scope.selected.hasCasebase = true;
           $scope.pop("success", null, "Data added.");
+          // Clear file input
+          document.getElementById("formControlFile1").value = "";
         })
         .catch(function(err) {
           console.log(err);
@@ -513,17 +573,9 @@ angular.module('cloodApp.config', [])
    // saves a new case to the casebase
    $scope.saveCase = function() {
     $scope.newCase.project = $scope.selected;
-    
-    // Convert csv input to array
     angular.forEach($scope.newCase.project.attributes, function(value, key) {
-      if ((value.type == "Array") && $scope.newCase.data[value.name] != null && $scope.newCase.data[value.name] != "") {
-        $scope.newCase.data[value.name] = $scope.newCase.data[value.name].split(",").map(item=>item.trim());
-        if (value.type == "Integer") {
-          $scope.newCase.data[value.name] = $scope.newCase.data[value.name].map(function (el) { return parseInt(el); });
-        } else if (value.type == "Float") {
-          $scope.newCase.data[value.name] = $scope.newCase.data[value.name].map(function (el) { return parseFloat(el); });
-        }
-      // console.log("newCase",$scope.newCase);
+      if(value.type == "Object" && $scope.newCase.data[value.name] != null && $scope.newCase.data[value.name] != ""){
+        $scope.newCase.data[value.name] = JSON.parse($scope.newCase.data[value.name]);
       }
     });
 
