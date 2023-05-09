@@ -343,7 +343,7 @@ def getQueryFunction(projId, caseAttrib, queryValue, type, weight, simMetric, op
   Determine query function to use base on attribute specification and retrieval features.
   Add new query functions in the if..else statement as elif.
   """
-  print("all info: ", projId, caseAttrib, queryValue, weight, simMetric, options)
+  # print("all info: ", projId, caseAttrib, queryValue, weight, simMetric, options)
   # minVal = kwargs.get('minVal', None) # optional parameter, minVal (name 'minVal' in function params when calling function e.g. minVal=5)
   if simMetric == "Equal":
     if type == "String" or type == "Text" or type == "Keyword" or type == "Integer":
