@@ -22,6 +22,7 @@ is_dev = True
 # use_vectoriser = "http://cloodcbr-other-use:4100/dev/vectorise"
 use_vectoriser = "http://cloodcbr-other-use:4000/dev/vectorise"
 sbert_vectoriser = "http://cloodcbr-other-semantic-sim/vectorise"
+sbert_similarity = "http://cloodcbr-other-semantic-sim/similarity"
 
 vectoriser_access_key = "SECRET_KEY" # Change this to the same key set in other/ontologoy-sim or other/semantic-sim
 

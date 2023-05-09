@@ -222,7 +222,6 @@ def new_project(event, context=None):
     proj['hasCasebase'] = False
 
     try:
-      print(proj)
       result = es.index(index=projects_db, body=proj, id=proj_id)
       result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "project": proj}
     except:
@@ -857,7 +856,11 @@ def cbr_reuse(event, context=None):
   End-point: Completes the Reuse step of the CBR cycle.
   """
   result = {}
-  # reuse logic here
+  params = json.loads(event['body'])  # parameters in request body
+  # get reuse type
+  reuse_type = params.get('reuse_type', 'isee-question-intent')
+  if reuse_type == 'isee-question-intent':
+    result = reuse.custom_reuse_isee(params)
 
   response = {
     "statusCode": 200,
@@ -1017,10 +1020,10 @@ def new_token(event, context):
     statusCode = 400
   else:
     token['token'] = utility.generateToken(token)
-    print("token ", token)
+    # print("token ", token)
     if "token" in token and token['token'] is not None:
       try:
-        print("token2 ", token)
+        # print("token2 ", token)
         result = es.index(index=tokens_db, body=token, id=token_id)
         result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "token": token}
       except:
