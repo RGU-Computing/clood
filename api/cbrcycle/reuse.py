@@ -20,6 +20,6 @@ def reuse_cases(data):
     reuse_module = importlib.import_module(module_name)
     # execute and return
     return reuse_module.reuse(data)
-  else:
-    # logic for any generic reuse operations according to the reuse type
+  else:  # generic reuse operation
+    # logic for any generic reuse operations below
     return None
