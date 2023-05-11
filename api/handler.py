@@ -857,10 +857,7 @@ def cbr_reuse(event, context=None):
   """
   result = {}
   params = json.loads(event['body'])  # parameters in request body
-  # get reuse type
-  reuse_type = params.get('reuse_type', 'isee-question-intent')
-  if reuse_type == 'isee-question-intent':
-    result = reuse.custom_reuse_isee(params)
+  result = reuse.reuse_cases(params)
 
   response = {
     "statusCode": 200,
