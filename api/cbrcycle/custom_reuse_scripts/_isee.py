@@ -11,8 +11,7 @@ def reuse(input=None):
 
     @param input should include the query case (dict) that needs a solution (query_case) and
     an ordered list of cases (list of dict) from which a solution is constructed (neighbours).
-    "acceptance_threshold" which determines cutoff for average similarity and "verbose" are 
-    optional parameters. 
+    "acceptance_threshold" which determines cutoff for average similarity is an optional parameter that is set to 0.8 by default. 
     """
     # print(input)
     if input is None:
@@ -22,7 +21,6 @@ def reuse(input=None):
     neighbours = input.get("neighbours")
     acceptance_threshold = input.get(
         "acceptance_threshold", 0.8)  # default as 0.8
-    verbose = input.get("verbose", True)
 
     if query_case is None or neighbours is None:
         return {}
@@ -34,20 +32,26 @@ def reuse(input=None):
         query_questions.append(obj)
     pairings, score, neighbours_considered, intent_overlap, case_questions = MATCH(
         query_questions, neighbours, 1, acceptance_threshold)
-    if verbose:
-        # get details of pairings
-        res = []
-        for k, v in pairings.items():
-            pair_obj = {}
-            query_side = get_from_id(k, query_questions)
-            if v is not None:
-                case_side = get_from_id(v, case_questions)
-                pair_obj['query'] = query_side
-                pair_obj['case'] = case_side
-                res.append(pair_obj)
-        pairings = res
-        adapted_solution = adapt_solution(pairings, neighbours)
-    return pairings, score, neighbours_considered, intent_overlap, adapted_solution
+    # get details of pairings
+    res = []
+    for k, v in pairings.items():
+        pair_obj = {}
+        query_side = get_from_id(k, query_questions)
+        if v is not None:
+            case_side = get_from_id(v, case_questions)
+            pair_obj['query'] = query_side
+            pair_obj['case'] = case_side
+            res.append(pair_obj)
+    pairings = res
+    adapted_solution = adapt_solution(pairings, neighbours)
+
+    return { 
+        "pairings": pairings, 
+        "score": score, 
+        "neighbours_considered": neighbours_considered, 
+        "intent_overlap": intent_overlap, 
+        "adapted_solution": adapted_solution 
+        }
 
 def getSimilaritySemanticSBERT(text1, text2):
     """
