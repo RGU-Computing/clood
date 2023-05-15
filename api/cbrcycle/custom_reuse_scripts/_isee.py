@@ -48,9 +48,9 @@ def reuse(input=None):
     return { 
         "pairings": pairings, 
         "score": score, 
-        "neighbours considered": neighbours_considered, 
-        "intent overlap": intent_overlap, 
-        "adapted solution": adapted_solution 
+        "neighbours_considered": neighbours_considered, 
+        "intent_overlap": intent_overlap, 
+        "adapted_solution": adapted_solution 
         }
 
 def getSimilaritySemanticSBERT(text1, text2):
