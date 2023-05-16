@@ -235,10 +235,10 @@ def adapt_solution(pairs, neighbours):
         # solution tree
         c_sol_tree = [t for t in c_solution['trees']
                       if t['id'] == c_solution['selectedTree']][0]
-        # all priority nodes
+        # all sequence nodes
         c_sol_subs = [c_sol_tree['nodes'][nkey] for nkey in list(
-            c_sol_tree['nodes'].keys()) if c_sol_tree['nodes'][nkey]['Concept'] == 'Priority']
-        # priority nodes where the first child is a User Question Node and the question text matches the case question
+            c_sol_tree['nodes'].keys()) if c_sol_tree['nodes'][nkey]['Concept'] == 'Sequence']
+        # sequence nodes where the first child is a User Question Node and the question text matches the case question
         for a_sub in c_sol_subs:
             first_child = a_sub['firstChild']['Id']
             first_child_type = [c_sol_tree['nodes'][nkey] for nkey in list(c_sol_tree['nodes'].keys()) if (nkey == first_child
