@@ -189,9 +189,7 @@ def generate_solution(c, sub_trees):
     c['trees'][0]['nodes'] = c_nodes
     # on the root, recursively create the references to top level children
     idx = 0
-    temp_child['Id'] = roots[idx]
-    temp_child['Next'] = generate_next(temp_child.copy(), roots, idx+1)
-    first_child = temp_child
+    first_child = generate_next(temp_child.copy(), roots, idx)
     c_root_node['firstChild'] = first_child
     c['trees'][0]['nodes'][c['trees'][0]['root']] = c_root_node
     # updated solution tree
