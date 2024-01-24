@@ -462,80 +462,86 @@ angular.module('cloodApp.config', [])
         $scope.displayWarning = "The column headers in the file do not match the attributes for this project. The following attributes are wrong: " + columnHeaders.filter(function (el) { return !projectAttributes.includes(el); }).join(", ") + ".";
         return;
       }
-
+      
       var formattedData = [];
       // Check each line of data for the correct number of columns
       for (var i = 0; i < data.length; i++) {
-        // Create an array of proper comma locations
-        var commas = [];
-        for (var j = 0; j < data[i].length; j++) {
-          if (data[i][j] == ",") {
-            //calculate the number of double quotes, and parentheses before the comma
-            let numQuotes = 0;
-            let numCurlyBrace = 0;
-            let numSquareBrace = 0;
+        if (data[i].length > 0) { // skip empty lines
+          // Create an array of proper comma locations
+          var commas = [];
+          for (var j = 0; j < data[i].length; j++) {
+            if (data[i][j] == ",") {
+              //calculate the number of double quotes, and parentheses before the comma
+              let numQuotes = 0;
+              let numCurlyBrace = 0;
+              let numSquareBrace = 0;
 
-            for (let k = 0; k < j; k++) {
-              switch (data[i][k]) {
-                case "\"":
-                  numQuotes++;
-                  break;
-                case "{":
-                  numCurlyBrace++;
-                  break;
-                case "}":
-                  numCurlyBrace--;
-                  break;
-                case "[":
-                  numSquareBrace++;
-                  break;
-                case "]":
-                  numSquareBrace--;
-                  break;
+              for (let k = 0; k < j; k++) {
+                switch (data[i][k]) {
+                  case "\"":
+                    numQuotes++;
+                    break;
+                  case "{":
+                    numCurlyBrace++;
+                    break;
+                  case "}":
+                    numCurlyBrace--;
+                    break;
+                  case "[":
+                    numSquareBrace++;
+                    break;
+                  case "]":
+                    numSquareBrace--;
+                    break;
+                }
+              }
+
+              // If the number of double quotes is even, and the number of parentheses is 0, then the comma is a proper comma
+              if (numQuotes % 2 == 0 && numCurlyBrace == 0 && numSquareBrace == 0) {
+                // console.log("proper comma at " + j);
+                commas.push(j);
               }
             }
+          }
 
-            // If the number of double quotes is even, and the number of parentheses is 0, then the comma is a proper comma
-            if (numQuotes % 2 == 0 && numCurlyBrace == 0 && numSquareBrace == 0) {
-              console.log("proper comma at " + j);
-              commas.push(j);
+          // If the number of commas found is not equal to the number of column headers - 1, then there is an error
+          if (commas.length != columnHeaders.length - 1) {
+            $scope.displayWarning = "There is an error in the data on line " + (i+1) + ". Number of values does not match number of column headers.";
+            return;
+          }
+
+          // If there are no errors, then begin formatting the data
+          $scope.newCasebase.columnHeads = columnHeaders;
+
+          let obj = {};
+          function getTempString(data, i, commas, j) {
+            if (j === 0) {
+              return data[i].slice(0, commas[j]);
+            } else if (j === commas.length) {
+              return data[i].slice(commas[j - 1] + 1);
+            } else {
+              return data[i].slice(commas[j - 1] + 1, commas[j]);
             }
           }
+
+          columnHeaders.forEach((header, j) => {
+            const tempString = getTempString(data, i, commas, j);
+            // Check if tempString has a value, if not, set it to null
+            if (tempString.trim() === "") {
+              obj[header] = null;
+            }
+            else {
+              try {
+                obj[header] = JSON.parse(tempString.trim());
+              } catch (e) { // handle: "SyntaxError: Unexpected token '{first letter}', "{value}" is not valid JSON"
+                obj[header] = tempString.trim(); // do not parse value
+              }
+            }
+          });
+
+          formattedData.push(obj);
+          $scope.newCasebase.data = formattedData;
         }
-
-        // If the number of commas found is not equal to the number of column headers - 1, then there is an error
-        if (commas.length != columnHeaders.length - 1) {
-          $scope.displayWarning = "There is an error in the data on line " + (i+1) + ". Number of values does not match number of column headers.";
-          return;
-        }
-
-        // If there are no errors, then begin formatting the data
-        $scope.newCasebase.columnHeads = columnHeaders;
-
-        let obj = {};
-        function getTempString(data, i, commas, j) {
-          if (j === 0) {
-            return data[i].slice(0, commas[j]);
-          } else if (j === commas.length) {
-            return data[i].slice(commas[j - 1] + 1);
-          } else {
-            return data[i].slice(commas[j - 1] + 1, commas[j]);
-          }
-        }
-
-        columnHeaders.forEach((header, j) => {
-          const tempString = getTempString(data, i, commas, j);
-          // Check if tempString has a value, if not, set it to null
-          if (tempString.trim() === "") {
-            obj[header] = null;
-          }
-          else {
-            obj[header] = JSON.parse(tempString.trim());
-          }
-        });
-
-        formattedData.push(obj);
-        $scope.newCasebase.data = formattedData;
       }
     };
     reader.onerror = function() {
