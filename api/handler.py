@@ -928,6 +928,9 @@ def cbr_retain(event, context=None):
                                                                             value=new_case['hash__']):
       result = exceptions.caseDuplicateException()
       statusCode = 400
+    elif not retain.checkArrayWithCosine(proj['attributes'], new_case):
+      result = exceptions.vectorDataTypeOrDimensionException()
+      statusCode = 400
     else:
       if case_id is None:
         result = es.index(index=proj['casebase'], body=new_case, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
