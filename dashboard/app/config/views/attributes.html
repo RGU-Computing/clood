@@ -71,7 +71,7 @@
         <tbody id="attributesTableBody">
           <tr ng-repeat="attrib in selected.attributes">
             <td>{{ attrib.name }}</td>
-            <td>{{ attrib.type }}</td>
+            <td>{{ attrib.type }} <span ng-show="attrib.similarity == 'Cosine'">({{ attrib.options.dimension }})</span></td>
             <td>{{ attrib.similarity }}</td>
             <td>
                 <div class="form-group">
@@ -84,6 +84,7 @@
               <button ng-show="attrib.similarity == 'Table'" ng-click="configTableAttribute($index, attrib)" class="btn btn-default" title="Configure"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
               <button ng-show="attrib.similarity == 'EnumDistance'" ng-click="configEnumAttribute($index, attrib)" class="btn btn-default" title="Configure"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
               <button ng-show="attrib.similarity == 'McSherry Less' || attrib.similarity == 'McSherry More'" ng-click="configMcSherryAttribute($index, attrib)" class="btn btn-default" title="Configure"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
+              <button ng-show="attrib.similarity == 'Cosine'" ng-click="configVectorAttribute($index, attrib)" class="btn btn-default" title="Configure" ng-disabled="selected.hasCasebase"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
               <button ng-show="attrib.similarity == 'INRECA Less' || attrib.similarity == 'INRECA More'" ng-click="configInrecaAttribute($index, attrib)" class="btn btn-default" title="Configure"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
               <button ng-show="attrib.type == 'Ontology Concept'" ng-click="configOntologyAttribute($index, attrib)" class="btn btn-default" title="Configure"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>
               <button ng-show="attrib.similarity == 'Nearest Number' || attrib.similarity == 'Nearest Date' || attrib.similarity == 'Nearest Location'" ng-click="configDecayFunctionAttribute($index, attrib)" class="btn btn-default" title="Configure"><span class="glyphicon glyphicon-wrench" aria-hidden="true"></span></button>

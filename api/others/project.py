@@ -12,7 +12,7 @@ def indexMapping(es, project):
         mapping['mappings']['properties'] = {}
         for attrib in project['attributes']: # use the project's attributes' specification to determine mapping
             mapping['mappings']['properties'].update(
-                {attrib['name']: getMappingFrag(attrib['type'], attrib['similarity'])})
+                {attrib['name']: getMappingFrag(attrib['type'], attrib['similarity'], attrib.get('options'))})
         mapping['mappings']['properties'].update(
             {'hash__': {'type': 'keyword'}})  # keeps hash of entry for easy discovery of duplicates
         # print(mapping)
@@ -65,7 +65,7 @@ def getTokenMapping():
 
     return tmap
 
-def getMappingFrag(attrType, simMetric):
+def getMappingFrag(attrType, simMetric, optn):
     """
     Generate mapping fragment for indexing a variety of document fields using Elasticsearch Reference v7.6.
     """
@@ -88,6 +88,9 @@ def getMappingFrag(attrType, simMetric):
                     }
             }
         }
+    elif simMetric == "Cosine":
+        res['type'] = "knn_vector"
+        res['dimension'] = optn.get('dimension', 512) if optn is not None else 512  # get the supplied dimension. use 512 if none is given
     elif simMetric == "Jaccard":
         res['type'] = "keyword"
     elif attrType == "String" and (simMetric == "Equal" or simMetric == "EqualIgnoreCase"):

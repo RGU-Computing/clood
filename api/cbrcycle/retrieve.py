@@ -48,6 +48,7 @@ def getVectorSemanticSBERT(text):
   url = cfg.sbert_vectoriser
   res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
   res_dictionary = res.json()
+  print(res_dictionary['vectors'])
   return res_dictionary['vectors']
 
 def getVectorSemanticSBERTArray(text):
@@ -404,6 +405,8 @@ def getQueryFunction(projId, caseAttrib, queryValue, type, weight, simMetric, op
     return Jaccard(caseAttrib, queryValue, weight)
   elif simMetric == "Array SBERT":
     return ArraySBERT(caseAttrib, getVectorSemanticSBERTArray(queryValue), weight)
+  elif simMetric == "Cosine":
+    return ArrayCosine(caseAttrib, queryValue, weight)
   else:
     return MostSimilar(caseAttrib, queryValue, weight)
 
@@ -472,6 +475,36 @@ def ArraySBERT(caseAttrib, queryValue, weight):
 
   except ValueError:
     print("Error")
+
+
+def ArrayCosine(caseAttrib, queryValue, weight):
+  """
+  Returns the cosine similarity of arrays with the assumptions that query and case attribute values are numeric arrays.
+  """
+  try:
+    # build query string
+    queryFnc = {
+      "script_score": {
+        "query": {
+          "exists": {
+            "field": caseAttrib
+          }
+        },
+        "script": {
+          "params": {
+            "attrib": caseAttrib,
+            "queryValue": queryValue,
+            "weight": weight
+          },
+          "source": "(cosineSimilarity(params.queryValue, doc[params.attrib])+1)/2 * params.weight"
+        },
+        "_name": caseAttrib
+      }
+    }
+    return queryFnc
+  except:
+    print("Cosine(): make sure the dimensions of arrays/vectors match that specified in the attribute configuration")
+
 
 def McSherryLessIsBetter(caseAttrib, queryValue, maxValue, minValue, weight):
   """

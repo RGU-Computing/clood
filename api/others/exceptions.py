@@ -102,6 +102,14 @@ def caseDuplicateException():
 
   return body
 
+def vectorDataTypeOrDimensionException():
+  body = {}
+  body['type'] = "VectorDataTypeOrDimensionException"
+  body['message'] = "Unexpected data type or dimension for vectors"
+  body['detail'] = "All entries should be numeric and length should be equal to that configured for the attribute. Note that you cannot change the vector dimension after the casebase is created."
+
+  return body
+
 def authException():
   body = {}
   body['type'] = "AuthException"

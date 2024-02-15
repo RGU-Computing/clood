@@ -61,7 +61,7 @@ def createOrUpdateGlobalConfig(es, config_db="config", globalConfig=None):
                                      'filterOptions': ['None', '=', '>', '>=', '<', '<=']
                                      })
   config['attributeOptions'].append({'type': 'Array',
-                                     'similarityTypes': ['Jaccard', 'Array SBERT', 'Query Intersection', 'None'],
+                                     'similarityTypes': ['Jaccard', 'Array SBERT', 'Query Intersection', 'Cosine', 'None'],
                                      'reuseStrategy': ['NN value'],
                                      'filterOptions': ['None']
                                      })
