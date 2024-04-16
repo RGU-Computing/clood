@@ -23,6 +23,10 @@ is_dev = True
 use_vectoriser = "http://cloodcbr-other-use:4000/dev/vectorise"
 sbert_vectoriser = "http://cloodcbr-other-semantic-sim/vectorise"
 sbert_similarity = "http://cloodcbr-other-semantic-sim/similarity"
+angle_vectoriser_matching = "http://cloodcbr-other-angle-semantic-sim/vectorise/matching"
+angle_vectoriser_retrieval = "http://cloodcbr-other-angle-semantic-sim/vectorise/retrieval"
+angle_similarity_matching = "http://cloodcbr-other-angle-semantic-sim/similarity/matching"
+angle_similarity_retrieval = "http://cloodcbr-other-angle-semantic-sim/similarity/retrieval"
 
 vectoriser_access_key = "SECRET_KEY" # Change this to the same key set in other/ontologoy-sim or other/semantic-sim
 

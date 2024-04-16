@@ -486,6 +486,16 @@ def update_case(event, context=None):
                   oldCase[key] = {'name':'', 'rep': ''}
                 oldCase[key]['name'] = value
                 oldCase[key]['rep'] = retrieve.getVectorSemanticSBERT(value)
+              if attr['similarity'] == "Semantic AnglE Matching":
+                if key not in oldCase or oldCase[key] is None or oldCase[key]['name'] is None:
+                  oldCase[key] = {'name':'', 'rep': ''}
+                oldCase[key]['name'] = value
+                oldCase[key]['rep'] = retrieve.getVectorSemanticAngleMatching(value)
+              if attr['similarity'] == "Semantic AnglE Retrieval":
+                if key not in oldCase or oldCase[key] is None or oldCase[key]['name'] is None:
+                  oldCase[key] = {'name':'', 'rep': ''}
+                oldCase[key]['name'] = value
+                oldCase[key]['rep'] = retrieve.getVectorSemanticAngleRetrieval(value)
               else:
                 oldCase[key] = value
         oldCase['hash__'] = str(hashlib.md5(json.dumps(OrderedDict(sorted(oldCase.items()))).encode('utf-8')).digest()) # Create new hash
@@ -801,7 +811,7 @@ def cbr_retrieve(event, context=None):
   for hit in res['hits']['hits']:
     entry = hit['_source']
     entry.pop('hash__', None)  # remove hash field and value
-    entry = retrieve.remove_vector_fields(proj_attributes, entry)  # remove vectors from Semantic USE and Semantic SBERT fields
+    entry = retrieve.remove_vector_fields(proj_attributes, entry)  # remove vectors from Semantic USE, Semantic SBERT and AnglE fields
     if counter == 0:
       result['recommended'] = copy.deepcopy(entry)   # Make recommended case the first case in the result
     entry['score__'] = hit['_score']  # removed during an update operation

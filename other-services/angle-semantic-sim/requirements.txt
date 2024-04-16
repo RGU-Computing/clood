@@ -1,0 +1,8 @@
+fastapi~=0.85.1
+pydantic
+uvicorn
+angle-emb
+torch
+transformers
+scikit-learn
+numpy

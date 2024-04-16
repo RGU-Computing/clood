@@ -29,7 +29,7 @@ def createOrUpdateGlobalConfig(es, config_db="config", globalConfig=None):
   config = {}
   config['attributeOptions'] = []
   config['attributeOptions'].append({'type': 'String',
-                                     'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'Semantic SBERT', 'None'], 
+                                     'similarityTypes': ['Equal', 'EqualIgnoreCase', 'BM25', 'Semantic USE', 'Semantic SBERT', 'Semantic AnglE Matching', 'Semantic AnglE Retrieval', 'None'], 
                                      'reuseStrategy': ['NN value'],
                                      'filterOptions': ['None', '=']
                                      })

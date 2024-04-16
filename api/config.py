@@ -20,6 +20,11 @@ use_vectoriser = env.get('CLOOD_USE_VECTORISER_URL', "http://cloodcbr-other-use:
 ontology_sim = env.get('CLOOD_ONTOLOGY_SIM_URL', "http://cloodcbr-other-ontology-sim:3000/dev")
 sbert_vectoriser = env.get('CLOOD_SBERT_VECTORISER_URL', None)
 sbert_similarity = env.get('CLOOD_SBERT_SIM_URL', None)
+angle_vectoriser_matching = env.get('CLOOD_ANGLE_VECTORISER_MATCHING_URL', None)
+angle_vectoriser_retrieval = env.get('CLOOD_ANGLE_VECTORISER_RETRIEVAL_URL', None)
+angle_similarity_matching = env.get('CLOOD_ANGLE_SIM_MATCHING_URL', None)
+angle_similarity_retrieval = env.get('CLOOD_ANGLE_SIM_RETRIEVAL_URL', None)
+
 vectoriser_access_key = env.get('CLOOD_SBERT_VECTORISER_ACCESS_KEY', None)
 
 DEFAULT_USERNAME = env['CLOOD_ADMIN_USERNAME']
