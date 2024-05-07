@@ -37,6 +37,7 @@ Case-based Reasoning (CBR) applications have been widely deployed across various
 ### What's new in Clood CBR Version 2
 #### Core Updates
 - Semantic SBERT
+- Angle Embeddings
 - Explanation API - Extracts the field names and local similarity values from explanations.
 - Minor normalisation fixes (e.g. mcsherry, inerca)
 - Array datatype functionality
@@ -62,6 +63,7 @@ Case-based Reasoning (CBR) applications have been widely deployed across various
 |                 | BM25              | TF-IDF-like similarity based on Okapi BM25 ranking function                                        |
 |                 | Semantic USE      | Similarity measure based on word embedding vector representations using [Universal Sentence Encoder](https://github.com/tensorflow/tfjs-models/tree/master/universal-sentence-encoder) _(optional)_ |
 |                 | Semantic SBERT    | Similarity measure based on word embedding vector representations using [SBERT](https://www.sbert.net/) _(optional)_ |
+|                 | Angle             | Similarity measure based on matching / retrieval word embedding vector representations using [AnglE](https://github.com/SeanLee97/AnglE) _(optional)_ |
 |                 | Array             | For array based string representation e.g. ["a", "b", "c"]                                         |
 |                 | Array SBERT       | For array based string representation with SBERT _(optional)_                                                    |
 | **Numeric**     | Interval          | Similarity between numbers in an interval                                                          |
@@ -92,7 +94,7 @@ Once cloned this repo you just have to run the following commands
 ```
 docker compose --env-file .env.dev up --build
 ```
-_Does not include support for Semantic USE, Semantic SBERT and Ontology similarities._
+_Does not include support for Semantic USE, Semantic SBERT, AnglE and Ontology similarities._
 
 #### Full Stack
 ```
@@ -110,8 +112,9 @@ Development Ports
 - CloodCBR Dashboard - [http://localhost:8000/](http://localhost:8000/)
 - CloodCBR API - [http://localhost:3000/](http://localhost:3000/)
 - Clood USE Vectoriser API - [http://localhost:4100/](http://localhost:4100/)
-- Clood SBERT Vectoriser API - [http://localhost:4300/](http://localhost:4300/)
 - Clood Onotlogy Similarity API - [http://localhost:4200/](http://localhost:4200/)
+- Clood SBERT Vectoriser API - [http://localhost:4300/](http://localhost:4300/)
+- Clood Angle Vectoriser API - [http://localhost:4400/](http://localhost:4400/)
 - OpenSearch Dashboard - [http://localhost:5601/](http://localhost:5601/)
 - OpenSearch API - [http://localhost:9200/](http://localhost:9200/)
 

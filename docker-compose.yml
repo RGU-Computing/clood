@@ -13,6 +13,10 @@ services:
       - CLOOD_USE_VECTORISER_URL=${CLOOD_USE_VECTORISER_URL}
       - CLOOD_SBERT_VECTORISER_URL=${CLOOD_SBERT_VECTORISER_URL}
       - CLOOD_SBERT_SIM_URL=${CLOOD_SBERT_SIM_URL}
+      - CLOOD_ANGLE_VECTORISER_MATCHING_URL=${CLOOD_ANGLE_VECTORISER_MATCHING_URL}
+      - CLOOD_ANGLE_VECTORISER_RETRIEVAL_URL=${CLOOD_ANGLE_VECTORISER_RETRIEVAL_URL}
+      - CLOOD_ANGLE_SIM_MATCHING_URL=${CLOOD_ANGLE_SIM_MATCHING_URL}
+      - CLOOD_ANGLE_SIM_RETRIEVAL_URL=${CLOOD_ANGLE_SIM_RETRIEVAL_URL}
       - CLOOD_SBERT_VECTORISER_ACCESS_KEY=${CLOOD_SBERT_VECTORISER_ACCESS_KEY}
       - CLOOD_AWS_HOST=${CLOOD_AWS_HOST}
       - CLOOD_AWS_REGION=${CLOOD_AWS_REGION}
@@ -77,6 +81,22 @@ services:
       - 4300:80
     volumes:
       - ./other-services/semantic-sim:/app
+    restart: on-failure
+    profiles:
+      - other
+  cloodcbr-other-angle-semantic-sim:
+    container_name: cloodcbr-other-angle-semantic-sim
+    build: './other-services/angle-semantic-sim'
+    image: cloodcbr/other-angle-semantic-sim:latest
+    working_dir: /app
+    environment:
+      - CLOOD_SEMANTIC_SIM_ACCESS_KEY=${CLOOD_SEMANTIC_SIM_ACCESS_KEY}
+    networks:
+      - cloodcbr-net
+    ports:
+      - 4400:80
+    volumes:
+      - ./other-services/angle-semantic-sim:/app
     restart: on-failure
     profiles:
       - other

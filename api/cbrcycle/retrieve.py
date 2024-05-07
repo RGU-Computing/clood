@@ -48,7 +48,6 @@ def getVectorSemanticSBERT(text):
   url = cfg.sbert_vectoriser
   res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
   res_dictionary = res.json()
-  print(res_dictionary['vectors'])
   return res_dictionary['vectors']
 
 def getVectorSemanticSBERTArray(text):
@@ -61,6 +60,23 @@ def getVectorSemanticSBERTArray(text):
 
   return repArray
 
+def getVectorSemanticAngleMatching(text):
+  """
+  Calls an external service to get a AnglE - matching vector representation of a piece of text.
+  """
+  url = cfg.angle_vectoriser_matching
+  res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
+  res_dictionary = res.json()
+  return res_dictionary['vectors']
+  
+def getVectorSemanticAngleRetrieval(text):
+  """
+  Calls an external service to get a AnglE - retrieval vector representation of a piece of text.
+  """
+  url = cfg.angle_vectoriser_retrieval
+  res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
+  res_dictionary = res.json()
+  return res_dictionary['vectors']
 
 def checkOntoSimilarity(ontology_id):
   """
@@ -149,8 +165,21 @@ def add_vector_fields(attributes, data):
               temp = {}
               temp['rep'] = element
               newVal["rep"].append(temp)
-
             data[attrib['name']] = newVal
+    elif attrib['similarity'] == 'Semantic AnglE Matching':
+      value = data.get(attrib['name'])
+      if value is not None:
+        newVal = {}
+        newVal['name'] = value
+        newVal['rep'] = getVectorSemanticAngleMatching(value)
+        data[attrib['name']] = newVal
+    elif attrib['similarity'] == 'Semantic AnglE Retrieval':
+      value = data.get(attrib['name'])
+      if value is not None:
+        newVal = {}
+        newVal['name'] = value
+        newVal['rep'] = getVectorSemanticAngleRetrieval(value)
+        data[attrib['name']] = newVal
   return data
 
 
@@ -160,7 +189,7 @@ def remove_vector_fields(attributes, data):
   Transforms "x: {name: val, rep: vector(val)}" to "x: val"
   """
   for attrib in attributes:
-    if attrib['similarity'] == 'Semantic USE' or attrib['similarity'] == 'Semantic SBERT' or attrib['similarity'] == 'Array SBERT':
+    if attrib['similarity'] == 'Semantic USE' or attrib['similarity'] == 'Semantic SBERT' or attrib['similarity'] == 'Array SBERT' or attrib['similarity'] == "Semantic AnglE Matching" or attrib['similarity'] == "Semantic AnglE Retrieval":
       value = data.get(attrib['name'])
       if value is not None:
         data[attrib['name']] = value['name']
@@ -278,7 +307,7 @@ def get_feedback_details(queryFeatures, pId, cId, es):
   for key, value in values.items():
     for idx, vec in enumerate(value['vec']):
       maxsim = 0
-      for idx2, vec2 in enumerate(value['queryRep']):
+      for idx2, vec2 in enumerate(value['queryRep']): 
         sim = cosine_similarity(vec['rep'], vec2)
         if sim > maxsim:
           maxsim = sim
@@ -376,7 +405,11 @@ def getQueryFunction(projId, caseAttrib, queryValue, type, weight, simMetric, op
   elif simMetric == "Semantic USE" and cfg.use_vectoriser is not None:
     return USE(caseAttrib, getVector(queryValue), weight)
   elif simMetric == "Semantic SBERT" and cfg.sbert_vectoriser is not None:
-    return Semantic_SBERT(caseAttrib, getVectorSemanticSBERT(queryValue), weight)
+    return SemanticSim(caseAttrib, getVectorSemanticSBERT(queryValue), weight)
+  elif simMetric == "Semantic AnglE Matching" and cfg.angle_vectoriser_matching is not None:
+    return SemanticSim(caseAttrib, getVectorSemanticAngleMatching(queryValue), weight)
+  elif simMetric == "Semantic AnglE Retrieval" and cfg.angle_vectoriser_retrieval is not None:
+    return SemanticSim(caseAttrib, getVectorSemanticAngleRetrieval(queryValue), weight)
   elif simMetric == "Nearest Date":
     scale = options.get('dscale', '365d') if options is not None else '365d'
     decay = options.get('ddecay', 0.999) if options is not None else 0.999
@@ -896,7 +929,7 @@ def USE(caseAttrib, queryValue, weight):
   }
   return queryFnc
 
-def Semantic_SBERT(caseAttrib, queryValue, weight):
+def SemanticSim(caseAttrib, queryValue, weight):
   """
   Returns the similarity of two numbers using their vector representation.
   """

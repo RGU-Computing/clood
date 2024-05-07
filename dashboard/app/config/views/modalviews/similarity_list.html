@@ -141,6 +141,25 @@
         <br/><i>where a is the query value and b is the case value</i></p>
     </p>
 </div>
+
+<div class="modal-body" id="modal-body">
+    <p class="lead">AnglE matching / retrieval</p>
+    <p><b>Suitable data types: </b>String</p>
+    <p><b>Description: </b>
+        AnglE creates a vector representation from the string data of size (768x768). 
+        The cosine similarity between these vector representations is then used to determine the similarity between strings.
+        A cosine similarity is calculated by dividing the dot product of the two vectors by the product of their magnitudes.
+        <br/>
+        <img src="config/views/modalviews/images/cosinesimilarity.svg"/>
+        <br/>
+        After the cosine similarity is calculated, the similarity score is determined by adding 1 to the cosine similarity and then dividing by 2. 
+        This is to renormalise the cosine similarity to a value between 0 and 1.
+    </p>
+    <p><b>Formula: </b><code>"(cosinesimilarity(a,b)+1)/2"</code>
+        <br/><i>where a is the query value and b is the case value</i></p>
+    </p>
+</div>
+
 <div class="modal-body" id="modal-body">
     <p class="lead">Table</p>
     <p><b>Suitable data types: </b>Categorical</p>
