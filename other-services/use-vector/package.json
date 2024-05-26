@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "serverless-offline": "^8.5.0",
+    "serverless-offline": "^13.6.0",
     "serverless-plugin-include-dependencies": "^4.1.0"
   },
   "dependencies": {

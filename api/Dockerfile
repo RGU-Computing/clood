@@ -3,12 +3,12 @@ FROM python:3.7-buster
 WORKDIR /app
 
 RUN \
-  echo "deb https://deb.nodesource.com/node_16.x buster main" > /etc/apt/sources.list.d/nodesource.list && \
+  echo "deb https://deb.nodesource.com/node_18.x buster main" > /etc/apt/sources.list.d/nodesource.list && \
   wget -qO- https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add - && \
   apt-get update && \
   apt-get install -yqq nodejs yarn && \
   pip install -U pip && pip install pipenv && \
-  npm i -g npm@^8
+  npm i -g npm
 
 RUN pip install --no-cache --upgrade pip setuptools
 
@@ -18,7 +18,7 @@ COPY . /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 RUN npm ci
-RUN npm install serverless
+RUN npm install serverless@3.11.0 --legacy-peer-deps
 RUN npm i -g nodemon
 RUN npm install serverless-python-requirements
 
