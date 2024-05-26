@@ -10,7 +10,7 @@ RUN \
   pip install -U pip && pip install pipenv && \
   npm i -g npm@^8
 
-RUN pip install --no-cache --upgrade pip setuptools
+RUN pip install --no-cache --upgrade --default-timeout=100 pip setuptools
 
 # Serverless part
 COPY . /app
@@ -18,7 +18,7 @@ COPY . /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 RUN npm install
-RUN npm install serverless
+RUN npm install serverless@3.11.0 --legacy-peer-deps
 RUN npm i -g nodemon
 RUN npm install serverless-python-requirements
 
