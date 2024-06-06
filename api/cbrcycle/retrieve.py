@@ -205,7 +205,7 @@ def add_lowercase_fields(attributes, data):
     if attrib['similarity'] == 'EqualIgnoreCase':
       value = data.get(attrib['name'])
       if value is not None:
-        data[attrib['name']] = value.lower()
+        data[attrib['name']] = str(value).lower()
   return data
 
 
@@ -381,7 +381,7 @@ def getQueryFunction(projId, caseAttrib, queryValue, type, weight, simMetric, op
     elif type == "Float":
       return ExactFloat(caseAttrib, queryValue, weight)
   elif simMetric == "EqualIgnoreCase":
-    queryValue = queryValue.lower()
+    queryValue = str(queryValue).lower()
     return Exact(caseAttrib, queryValue, weight)
   elif simMetric == "McSherry More":  # does not use the query value
     maxValue = options.get('max', 100.0) if options is not None else 100.0  # use 100 if no supplied max
