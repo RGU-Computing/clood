@@ -36,7 +36,7 @@ def getVector(text):
   Calls an external service to get the 512 dimensional vector representation of a piece of text.
   """
   url = cfg.use_vectoriser
-  res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
+  res = requests.post(url, json={'text': str(text), 'access_key': cfg.vectoriser_access_key})
   res_dictionary = res.json()
   return res_dictionary['vectors']
 
@@ -46,7 +46,7 @@ def getVectorSemanticSBERT(text):
   Calls an external service to get the 768 dimensional vector representation of a piece of text.
   """
   url = cfg.sbert_vectoriser
-  res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
+  res = requests.post(url, json={'text': str(text), 'access_key': cfg.vectoriser_access_key})
   res_dictionary = res.json()
   return res_dictionary['vectors']
 
@@ -56,7 +56,7 @@ def getVectorSemanticSBERTArray(text):
   """
   repArray = []
   for element in text:
-    repArray.append(getVectorSemanticSBERT(element))
+    repArray.append(getVectorSemanticSBERT(str(element)))
 
   return repArray
 
@@ -65,7 +65,7 @@ def getVectorSemanticAngleMatching(text):
   Calls an external service to get a AnglE - matching vector representation of a piece of text.
   """
   url = cfg.angle_vectoriser_matching
-  res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
+  res = requests.post(url, json={'text': str(text), 'access_key': cfg.vectoriser_access_key})
   res_dictionary = res.json()
   return res_dictionary['vectors']
   
@@ -74,7 +74,7 @@ def getVectorSemanticAngleRetrieval(text):
   Calls an external service to get a AnglE - retrieval vector representation of a piece of text.
   """
   url = cfg.angle_vectoriser_retrieval
-  res = requests.post(url, json={'text': text, 'access_key': cfg.vectoriser_access_key})
+  res = requests.post(url, json={'text': str(text), 'access_key': cfg.vectoriser_access_key})
   res_dictionary = res.json()
   return res_dictionary['vectors']
 
