@@ -28,6 +28,7 @@ services:
     volumes:
       - ./api:/app
       - clood-nodemodules:/app/node_modules
+      - clood-logs:/app/logs
     ports: ['3000:3000', '3002:3002']
 
   clood-dashboard:
@@ -145,6 +146,7 @@ volumes:
   clood-opensearch-data: {}
   clood-nodemodules: {}
   clood-ontology-nodemodules: {}
+  clood-logs: {}
 
 networks:
   cloodcbr-net:
