@@ -19,10 +19,10 @@ from collections import OrderedDict
 import numpy as np
 import statistics
 import config as cfg
+
 # imports for logger configuration
-import logging
 import traceback
-from logger_config import setup_logging
+from logger_config import logger
 
 # Local: utility
 sys.path.append(os.path.abspath("others"))
@@ -36,10 +36,6 @@ import retrieve
 import reuse
 import revise
 import retain
-
-# Set up logging
-setup_logging()
-logger = logging.getLogger(__name__)
 
 # For example, my-test-domain.us-east-1.es.amazonaws.com
 host = cfg.aws['host']

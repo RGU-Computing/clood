@@ -52,3 +52,8 @@ def setup_logging():
     }
 
     logging.config.dictConfig(logging_config)
+
+
+# Set up logging
+setup_logging()
+logger = logging.getLogger(__name__)
