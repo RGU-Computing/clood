@@ -20,6 +20,10 @@ import numpy as np
 import statistics
 import config as cfg
 
+# imports for logger configuration
+import traceback
+from logger_config import logger
+
 # Local: utility
 sys.path.append(os.path.abspath("others"))
 import project
@@ -32,7 +36,6 @@ import retrieve
 import reuse
 import revise
 import retain
-
 
 # For example, my-test-domain.us-east-1.es.amazonaws.com
 host = cfg.aws['host']
@@ -59,8 +62,9 @@ def getESConn():
   Get connection to Amazon Elasticsearch service (the casebase).
   Can be modified to point to any other Elasticsearch cluster.
   """
-
+  logger.info("Establishing connection to Elasticsearch")
   if(is_dev):
+    logger.debug("Running in development mode")
     return OpenSearch(
         hosts = [{'host': 'clood-opensearch', 'port': 9200}],
         http_compress = True, # enables gzip compression for request bodies
@@ -71,6 +75,7 @@ def getESConn():
         ssl_show_warn = False,
     )
 
+  logger.debug("Running in production mode")
   esconn = OpenSearch(
     hosts=[{'host': host, 'port': 443}],
     http_auth=AWS4Auth(access_key, secret_key, region, 'es'),
@@ -88,6 +93,7 @@ def auth(event, context=None):
   """
   End-point: Check if the user is authenticated.
   """
+  logger.info("Authenticating user")
   token = event.get('authorizationToken', None)
 
   response = "Allow" if utility.verifyToken(token) else "Deny"
@@ -105,12 +111,14 @@ def auth(event, context=None):
       ]
     }
   }
+  logger.debug(f"Auth response: {authResponse}")
   return authResponse
 
 def authenticate(event, context=None):
   """
   End-point: Authenticates the user.
   """
+  logger.info("Authenticating user credentials")
   body = json.loads(event['body'])
   username = body['username']
   password = body['password']
@@ -122,12 +130,14 @@ def authenticate(event, context=None):
       "authenticated": True
     }
     statusCode = 200
+    logger.info(f"User {username} authenticated successfully")
   else:
     body = {
       "authenticated": False
     }
     #body = exceptions.authException()
     statusCode = 200
+    logger.warning(f"Authentication failed for user {username}")
 
   response = {
     "statusCode": statusCode,
@@ -140,6 +150,7 @@ def all_projects(event, context=None):
   """
   End-point: Retrieves all projects. Each project is separate CBR application.
   """
+  logger.info("Retrieving all projects")
   result = []
   es = getESConn()
   if es.indices.exists(index=projects_db):   # retrieve if ES index does exist
@@ -156,6 +167,7 @@ def all_projects(event, context=None):
   else:
     result = exceptions.projectIndexException()
     statusCode = 404
+    logger.warning("Projects index does not exist")
 
   response = {
     "statusCode": statusCode,
@@ -170,6 +182,7 @@ def get_project(event, context=None):
   End-point: Retrieves a specified project (details of a CBR application).
   """
   projectId = event['pathParameters']['id']
+  logger.info(f"Retrieving project with ID: {projectId}")
   statusCode = 200
   es = getESConn()
 
@@ -178,10 +191,12 @@ def get_project(event, context=None):
   else:
     result = exceptions.projectIndexException()
     statusCode = 404
+    logger.warning(f"Project index {projects_db} does not exist")
   
   if not result:
     result = exceptions.projectGetException()
     statusCode = 404
+    logger.warning(f"Project with ID {projectId} not found")
 
   response = {
     "statusCode": statusCode,
@@ -199,6 +214,7 @@ def new_project(event, context=None):
   statusCode = 201
   proj_id = uuid.uuid4().hex
   proj['casebase'] = proj_id + '_casebase'
+  logger.info(f"Creating new project with ID: {proj_id}")
 
   es = getESConn()
   
@@ -209,10 +225,12 @@ def new_project(event, context=None):
   if 'casebase' not in proj or "" == proj['casebase'] or "" == proj['name']:
     result = exceptions.projectNameException()
     statusCode = 400
+    logger.warning("Project creation failed: invalid project name or casebase")
   elif utility.indexHasDocWithFieldVal(es, index=projects_db, field='casebase',
-                                       value=proj['casebase']):
+                                      value=proj['casebase']):
     result = exceptions.projectDuplicateException()
     statusCode = 400
+    logger.warning("Project creation failed: duplicate project")
   else:
     if 'attributes' not in proj:
       proj['attributes'] = []
@@ -224,9 +242,11 @@ def new_project(event, context=None):
     try:
       result = es.index(index=projects_db, body=proj, id=proj_id)
       result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "project": proj}
-    except:
+      logger.info(f"Project {proj_id} created successfully")
+    except Exception as e:
       result = exceptions.projectCreateException()
       statusCode = 400
+      logger.error(f"Project creation failed: {e}")
 
   proj["id__"] = proj_id
   response = {
@@ -242,6 +262,7 @@ def update_project(event, context=None):
   End-point: Updates a project
   """
   projectId = event['pathParameters']['id']
+  logger.info(f"Updating project with ID: {projectId}")
   proj = json.loads(event['body']) if event['body'] else {}  # get to-update project from request body
   statusCode = 201
   
@@ -253,6 +274,7 @@ def update_project(event, context=None):
   if not proj_old:
     result = exceptions.projectGetException()
     statusCode = 404
+    logger.warning(f"Project with ID {projectId} not found")
   else:
     source_to_update = {"doc" : proj}
     es = getESConn()
@@ -261,9 +283,11 @@ def update_project(event, context=None):
       result = es.update(index=projects_db, id=projectId, body=source_to_update)
       source_to_update['doc']['id__'] = projectId
       result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "project": source_to_update['doc']}
-    except:
+      logger.info(f"Project {projectId} updated successfully")
+    except Exception as e:
       result = exceptions.projectUpdateException()
       statusCode = 404
+      logger.error(f"Project update failed: {e}")
 
     # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
     if 'attributes' in proj and 'hasCasebase' in proj:
@@ -290,6 +314,7 @@ def delete_project(event, context=None):
   End-point: Deletes a project. Also deletes the project's casebase index if it exists.
   """
   projectId = event['pathParameters']['id']  # get project id from url
+  logger.info(f"Deleting project with ID: {projectId}")
   
   statusCode = 200
   es = getESConn()
@@ -307,12 +332,14 @@ def delete_project(event, context=None):
               if attrib['options'].get('name') is not None:
                 retrieve.removeOntoIndex(ontologyId)
         result = es.delete(index=projects_db, id=projectId, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")   # delete project
-      except:
+      except Exception as e:
         result = exceptions.projectDeleteException()
         statusCode = 400
+        logger.error(f"Project deletion failed: {e}")
   else:
     result = exceptions.projectGetException()
     statusCode = 404
+    logger.warning(f"Project with ID {projectId} not found")
 
   response = {
     "statusCode": statusCode,
@@ -333,6 +360,7 @@ def save_case_list(event, context=None):
   duplicateCases = 0
   errors = ""
   hash_list = []
+  logger.info(f"Saving case list for project ID: {projectId}")
 
   statusCode = 201
 
@@ -364,6 +392,7 @@ def save_case_list(event, context=None):
     if duplicateCases:
       errors = str(duplicateCases) + " cases were not added because they were duplicates. "
     result = {"casesAdded":result[0],"errors":[errors,result[1]]}
+    logger.info(f"{result['casesAdded']} cases added to project {projectId}. {errors}")
 
     # Indicate that the project has a casebase
     proj['hasCasebase'] = True
@@ -371,9 +400,11 @@ def save_case_list(event, context=None):
 
     try:
       resp = es.update(index=projects_db, id=projectId, body=source_to_update)
-    except:
+    except Exception as e:
       result = exceptions.projectUpdateException()
       statusCode = 404
+      logger.error(f"Project update failed after adding cases: {e}")
+
     # create the ontology similarity if specified as part of project attributes (can be a lengthy operation for mid to large ontologies!)
     for attrib in proj['attributes']:
       if attrib['type'] == "Ontology Concept" and attrib.get('similarity') is not None and attrib.get('options') is not None and retrieve.checkOntoSimilarity(projectId + "_ontology_" + attrib['options'].get('name'))['statusCode'] != 200:
@@ -382,6 +413,7 @@ def save_case_list(event, context=None):
   else:
     result = exceptions.projectGetException()
     statusCode = 404
+    logger.warning(f"Project with ID {projectId} not found")
 
   response = {
     "statusCode": statusCode,
@@ -401,6 +433,7 @@ def get_all_cases(event, context=None):
   projId = params.get('projectId')  
   statusCode = 200
   es = getESConn()  # es connection
+  logger.info(f"Retrieving all cases for project ID: {projId}")
 
   if proj is None and projId is not None:  
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)   
@@ -413,9 +446,11 @@ def get_all_cases(event, context=None):
     else:
       result = exceptions.casebaseGetException()
       statusCode = 404
+      logger.warning(f"Casebase for project ID {projId} does not exist")
   else:
     result = exceptions.projectGetException()
     statusCode = 404
+    logger.warning(f"Project with ID {projId} not found")
 
   response = {
     "statusCode": statusCode,
@@ -432,6 +467,7 @@ def get_case(event, context=None):
   statusCode = 200
   projectId = event['pathParameters']['id']
   caseId = event['pathParameters']['cid']
+  logger.info(f"Retrieving case with ID: {caseId} from project ID: {projectId}")
   es = getESConn()
 
   if utility.getByUniqueField(es, projects_db, "_id", projectId):
@@ -440,13 +476,16 @@ def get_case(event, context=None):
     else:
       result = exceptions.casebaseGetException()
       statusCode = 404
+      logger.warning(f"Casebase for project ID {projectId} does not exist")
   else:
     result = exceptions.projectGetException()
     statusCode = 404
+    logger.warning(f"Project with ID {projectId} not found")
 
   if not result:
     result = exceptions.caseGetException()
     statusCode = 404
+    logger.warning(f"Case with ID {caseId} not found in project ID {projectId}")
 
   response = {
     "statusCode": statusCode,
@@ -466,6 +505,7 @@ def update_case(event, context=None):
   projectId = event['pathParameters']['id']
   caseId = event['pathParameters']['cid']
   casebase = projectId + "_casebase"
+  logger.info(f"Updating case with ID: {caseId} in project ID: {projectId}")
   
   es = getESConn()
   proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
@@ -505,22 +545,29 @@ def update_case(event, context=None):
                                                                           value=oldCase['hash__']):
           result = exceptions.caseDuplicateException()
           statusCode = 400
+          logger.warning(f"Case update failed: duplicate case detected in project ID {projectId}")
+      
         else:
           try:
             result = es.update(index=casebase, id=caseId, body=source_to_update,filter_path="-_seq_no,-_shards,-_primary_term,-_type",refresh=True)
             retrieve.update_attribute_options(es,proj)
-          except:
+            logger.info(f"Case with ID: {caseId} updated successfully in project ID: {projectId}")
+          except Exception as e:
             result = exceptions.caseUpdateException()
             statusCode = 400
+            logger.error(f"Case update failed: {e}")
       else:
         result = exceptions.caseGetException()
         statusCode = 404
+        logger.warning(f"Case with ID {caseId} not found in project ID {projectId}")
     else:
       result = exceptions.casebaseGetException()
       statusCode = 404      
+      logger.warning(f"Casebase for project ID {projectId} does not exist")
   else:
     result = exceptions.projectGetException()
     statusCode = 404
+    logger.warning(f"Project with ID {projectId} not found")
     
   response = {
     "statusCode": statusCode,
@@ -538,6 +585,7 @@ def delete_casebase(event, context=None):
   statusCode = 200
   projectId = event['pathParameters']['id']
   casebase = projectId + "_casebase"
+  logger.info(f"Deleting casebase for project ID: {projectId}")
 
   es = getESConn()
 
@@ -546,9 +594,11 @@ def delete_casebase(event, context=None):
   if proj:
     try:
       result = es.indices.delete(index=casebase, ignore_unavailable = True) 
-    except:
+      logger.info(f"Casebase for project ID: {projectId} deleted successfully")
+    except Exception as e:
       result = exceptions.casebaseDeleteException()
       statusCode = 400
+      logger.error(f"Casebase deletion failed: {e}")
 
     if statusCode == 200:
       proj['hasCasebase'] = False
@@ -558,6 +608,7 @@ def delete_casebase(event, context=None):
   else:
     result = exceptions.projectGetException()
     statusCode = 404
+    logger.warning(f"Project with ID {projectId} not found")
 
   response = {
     "statusCode": statusCode,
@@ -578,21 +629,26 @@ def delete_case(event, context=None):
   casebase = projectId + "_casebase"
   es = getESConn()
   proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
+  logger.info(f"Deleting case with ID: {caseId} from project ID: {projectId}")
 
   if es.indices.exists(index=casebase):
     if es.exists(index=casebase, id=caseId):
       try:
         result = es.delete(index=casebase, id=caseId, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type",refresh=True)
         retrieve.update_attribute_options(es,proj)
-      except:
+        logger.info(f"Case with ID: {caseId} deleted successfully from project ID: {projectId}")
+      except Exception as e:
         result = exceptions.caseDeleteException()
         statusCode = 400
+        logger.error(f"Case deletion failed: {e}")
     else:
       result = exceptions.caseGetException()
       statusCode = 404
+      logger.warning(f"Case with ID {caseId} not found in project ID {projectId}")
   else:
     result = exceptions.casebaseGetException()
     statusCode = 404
+    logger.warning(f"Casebase for project ID {projectId} does not exist")
 
   response = {
     "statusCode": statusCode,
@@ -609,15 +665,18 @@ def update_attribute_options(event, context=None):
   statusCode = 201
   projectId = event['pathParameters']['id']
   attrNames = json.loads(event['body']) if event['body'] else {}
+  logger.info(f"Updating attribute options for project ID: {projectId}")
 
   es = getESConn()
   proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
 
   if proj:
     result = retrieve.update_attribute_options(es, proj, attrNames)
+    logger.info(f"Attribute options updated successfully for project ID: {projectId}")
   else:
     result = exceptions.projectGetException()
     statusCode = 404
+    logger.warning(f"Project with ID {projectId} not found")
 
   response = {
     "statusCode": statusCode,
@@ -634,7 +693,10 @@ def create_project_index(event, context=None):
   """
   es = getESConn()
   pid = event['pathParameters']['id']
+  logger.info(f"Creating project index for project ID: {pid}")
+  logger.info("Re-creating config")
   proj = utility.getByUniqueField(es, projects_db, "_id", pid)  # project
+  logger.info(f"Creating project index for project ID: {pid}") 
   res = project.indexMapping(es, proj)
 
   # Indicate that the project has a casebase (empty)
@@ -657,6 +719,7 @@ def re_create_config(event, context=None):
   # get config. configuration index has 1 document
   result = []
   es = getESConn()
+  logger.info("Re-creating config")
   utility.createOrUpdateGlobalConfig(es, config_db=config_db)
   time.sleep(0.3)  # 0.3 sec wait to allow time for created index to be ready
   query = {"query": retrieve.MatchAll()}
@@ -678,6 +741,7 @@ def get_config(event, context=None):
   # get config. configuration index has 1 document
   result = []
   es = getESConn()
+  logger.info("Retrieving configuration")
   if not es.indices.exists(index=config_db):  # create config db if it does not exist
     utility.createOrUpdateGlobalConfig(es, config_db=config_db)
     time.sleep(1)  # 0.3 sec wait to allow time for created index to be ready
@@ -699,6 +763,7 @@ def update_config(event, context=None):
   """
   res = utility.createOrUpdateGlobalConfig(getESConn(), config_db=config_db, globalConfig=json.loads(event['body']))
   msg = "Configuration updated" if res else "Configuration not updated"
+  logger.info("Updating configuration")
   body = {
     "result": res,
     "message": msg
@@ -716,6 +781,7 @@ def check_ontology_sim(event, context=None):
   End-point: Check if the similarity measures of an ontology's concepts exist.
   """
   ontology_id = event['pathParameters']['ontology_id']
+  logger.info(f"Checking ontology similarity for ontology ID: {ontology_id}")
   res = retrieve.checkOntoSimilarity(ontology_id)
   body = {
     "result": res
@@ -750,6 +816,7 @@ def cbr_retrieve(event, context=None):
   End-point: Completes the Retrieve step of the CBR cycle.
   """
   start = timer()  # start timer
+  logger.info("Starting CBR Retrieve step")
 
   params = json.loads(event['body'])  # parameters in request body
   # print(params)
@@ -806,6 +873,8 @@ def cbr_retrieve(event, context=None):
   # perform retrieval
   res = es.search(index=proj['casebase'], body=query, explain=addExplanation)
 
+  logger.info(f"CBR Retrieve query executed: {query}")
+
   # format results
   counter = 0
   for hit in res['hits']['hits']:
@@ -853,6 +922,8 @@ def cbr_retrieve(event, context=None):
   end = timer()  # end timer
   result['retrieveTime'] = end - start
   result['esTime'] = res['took']
+  logger.info(f"CBR Retrieve step completed in {result['retrieveTime']} seconds")
+
   response = {
     "statusCode": 200,
     "headers": headers,
@@ -865,6 +936,7 @@ def cbr_reuse(event, context=None):
   """
   End-point: Completes the Reuse step of the CBR cycle.
   """
+  logger.info("Starting CBR Reuse step")
   result = {}
   params = json.loads(event['body'])  # parameters in request body
   result = reuse.reuse_cases(params)
@@ -874,6 +946,7 @@ def cbr_reuse(event, context=None):
     "headers": headers,
     "body": json.dumps(result)
   }
+  logger.info("CBR Reuse step completed")
   return response
 
 
@@ -882,6 +955,7 @@ def cbr_revise(event, context=None):
   End-point: Completes the Revise step of the CBR cycle.
   """
   result = {}
+  logger.info("Starting CBR Revise step")
   # revise logic here
 
   response = {
@@ -900,6 +974,7 @@ def cbr_retain(event, context=None):
   params = json.loads(event['body'])  # parameters in request body
   proj = params.get('project')
   es = getESConn()
+  logger.info("Starting CBR Retain step")
 
   if proj is None:   # if project object is not specified, find using project id
     projId = params.get('projectId')
@@ -938,17 +1013,21 @@ def cbr_retain(event, context=None):
                                                                             value=new_case['hash__']):
       result = exceptions.caseDuplicateException()
       statusCode = 400
+      logger.warning(f"CBR Retain step failed: duplicate case detected in project ID {projId}")
     elif not retain.checkArrayWithCosine(proj['attributes'], new_case):
       result = exceptions.vectorDataTypeOrDimensionException()
       statusCode = 400
+      logger.warning(f"CBR Retain step failed: vector data type or dimension exception in project ID {projId}")
     else:
       if case_id is None:
         result = es.index(index=proj['casebase'], body=new_case, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
       else:
         result = es.index(index=proj['casebase'], body=new_case, id=case_id, filter_path="-_seq_no,-_shards,-_primary_term,-_version,-_type")
+      logger.info(f"CBR Retain step completed for project ID: {projId}")
   else:
     result = exceptions.projectGetException()
     statusCode = 404
+    logger.warning(f"Project with ID {projId} not found")
 
   response = {
     "statusCode": statusCode,
@@ -974,6 +1053,8 @@ def retrieve_explain(event, context):
     projId = params.get('projectId')  # name of casebase
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
+  logger.info(f"Explaining retrieval scoring for case ID: {caseId} in project ID: {projId}")
+
   res = es.explain(index=proj['casebase'], body=query, id=caseId)
 
   response = {
@@ -989,6 +1070,7 @@ def all_tokens(event, context):
   """
   result = []
   es = getESConn()
+  logger.info("Retrieving all tokens in the casebase")
   if es.indices.exists(index=tokens_db):
     query = {"query" : retrieve.MatchAll()}
     statusCode = 200
@@ -1003,6 +1085,7 @@ def all_tokens(event, context):
   else:
     result = exceptions.tokenIndexException()
     statusCode = 404
+    logger.warning("Tokens index does not exist")
 
   response = {
     "statusCode": statusCode,
@@ -1020,6 +1103,7 @@ def new_token(event, context):
   token_id = uuid.uuid4().hex
 
   es = getESConn()
+  logger.info(f"Creating new token with ID: {token_id}")
   
   if not es.indices.exists(index=tokens_db):
     token_mapping = project.getTokenMapping()
@@ -1028,6 +1112,7 @@ def new_token(event, context):
   if 'expiry' not in token or "" == token['expiry'] or 'name' not in token or "" == token['name']:
     result = exceptions.tokenNameException()
     statusCode = 400
+    logger.warning("Token creation failed: invalid name or expiry")
   else:
     token['token'] = utility.generateToken(token)
     # print("token ", token)
@@ -1036,9 +1121,11 @@ def new_token(event, context):
         # print("token2 ", token)
         result = es.index(index=tokens_db, body=token, id=token_id)
         result = {"index": result['_index'], "id": result['_id'], "result": result['result'], "token": token}
-      except:
+        logger.info(f"Token {token_id} created successfully")  
+      except Exception as e:
         result = exceptions.tokenCreateException()
         statusCode = 400
+        logger.error(f"Token creation failed: {e}")
 
   token["id__"] = token_id
   response = {
@@ -1053,6 +1140,7 @@ def delete_token(event, context):
   End-point: Delete a token.
   """
   token_id = event['pathParameters']['id']
+  logger.info(f"Deleting token with ID: {token_id}")
   es = getESConn()
   if es.indices.exists(index=tokens_db):
     try:
@@ -1079,6 +1167,7 @@ def home(event, context):
   body = {
     "message": "Go Serverless with CloodCBR! Your function executed successfully!"
   }
+  logger.info("API reachability check successful")
 
   response = {
     "statusCode": 200,
