@@ -64,16 +64,17 @@ Case-based Reasoning (CBR) applications have been widely deployed across various
 |                 | Semantic USE      | Similarity measure based on word embedding vector representations using [Universal Sentence Encoder](https://github.com/tensorflow/tfjs-models/tree/master/universal-sentence-encoder) _(optional)_ |
 |                 | Semantic SBERT    | Similarity measure based on word embedding vector representations using [SBERT](https://www.sbert.net/) _(optional)_ |
 |                 | Angle             | Similarity measure based on matching / retrieval word embedding vector representations using [AnglE](https://github.com/SeanLee97/AnglE) _(optional)_ |
-|                 | Array             | For array based string representation e.g. ["a", "b", "c"]                                         |
-|                 | Array SBERT       | For array based string representation with SBERT _(optional)_                                                    |
 | **Numeric**     | Interval          | Similarity between numbers in an interval                                                          |
 |                 | INRECA            | Similarities using INRECA More is Better and Less is Better algorithms                             |
 |                 | McSherry          | Similarities using McSherry More is Better and Less is Better algorithms                           |
 |                 | Nearest Number    | Similarity between numbers using a linear decay function                                           |
-|                 | Array             | For array based numeric representation e.g. [1,2,3]                                                |
 | **Categorical** | EnumDistance      | Similarity of values based on relative positions in an enumeration                                 |
 |                 | Table             | User-defined similarity between entries of a finite set of domain values                           |
 | **Date**        | Nearest Date      | Similarity between dates using a decay function                                                    |
+| **Array**       | Jaccard           | Similarity of two sets by dividing the size of their intersection by the size of their union.                                                          |
+|                 | Array SBERT       | For array based string representation with SBERT _(optional)_                                      |
+|                 | Query Intersection| Measures how much of the query set is covered by each case set                                     |
+|                 | Cosine            | Cosine similarity between vectors                                      |
 | **Location**    | Nearest Location  | Similarity based on separation distance of geo-coordinates using a decay function                  |
 | **Ontology**    | Path-based        | Similarity using Wu & Palmer path-based algorithm _(optional)_                                                 |
 |                 | Feature-based     | Similarity using Sanchez et al. feature-based algorithm _(optional)_                                            |
@@ -112,7 +113,7 @@ Development Ports
 - CloodCBR Dashboard - [http://localhost:8000/](http://localhost:8000/)
 - CloodCBR API - [http://localhost:3000/](http://localhost:3000/)
 - Clood USE Vectoriser API - [http://localhost:4100/](http://localhost:4100/)
-- Clood Onotlogy Similarity API - [http://localhost:4200/](http://localhost:4200/)
+- Clood Ontology Similarity API - [http://localhost:4200/](http://localhost:4200/)
 - Clood SBERT Vectoriser API - [http://localhost:4300/](http://localhost:4300/)
 - Clood Angle Vectoriser API - [http://localhost:4400/](http://localhost:4400/)
 - OpenSearch Dashboard - [http://localhost:5601/](http://localhost:5601/)
