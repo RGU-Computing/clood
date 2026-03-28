@@ -5,8 +5,16 @@ import hmac
 import json
 import re
 import time
+import requests
 
 import config as cfg
+from logger_config import logger
+
+# Optional imports for LLM providers
+try:
+  from openai import OpenAI
+except ImportError:
+  OpenAI = None
 
 
 def indexHasDocWithFieldVal(es, index, field, value):
@@ -197,3 +205,212 @@ def generateToken(token):
     result = encodedHeader + '.' + encodedPayload + '.' + signature
 
   return result
+
+
+# ============================================================================
+# LLM Provider Support Functions
+# ============================================================================
+
+def call_llm_openai(prompt, max_tokens=1024):
+  """
+  Call OpenAI API using the official Python client.
+  Supports OpenAI, Azure OpenAI, and compatible endpoints.
+  
+  Args:
+    prompt: The user prompt to send to the LLM
+    max_tokens: Maximum tokens in response
+    
+  Returns:
+    Response text from LLM, or error message if failed
+  """
+  try:
+    if OpenAI is None:
+      return "OpenAI client library not installed. Install with: pip install openai"
+    
+    # Initialize client
+    client_kwargs = {
+      'api_key': cfg.llm.get('api_key')
+    }
+    logger.info(f"Creating OpenAI client with API key: {client_kwargs['api_key'][:5]}...")  
+    
+    # Support custom base URL for Azure OpenAI or compatible endpoints
+    if cfg.llm.get('url'):
+      client_kwargs['base_url'] = cfg.llm.get('url')
+      logger.info(f"Using custom base URL for LLM: {cfg.llm.get('url')}")
+
+    # print("Prompt: ")
+    # print(json.dumps(prompt))
+    # print("-------------------")
+    
+    if cfg.llm.get('url'):
+      client = OpenAI(
+        api_key=cfg.llm.get('api_key'),
+        base_url=cfg.llm.get('url')
+      )
+    else:
+      client = OpenAI(
+        api_key=cfg.llm.get('api_key')
+      )
+    
+    # Call the API
+    response = client.responses.create(
+      model=cfg.llm.get('model'),
+      input=prompt
+    )
+    
+    # Extract response text
+    if response.output and len(response.output) > 0:
+      return response.output[0].content[0].text
+    else:
+      return "No response from OpenAI"
+      
+  except Exception as e:
+    logger.error(f"Exception calling OpenAI: {e}")
+    return f"Exception calling LLM: {str(e)}"
+
+
+def call_llm_anthropic(prompt, max_tokens=1024):
+  """
+  Call Anthropic Claude API.
+  
+  Args:
+    prompt: The user prompt to send to the LLM
+    max_tokens: Maximum tokens in response
+    
+  Returns:
+    Response text from LLM, or error message if failed
+  """
+  try:
+    headers_auth = {
+      'x-api-key': cfg.llm.get('api_key'),
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json'
+    }
+    payload = {
+      "model": cfg.llm.get('model'),
+      "max_tokens": max_tokens,
+      "messages": [
+        {"role": "user", "content": prompt}
+      ]
+    }
+    
+    response = requests.post(cfg.llm.get('url'), headers=headers_auth, json=payload, timeout=30)
+    
+    if response.ok:
+      data = response.json()
+      if 'content' in data and len(data['content']) > 0:
+        return data['content'][0]['text']
+    else:
+      logger.error(f"Anthropic call failed: {response.status_code} {response.text}")
+      return f"LLM call failed: {response.status_code}"
+  except Exception as e:
+    logger.error(f"Exception calling Anthropic: {e}")
+    return f"Exception calling LLM: {str(e)}"
+
+
+def call_llm_ollama(prompt, max_tokens=1024):
+  """
+  Call local Ollama instance.
+  
+  Args:
+    prompt: The user prompt to send to the LLM
+    max_tokens: Maximum tokens in response
+    
+  Returns:
+    Response text from LLM, or error message if failed
+  """
+  try:
+    payload = {
+      "model": cfg.llm.get('model'),
+      "prompt": prompt,
+      "stream": False
+    }
+    
+    response = requests.post(cfg.llm.get('url'), json=payload, timeout=60)
+    
+    if response.ok:
+      data = response.json()
+      return data.get('response', '')
+    else:
+      logger.error(f"Ollama call failed: {response.status_code} {response.text}")
+      return f"LLM call failed: {response.status_code}"
+  except Exception as e:
+    logger.error(f"Exception calling Ollama: {e}")
+    return f"Exception calling LLM: {str(e)}"
+
+
+def call_llm_huggingface(prompt, max_tokens=1024):
+  """
+  Call Hugging Face Inference API.
+  
+  Args:
+    prompt: The user prompt to send to the LLM
+    max_tokens: Maximum tokens in response
+    
+  Returns:
+    Response text from LLM, or error message if failed
+  """
+  try:
+    headers_auth = {
+      'Authorization': f"Bearer {cfg.llm.get('api_key')}",
+      'Content-Type': 'application/json'
+    }
+    payload = {
+      "inputs": prompt,
+      "parameters": {
+        "max_length": max_tokens
+      }
+    }
+    
+    response = requests.post(cfg.llm.get('url'), headers=headers_auth, json=payload, timeout=30)
+    
+    if response.ok:
+      data = response.json()
+      if isinstance(data, list) and len(data) > 0 and 'generated_text' in data[0]:
+        return data[0]['generated_text']
+    else:
+      logger.error(f"Hugging Face call failed: {response.status_code} {response.text}")
+      return f"LLM call failed: {response.status_code}"
+  except Exception as e:
+    logger.error(f"Exception calling Hugging Face: {e}")
+    return f"Exception calling LLM: {str(e)}"
+
+
+def call_llm(prompt, max_tokens=1024):
+  """
+  Route LLM call to appropriate provider based on configuration.
+  
+  Supported providers:
+    - 'openai': OpenAI API (or compatible endpoints like Azure OpenAI, local servers)
+    - 'anthropic': Anthropic Claude API
+    - 'ollama': Local Ollama instance
+    - 'huggingface': Hugging Face Inference API
+  
+  Args:
+    prompt: The user prompt to send to the LLM
+    max_tokens: Maximum tokens in response (default: 1024)
+    
+  Returns:
+    Response text from LLM, or error message if call failed
+  """
+  provider = cfg.llm.get('provider', 'openai').lower()
+  api_key = cfg.llm.get('api_key')
+  
+  # Check if provider is configured with API key
+  if not api_key and provider != 'ollama':
+    error_msg = f"No LLM provider configured or API key missing for provider: {provider}"
+    logger.warning(error_msg)
+    return error_msg
+  
+  if provider == 'openai':
+    return call_llm_openai(prompt, max_tokens)
+  elif provider == 'anthropic':
+    return call_llm_anthropic(prompt, max_tokens)
+  elif provider == 'ollama':
+    return call_llm_ollama(prompt, max_tokens)
+  elif provider == 'huggingface':
+    return call_llm_huggingface(prompt, max_tokens)
+  else:
+    error_msg = f"Unknown LLM provider: {provider}"
+    logger.error(error_msg)
+    return error_msg

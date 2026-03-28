@@ -159,14 +159,25 @@ functions:
           authorizer: auth
   retrieve:
     handler: handler.cbr_retrieve
+    timeout: 900
     events:
       - http:
           path: retrieve
           method: post
           cors: true
           authorizer: auth
+  rag:
+    handler: handler.cbr_rag
+    timeout: 900
+    events:
+      - http:
+          path: rag
+          method: post
+          cors: true
+          authorizer: auth
   reuse:
     handler: handler.cbr_reuse
+    timeout: 900
     events:
       - http:
           path: reuse

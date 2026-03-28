@@ -22,6 +22,11 @@ services:
       - CLOOD_AWS_REGION=${CLOOD_AWS_REGION}
       - CLOOD_AWS_ACCESS_KEY=${CLOOD_AWS_ACCESS_KEY}
       - CLOOD_AWS_SECRET_KEY_HERE=${CLOOD_AWS_SECRET_KEY_HERE}
+      - CLOOD_LLM_PROVIDER=${CLOOD_LLM_PROVIDER}
+      - CLOOD_LLM_API_URL=${CLOOD_LLM_API_URL}
+      - CLOOD_LLM_API_KEY=${CLOOD_LLM_API_KEY}
+      - CLOOD_LLM_MODEL=${CLOOD_LLM_MODEL}
+      - CLOOD_CBR_RAG_PROMPT=${CLOOD_CBR_RAG_PROMPT}
     working_dir: /app
     networks:
       - cloodcbr-net
@@ -30,6 +35,8 @@ services:
       - clood-nodemodules:/app/node_modules
       - clood-logs:/app/logs
     ports: ['3000:3000', '3002:3002']
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   clood-dashboard:
     container_name: cloodcbr-dashboard
