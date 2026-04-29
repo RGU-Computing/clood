@@ -284,7 +284,7 @@ curl -X POST "http://localhost:3000/dev/rag" \
       }
     ]
   }'
-
+```
 
 
 **Using the API — `reuse`**
@@ -311,7 +311,7 @@ curl -X POST "http://localhost:3000/dev/reuse" \
     "query_case": {},
     "neighbours": []
   }'
-
+```
 
 🚧 We are currently improving this section
 
