@@ -149,9 +149,9 @@ End-point | Request Method | Description
 /project/{id} | HTTP DELETE | Removes a CBR project with specified id
 /case/{id}/list | HTTP POST | Bulk addition of cases to the casebase of the project with specified id. Cases are included in the request body as an array of objects
 /retrieve | HTTP POST | Performs the case retrieve task (see `retrieve` section below)
-/rag | HTTP POST | Performs the CBR-RAG task by retrieving similar cases and using the configured LLM to generate a new case (see `rag` section below)
 /reuse | HTTP POST | Performs reuse/adaptation based on specified logic (see `reuse` section below)
 /retain | HTTP POST | Performs the case retain task
+/rag | HTTP POST | Performs the CBR-RAG task by retrieving similar cases and using the configured LLM to generate a new case (see CBR-RAG section below)
 /config | HTTP GET | Retrieves the system configuration
 /config | HTTP POST | Adds or updates the system configuration
 
@@ -180,7 +180,9 @@ Request body:
 - `feedback`:
   Optional boolean. If `true`, includes feedback details for each case in `bestK`
 - `globalSim`:
-  Optional global similarity setting. Default: `Weighted Sum`
+  Optional global similarity setting. Default: `Weighted Sum`.
+  The current implementation uses `Weighted Sum` to aggregate local similarities by default, and other global similarity options are not yet included. This field is retained for future support of additional aggregation strategies.
+
 
 Query feature fields:
 - `name`:
@@ -193,8 +195,10 @@ Query feature fields:
   Optional attribute type
 - `weight`:
   Optional attribute weight
+- `strategy`:
+  Optional reuse strategy for query features marked as unknown. Supported values include `NN value`, `Maximum`, `Minimum`, `Mean`, `Median`, `Mode`, `Majority`, and `Minority`.
 - `filterTerm`:
-  Optional filter operator
+  Optional filter operator if the field is to be treated as a filter (instead of using similarity measure)
 - `filterValue`:
   Optional filter comparison value
 
@@ -257,8 +261,52 @@ Example (simplified) response:
 }
 ```
 
-- **Auth**: include `Authorization: Bearer <JWT_TOKEN>` when JWT authentication is enabled.
+- **Auth**: include `Authorization: Bearer <JWT_TOKEN>` when JWT authentication is enabled (enabled by default).
 
+Response fields:
+- `recommended`:
+  The recommended case produced from the retrieved results. It is based on the top-ranked retrieved case, then updated using known query values and any reuse `strategy` specified for unknown values.
+- `bestK`:
+  The top matching retrieved cases
+- `retrieveTime`:
+  Total end-to-end time for the retrieve step
+- `esTime`:
+  Elasticsearch/OpenSearch query time in milliseconds
+
+
+
+**Using the API — `reuse`**
+
+The `/reuse` endpoint completes the Reuse step of the CBR cycle. It supports custom reuse logic.
+
+How it works:
+- A user can provide a custom reuse script in `api/cbrcycle/custom_reuse_scripts`
+- The script file name must begin with `_`, for example `_my_reuse.py`
+- The request body should include `reuse_type` with the script name, for example `"_my_reuse"`
+- Clood loads that script and executes its `reuse(...)` function
+- The endpoint returns whatever result the custom reuse script produces
+
+This allows users to define any reuse or adaptation logic they need for their domain, while keeping the `/reuse` endpoint unchanged.
+
+Example request:
+
+```bash
+curl -X POST "http://localhost:3000/dev/reuse" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -d '{
+    "reuse_type": "_my_reuse",
+    "query_case": {},
+    "neighbours": []
+  }'
+```
+
+🚧 We are currently improving this section
+
+
+### CBR-RAG
+
+Clood also supports CBR-RAG through the `/rag` endpoint. This combines case retrieval with LLM-based generation by using the retrieved cases and project attribute specification to complete a query case.
 
 **Using the API — `rag`**
 
@@ -272,27 +320,18 @@ These can be set through environment variables, for example in `.env.dev` for lo
 
 
 Request body:
-- `data`:
-  The query case used for retrieval. This is a list of query feature objects.
-  In each feature object:
-  - `name` is the attribute name
-  - `value` is the value for that attribute
-- `projectId`:
-  Project ID to retrieve against
-- `topk`:
-  Optional number of cases to retrieve. Default: `5`
+The `/rag` endpoint reuses the same retrieval input structure as `/retrieve`, then augments it with LLM-specific generation options.
+
+- Retrieval-related request fields follow the same structure as `/retrieve`, including `data`, `projectId` / `project`, `topk`, `explanation`, and `feedback`
 - `max_tokens`:
   Optional maximum token count passed to the LLM. Default: `1024`
-- `explanation`:
-  Optional boolean. If `true`, includes retrieval explanation details for each case in `bestK`
-- `feedback`:
-  Optional boolean. If `true`, includes feedback details for each case in `bestK`
 - `include_reasoning`:
   Optional boolean. If `true`, asks the LLM to return a concise evidence-based reasoning object alongside the generated case
 - `prompt_template`:
   Optional template override for the RAG prompt
 - `prompt`:
   Optional full prompt override
+
 
 Prompt template placeholders:
 - `{query_case}`
@@ -333,34 +372,44 @@ curl -X POST "http://localhost:3000/dev/rag" \
   }'
 ```
 
+Example response:
 
-**Using the API — `reuse`**
-
-The `/reuse` endpoint completes the Reuse step of the CBR cycle. It supports custom reuse logic.
-
-How it works:
-- A user can provide a custom reuse script in `api/cbrcycle/custom_reuse_scripts`
-- The script file name must begin with `_`, for example `_my_reuse.py`
-- The request body should include `reuse_type` with the script name, for example `"_my_reuse"`
-- Clood loads that script and executes its `reuse(...)` function
-- The endpoint returns whatever result the custom reuse script produces
-
-This allows users to define any reuse or adaptation logic they need for their domain, while keeping the `/reuse` endpoint unchanged.
-
-Example request:
-
-```bash
-curl -X POST "http://localhost:3000/dev/reuse" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <jwt_token>" \
-  -d '{
-    "reuse_type": "_my_reuse",
-    "query_case": {},
-    "neighbours": []
-  }'
+```json
+{
+  "bestK": [
+    {
+      "symptom": "fever",
+      "age": 33,
+      "condition": "Flu",
+      "score__": 0.852363
+    },
+    ...
+  ],
+  "generatedCase": {
+    "symptom": "fever",
+    "age": 35,
+    "condition": "Common cold"
+  },
+  "reasoning": {
+    "summary": "The generated case is based on the best-matching retrieved cases and reflects their strongest shared patterns, including a similar age range."
+  },
+  "ragTime": 1.284,
+  "esTime": 18
+}
 ```
 
-🚧 We are currently improving this section
+Response fields:
+- `bestK`:
+  The top matching retrieved cases
+- `generatedCase`:
+  The new case generated by the LLM
+- `reasoning`:
+  Present when `include_reasoning` is enabled and the LLM returns it
+- `ragTime`:
+  Total retrieval-plus-generation time
+- `esTime`:
+  Elasticsearch/OpenSearch query time in milliseconds
+
 
 ### Client Dashboard
 
