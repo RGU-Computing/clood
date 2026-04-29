@@ -155,7 +155,57 @@ End-point | Request Method | Description
 /config | HTTP GET | Retrieves the system configuration
 /config | HTTP POST | Adds or updates the system configuration
 
-**Using the API — `retrieve` example**
+Notes:
+- **Base URL**: default local API URL is `http://localhost:3000/`.
+
+
+**Using the API — `retrieve`**
+
+The `/retrieve` endpoint performs the Retrieve step of the CBR cycle. It takes a query case as a list of query features, matches it against the selected project casebase using the configured similarity measures, and returns the top matching cases.
+
+Request body:
+- `data`:
+  The query case used for retrieval. This is a list of query feature objects.
+  In each feature object:
+  - `name` is the attribute name
+  - `value` is the value for that attribute
+- `projectId`:
+  Project ID to retrieve against
+- `project`:
+  Optional full project object. If supplied, it is used instead of `projectId`
+- `topk`:
+  Optional number of cases to retrieve. Default: `5`
+- `explanation`:
+  Optional boolean. If `true`, includes retrieval explanation details for each case in `bestK`
+- `feedback`:
+  Optional boolean. If `true`, includes feedback details for each case in `bestK`
+- `globalSim`:
+  Optional global similarity setting. Default: `Weighted Sum`
+
+Query feature fields:
+- `name`:
+  Attribute name to query on
+- `value`:
+  Query value for that attribute
+- `similarity`:
+  Optional similarity metric to use for that attribute
+- `type`:
+  Optional attribute type
+- `weight`:
+  Optional attribute weight
+- `filterTerm`:
+  Optional filter operator
+- `filterValue`:
+  Optional filter comparison value
+
+Notes:
+- If `project` is not supplied, `projectId` is used to load the project
+- If a query feature does not specify `similarity`, `type`, or `weight`, the endpoint uses the values defined in the project attributes
+- If no valid query features are provided, the endpoint falls back to returning cases using a match-all query
+- Retrieved cases are returned as normal case objects, with `score__` added to each result
+- If `explanation` is enabled, each retrieved case includes `match_explanation`
+- If `feedback` is enabled, each retrieved case includes `feedback`
+
 
 Below is a minimal example showing how to call the `/retrieve` endpoint to perform a case retrieval. Replace `http://localhost:3000` with your API base URL and provide a valid JWT in the `Authorization` header if your deployment requires it.
 
@@ -207,10 +257,7 @@ Example (simplified) response:
 }
 ```
 
-Notes:
-- **Base URL**: default local API URL is `http://localhost:3000/`.
 - **Auth**: include `Authorization: Bearer <JWT_TOKEN>` when JWT authentication is enabled.
-- **Fields**: adapt `project_id`, `query`, `top_k`, and `similarity` to your project configuration and attribute names.
 
 
 **Using the API — `rag`**
@@ -317,7 +364,7 @@ curl -X POST "http://localhost:3000/dev/reuse" \
 
 ### Client Dashboard
 
-The Client Dashboard demonstrates the use of Clood through API calls to create and configure projects and perform CBR tasks. Project is available in the ```dashboard``` folder of the repository. The readme at ```dashboard``` describes how to instal the client dashboard.
+The Client Dashboard demonstrates the use of Clood through API calls to create and configure projects and perform CBR tasks. Project is available in the ```dashboard``` folder of the repository. The readme at ```dashboard``` describes how to install the client dashboard.
 
 <img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/screenshots/client_projects.png">
 
