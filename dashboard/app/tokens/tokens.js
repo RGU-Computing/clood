@@ -31,10 +31,9 @@ angular.module('cloodApp.tokens', [])
     $scope.getAllTokens = function() {
         $http({method: 'GET', url: ENV_CONST.base_api_url + "/token", headers: {"Authorization":$scope.auth.token}}).then(function(res) {
             $scope.tokens = res.data;
-            //Iterate through tokens and add expiry date
+            // Iterate through tokens and add expiry date. Persisted token expiry is Unix seconds.
             for (var i = 0; i < $scope.tokens.length; i++) {
-                var date = new Date($scope.tokens[i].expiry);
-                $scope.tokens[i].expiryDate = date.getHours() + ":" + ('0'+date.getMinutes()).slice(-2) + ":00 " + date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear();
+                $scope.decorateTokenExpiry($scope.tokens[i]);
             }
             console.log(res.data);
         });
@@ -95,7 +94,8 @@ angular.module('cloodApp.tokens', [])
         $http.post(ENV_CONST.base_api_url + "/token", token, {headers:{"Authorization":$scope.auth.token}}).then(function(res){
             console.log("res",res);
             item.id__ = res.data.token.id__;
-            item.expiryDate = $scope.formatDate(item.expiry);
+            item.expiry = token.expiry;
+            $scope.decorateTokenExpiry(item);
             item.token = res.data.token.token;
             $scope.tokens.push(item); // refresh list
             $scope.pop("success", null, "New token save.");
@@ -126,9 +126,20 @@ angular.module('cloodApp.tokens', [])
     };
 
   // Return a formatted date
-    $scope.formatDate = function(date) {
-        var d = new Date(date);
+    $scope.formatExpiryDate = function(expirySeconds) {
+        var expiry = Number(expirySeconds);
+        if (!Number.isFinite(expiry)) {
+            return "";
+        }
+        var d = new Date(expiry * 1000);
         return d.getHours() + ":" + ('0'+d.getMinutes()).slice(-2) + ":00 " + d.getDate() + "/" + (d.getMonth() + 1) + "/" + d.getFullYear();
+    };
+
+    $scope.decorateTokenExpiry = function(token) {
+        var expiry = Number(token.expiry);
+        token.expiryDate = $scope.formatExpiryDate(expiry);
+        token.isExpired = Number.isFinite(expiry) && expiry < (Date.now() / 1000);
+        token.expiryStatus = token.isExpired ? "Expired" : "Active";
     };
 
     $scope.getAllProjects();

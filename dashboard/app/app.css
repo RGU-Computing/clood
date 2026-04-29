@@ -432,6 +432,27 @@ label {
   padding: 0;
 }
 
+.token-status {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.token-status-active {
+  background: #dceee7;
+  color: #155c44;
+}
+
+.token-status-expired {
+  background: #f6dddd;
+  color: #a53333;
+}
+
 
 /*
  * Placeholder dashboard ideas
