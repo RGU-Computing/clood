@@ -822,7 +822,11 @@ def cbr_rag(event, context=None):
   # Build schema description for the new case structure
   attributes_schema = []
   for attr in proj_attributes:
-    attr_desc = f"- {attr['name']}: {attr.get('type', 'string')}"
+    # attr_desc = f"- {attr['name']}: {attr.get('type', 'string')}"
+    if attr.get('description'):
+      attr_desc = f"- {attr['name']}: {attr.get('type', 'string')} - {attr['description']}"
+    else:
+      attr_desc = f"- {attr['name']}: {attr.get('type', 'string')}"
     attributes_schema.append(attr_desc)
   attributes_schema_text = "\n".join(attributes_schema)
   
