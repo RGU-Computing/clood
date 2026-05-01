@@ -12,27 +12,28 @@ All notable changes to this project since version 2 will be documented in this f
 - JWT Token based API authentication.
 - Client dashboard:
   - Login Authentication support
-  - Visual case representation (Parallel Cordinates)
+  - Visual case representation (Parallel Coordinates)
   - Export functionality for retrievals
   - Import CSV validation and templating
-  - dd single cases from dashboard support
+  - Add individual cases from dashboard support
   - Explanations added for similarity types
   - Manage JWT Tokens.
-
 
 
 ## [2.1.0] - 2026-05-01
 
 ### Added
-- CBR-RAG feature that combines case retrieval with LLM-based generation.
-- Logger system for traceability.
-- Case attribute description field to case base improve metadata and support the CBR-RAG feature.
-- Support for AnglE similarity with two new similarity types: Semantic AnglE Matching and Semantic AnglE Retrieval - https://aclanthology.org/2024.acl-long.101/
+- Added **CBR-RAG**, combining case retrieval with LLM-based generation through the `/rag` endpoint.
+- Added configurable LLM provider support for CBR-RAG workflows.
+- Added a logger system to improve traceability and debugging.
+- Added case attribute descriptions to improve project metadata and provide richer context for CBR-RAG prompts.
+- Added support for AnglE similarity with two new similarity types: **Semantic AnglE Matching** and **Semantic AnglE Retrieval**. See: https://aclanthology.org/2024.acl-long.101/
+- Added **Suggest from Data**, an assisted dashboard workflow for generating project attribute configurations from CSV samples. The workflow profiles uploaded data, suggests CloodCBR-compatible data types, similarity measures, weights, and descriptions, and optionally enriches descriptions using a configured LLM. Suggestions remain editable and are only available before a project casebase is created.
 
 ### Changed
-- Improved API documentation on README including detail of newly add CBR-RAG feature
-- Client dashboard: Changes to CSS and element arrangement
+- Improved README API documentation, including details and examples for the new CBR-RAG feature.
+- Refreshed the client dashboard styling and improved layout for project, attribute, token, and configuration workflows.
 
 ### Fixed
-- Deployment issue due to old libraries
-- Bug where generate tokens always showed 1970 expiry on the Client Dashboard
+- Fixed deployment issues caused by outdated libraries.
+- Fixed a dashboard bug where generated tokens always displayed a 1970 expiry date.

@@ -453,6 +453,161 @@ label {
   color: #a53333;
 }
 
+.setup-assist-callout {
+  margin: 18px 0 0;
+  border-left: 3px solid #1f7a5a;
+  border-radius: 6px;
+  background: #eef4f1;
+  color: #40524a;
+  padding: 12px 14px;
+  line-height: 1.45;
+}
+
+.setup-assist-callout strong {
+  color: #155c44;
+}
+
+.setup-assist-callout a {
+  color: #155c44;
+  font-weight: 850;
+}
+
+.suggest-config-section {
+  margin-right: 0;
+  margin-left: 0;
+  padding-top: 18px;
+}
+
+.suggest-config-card,
+.suggest-config-table {
+  border: 1px solid #d7dfda;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(28, 42, 35, 0.07);
+}
+
+.suggest-config-card {
+  padding: 24px 28px 22px;
+}
+
+.suggest-config-heading {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e3e9e5;
+}
+
+.suggest-config-heading h4,
+.suggest-config-review-header h4 {
+  margin: 0;
+  color: #18221e;
+  font-size: 20px;
+  font-weight: 850;
+}
+
+.suggest-config-heading p,
+.suggest-config-review-header p {
+  margin: 8px 0 0;
+  color: #66736d;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.suggest-config-note {
+  max-width: 860px;
+  border-left: 3px solid #1f7a5a;
+  background: #eef4f1;
+  padding: 9px 12px;
+}
+
+.suggest-config-stat {
+  min-height: 39px;
+  border: 1px solid #cfd9d4;
+  border-radius: 6px;
+  background: #f8fbf9;
+  color: #1f7a5a;
+  padding: 8px 12px;
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.suggest-config-action {
+  padding-top: 24px;
+}
+
+.suggest-config-message {
+  margin-top: 8px;
+  border-left: 3px solid #1f7a5a;
+  background: #eef4f1;
+  color: #40524a;
+  padding: 10px 12px;
+}
+
+.suggest-config-table {
+  margin-top: 18px;
+  padding: 18px;
+}
+
+.suggest-config-review-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.suggest-apply-options {
+  flex: 0 0 auto;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+
+.suggest-description-input {
+  min-width: 260px;
+  resize: vertical;
+}
+
+.suggest-source {
+  display: inline-block;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: #dceee7;
+  color: #155c44;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.suggest-config-table small {
+  display: block;
+  color: #66736d;
+  line-height: 1.35;
+}
+
+.attribute-description-cell {
+  max-width: 380px;
+  color: #40524a;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.suggest-config-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+@media (max-width: 900px) {
+  .suggest-config-review-header {
+    display: block;
+  }
+
+  .suggest-apply-options {
+    margin-top: 12px;
+  }
+}
+
 
 /*
  * Placeholder dashboard ideas

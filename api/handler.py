@@ -688,6 +688,252 @@ def update_attribute_options(event, context=None):
   return response
 
 
+def suggest_project_config(event, context=None):
+  """
+  End-point: Suggest project attributes from uploaded data column profiles.
+  Uses deterministic rules first, then optionally enriches descriptions with the configured LLM.
+  """
+  projectId = event['pathParameters']['id']
+  logger.info(f"Suggesting project configuration for project ID: {projectId}")
+  params = json.loads(event['body']) if event.get('body') else {}
+  columns = params.get('columns', [])
+  use_llm = params.get('use_llm', True)
+
+  es = getESConn()
+  proj = utility.getByUniqueField(es, projects_db, "_id", projectId)
+  if not proj:
+    response = {
+      "statusCode": 404,
+      "headers": headers,
+      "body": json.dumps({"message": "Project not found"})
+    }
+    return response
+
+  if proj.get('hasCasebase'):
+    response = {
+      "statusCode": 400,
+      "headers": headers,
+      "body": json.dumps({"message": "Configuration suggestions are unavailable after a project casebase has been created."})
+    }
+    return response
+
+  if not isinstance(columns, list) or len(columns) == 0:
+    response = {
+      "statusCode": 400,
+      "headers": headers,
+      "body": json.dumps({"message": "No column profiles supplied"})
+    }
+    return response
+
+  global_config = get_global_config_document(es)
+  allowed_options = build_allowed_attribute_options(global_config)
+  suggestions = []
+
+  for column in columns:
+    suggestion = suggest_attribute_from_profile(column, allowed_options)
+    if suggestion is not None:
+      suggestions.append(suggestion)
+
+  llm_available = False
+  llm_message = "LLM enrichment was not requested."
+  if use_llm:
+    llm_available, llm_message = enrich_suggestions_with_llm(suggestions, columns, allowed_options)
+
+  response_body = {
+    "projectId": projectId,
+    "llmAvailable": llm_available,
+    "llmMessage": llm_message,
+    "attributes": suggestions
+  }
+  response = {
+    "statusCode": 200,
+    "headers": headers,
+    "body": json.dumps(response_body)
+  }
+  return response
+
+
+def get_global_config_document(es):
+  if not es.indices.exists(index=config_db):
+    utility.createOrUpdateGlobalConfig(es, config_db=config_db)
+    time.sleep(0.3)
+  query = {"query": retrieve.MatchAll()}
+  res = es.search(index=config_db, body=query)
+  if res['hits']['total']['value'] > 0:
+    return res['hits']['hits'][0]['_source']
+  return {}
+
+
+def build_allowed_attribute_options(global_config):
+  result = {}
+  for option in global_config.get('attributeOptions', []):
+    result[option.get('type')] = option.get('similarityTypes', [])
+  return result
+
+
+def has_similarity(allowed_options, attr_type, similarity):
+  return similarity in allowed_options.get(attr_type, [])
+
+
+def coerce_similarity(allowed_options, attr_type, preferred, fallback="None"):
+  if has_similarity(allowed_options, attr_type, preferred):
+    return preferred
+  if has_similarity(allowed_options, attr_type, fallback):
+    return fallback
+  similarities = allowed_options.get(attr_type, [])
+  return similarities[0] if similarities else "None"
+
+
+def suggest_attribute_from_profile(column, allowed_options):
+  name = str(column.get('name', '')).strip()
+  if name == "":
+    return None
+
+  samples = column.get('samples', [])
+  stats = column.get('stats', {})
+  non_empty = stats.get('nonEmpty', len(samples))
+  unique_count = stats.get('unique', 0)
+  lower_name = name.lower()
+
+  attr_type = "String"
+  similarity = "EqualIgnoreCase"
+  weight = 1
+  reason = "Detected as text from sample values."
+
+  if stats.get('allBoolean'):
+    attr_type = "Boolean"
+    similarity = "Equal"
+    reason = "Detected mostly as boolean or 0/1 values."
+  elif stats.get('allArray'):
+    attr_type = "Array"
+    similarity = "Jaccard"
+    reason = "Detected array-like values."
+  elif stats.get('allNumeric'):
+    attr_type = "Integer" if stats.get('allInteger') else "Float"
+    similarity = "Nearest Number"
+    reason = "Detected numeric values."
+  elif stats.get('allDateLike'):
+    attr_type = "Date"
+    similarity = "Nearest Date"
+    reason = "Detected date-like values."
+  elif stats.get('averageLength', 0) > 80:
+    attr_type = "String"
+    similarity = "BM25"
+    reason = "Detected longer text values."
+  elif non_empty > 0 and unique_count > 0 and unique_count <= min(20, max(5, non_empty * 0.2)):
+    attr_type = "Categorical"
+    similarity = "EqualIgnoreCase"
+    reason = "Detected repeated short category values."
+
+  if lower_name in ["id", "_id", "uuid", "hash", "hash__"] or unique_count == 1:
+    weight = 0
+  if lower_name in ["price", "target", "label", "outcome", "result", "recommendation"]:
+    weight = 0
+  if lower_name == "country" and unique_count <= 1:
+    weight = 0
+
+  if attr_type not in allowed_options:
+    attr_type = "String"
+  similarity = coerce_similarity(allowed_options, attr_type, similarity)
+
+  suggestion = {
+    "name": name,
+    "type": attr_type,
+    "similarity": similarity,
+    "weight": weight,
+    "description": build_basic_attribute_description(name, attr_type),
+    "selected": True,
+    "confidence": stats.get('confidence', 0.75),
+    "source": "rules",
+    "reason": reason
+  }
+  suggestion["options"] = get_default_attribute_options(suggestion)
+  return suggestion
+
+
+def build_basic_attribute_description(name, attr_type):
+  label = name.replace("_", " ")
+  return f"{label} value for this case. Suggested type: {attr_type}."
+
+
+def get_default_attribute_options(attribute):
+  similarity = attribute.get('similarity')
+  if similarity in ['Interval', 'McSherry Less', 'McSherry More', 'INRECA Less', 'INRECA More']:
+    return {"max": 100, "min": 1, "jump": 1}
+  if similarity == 'Nearest Number':
+    return {"nscale": 1, "ndecay": 0.9}
+  if similarity == 'Nearest Date':
+    return {"dscale": "1d", "ddecay": 0.9}
+  if similarity == 'Cosine':
+    return {"dimension": 512}
+  return {}
+
+
+def enrich_suggestions_with_llm(suggestions, columns, allowed_options):
+  provider = cfg.llm.get('provider', '').lower()
+  api_key = cfg.llm.get('api_key')
+  model = cfg.llm.get('model')
+  url = cfg.llm.get('url')
+
+  if provider != 'ollama' and not api_key:
+    return False, f"LLM provider '{provider}' is missing an API key; using rule-based suggestions only."
+  if not provider or not model or not url:
+    return False, "LLM provider, model, or URL is not configured; using rule-based suggestions only."
+
+  compact_columns = []
+  for column in columns:
+    compact_columns.append({
+      "name": column.get('name'),
+      "samples": column.get('samples', [])[:8],
+      "stats": column.get('stats', {})
+    })
+
+  prompt = (
+    "You are helping configure a CloodCBR project from CSV data. "
+    "Improve the human-readable description for each suggested attribute. "
+    "You may refine type, similarity, and weight only if clearly justified by the samples, "
+    "but you must use only the allowed Clood options provided. "
+    "Respond with ONLY valid JSON in this shape: "
+    "{\"attributes\":[{\"name\":\"...\",\"type\":\"...\",\"similarity\":\"...\",\"weight\":1,\"description\":\"...\"}]}.\n\n"
+    f"Allowed Clood options:\n{json.dumps(allowed_options)}\n\n"
+    f"Current suggestions:\n{json.dumps(suggestions)}\n\n"
+    f"Column profiles:\n{json.dumps(compact_columns)}"
+  )
+
+  llm_response = utility.call_llm(prompt, 1800)
+  if not llm_response or llm_response.startswith("LLM call failed") or llm_response.startswith("No LLM") or llm_response.startswith("Exception") or llm_response.startswith("Unknown LLM"):
+    return False, llm_response or "LLM did not return a response; using rule-based suggestions only."
+
+  try:
+    json_start = llm_response.find('{')
+    json_end = llm_response.rfind('}') + 1
+    if json_start >= 0 and json_end > json_start:
+      llm_response = llm_response[json_start:json_end]
+    parsed = json.loads(llm_response)
+    llm_attrs = parsed.get('attributes', [])
+    by_name = {item.get('name'): item for item in llm_attrs if item.get('name')}
+
+    for suggestion in suggestions:
+      item = by_name.get(suggestion.get('name'))
+      if not item:
+        continue
+      suggested_type = item.get('type', suggestion.get('type'))
+      suggested_similarity = item.get('similarity', suggestion.get('similarity'))
+      if suggested_type in allowed_options and has_similarity(allowed_options, suggested_type, suggested_similarity):
+        suggestion['type'] = suggested_type
+        suggestion['similarity'] = suggested_similarity
+        suggestion['options'] = get_default_attribute_options(suggestion)
+      if isinstance(item.get('weight'), (int, float)):
+        suggestion['weight'] = item.get('weight')
+      if item.get('description'):
+        suggestion['description'] = item.get('description')
+      suggestion['source'] = 'rules+llm'
+    return True, "LLM enrichment applied."
+  except Exception as e:
+    logger.warning(f"LLM enrichment failed: {e}. Response: {llm_response}")
+    return False, "LLM response could not be parsed; using rule-based suggestions only."
+
+
 def create_project_index(event, context=None):
   """
   End-point: Creates the mapping for an index if it does not exist.
