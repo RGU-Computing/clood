@@ -149,6 +149,14 @@ functions:
           method: post
           cors: true
           authorizer: auth
+  get_llm_config:
+    handler: handler.get_llm_config
+    events:
+      - http:
+          path: llm/config
+          method: get
+          cors: true
+          authorizer: auth
   check_ontology_sim:
     handler: handler.check_ontology_sim
     events:

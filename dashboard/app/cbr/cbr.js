@@ -25,12 +25,17 @@ angular.module('cloodApp.cbr', [])
     name: 'cbr.retain',
     templateUrl: 'cbr/views/retain.html'
   };
+  var cbrRagState = {
+    name: 'cbr.rag',
+    templateUrl: 'cbr/views/rag.html'
+  };
 
   $stateProvider.state(cbrState);
   $stateProvider.state(cbrRetrieveState);
   $stateProvider.state(cbrReuseState);
   $stateProvider.state(cbrReviseState);
   $stateProvider.state(cbrRetainState);
+  $stateProvider.state(cbrRagState);
 }])
 .filter('displaySnippet', [function(){  // display snippets for long texts
   return function(input, scope, num){  // num - max no. of characters to display
@@ -49,8 +54,15 @@ angular.module('cloodApp.cbr', [])
 .controller('CBRCtrl', ['$scope', '$http', '$state', 'ENV_CONST', '$uibModal', function($scope, $http, $state, ENV_CONST, $uibModal ) {
   $scope.datenow = new Date();  // current date for any date field selection
   $scope.menu.active = $scope.menu.items[2]; // ui active menu tag
-  $scope.selected = {};
-  $scope.requests = { current:  { data: [], topk: 5, globalSim: "Weighted Sum", explanation: true }, previous: [], response: null };
+	  $scope.selected = {};
+	  $scope.requests = { current:  { data: [], topk: 5, globalSim: "Weighted Sum", explanation: true }, previous: [], response: null };
+	  $scope.rag = {
+	    current: { data: [], topk: 5, include_reasoning: true, max_tokens: 1200, prompt_template: "" },
+	    response: null,
+	    reasoningSections: [],
+	    llm: null,
+	    loading: false
+	  };
 
   // Retrieves all projects
   $scope.getAllProjects = function() {
@@ -64,25 +76,240 @@ angular.module('cloodApp.cbr', [])
   };
 
   // selects a project
-  $scope.selectProject = function() {
-    console.log($scope.selected);
-    if ($scope.selected.hasCasebase) {
-      console.log("Project has a casebase");
-      $state.transitionTo('cbr.retrieve');
-    }
-    // reset any previous selections
-    $scope.editing = false;
-    $scope.requests = { current:  { data: [], topk: 5, globalSim: "Weighted Sum", explanation: false }, previous: [], response: null };
-  };
+	  $scope.selectProject = function() {
+	    console.log($scope.selected);
+	    if ($scope.selected.hasCasebase) {
+	      console.log("Project has a casebase");
+	      $state.transitionTo('cbr.retrieve');
+	    }
+	    // reset any previous selections
+	    $scope.editing = false;
+	    $scope.requests = { current:  { data: [], topk: 5, globalSim: "Weighted Sum", explanation: false }, previous: [], response: null };
+	    $scope.rag = {
+	      current: { data: [], topk: 5, include_reasoning: true, max_tokens: 1200, prompt_template: $scope.getProjectRagPrompt() },
+	      response: null,
+	      reasoningSections: [],
+	      llm: $scope.rag && $scope.rag.llm ? $scope.rag.llm : null,
+	      loading: false
+	    };
+	  };
+
+	  $scope.getLlmConfig = function() {
+	    $http({method: 'GET', url: ENV_CONST.base_api_url + "/llm/config", headers: {"Authorization":$scope.auth.token}}).then(function(res) {
+	      $scope.rag.llm = res.data;
+	    }, function(err) {
+	      console.log(err);
+	      $scope.rag.llm = {configured: false, provider: '', model: ''};
+	    });
+	  };
+
+	  $scope.getDefaultRagPrompt = function() {
+	    return [
+	      "You are an expert CBR assistant.",
+	      "Use the retrieved cases as the main evidence and generate a new case that follows the selected project's attribute specification.",
+	      "Prefer values supported by the most similar retrieved cases. Do not invent unsupported details when the evidence is insufficient.",
+	      "",
+	      "Query features:",
+	      "{query_case}",
+	      "",
+	      "Retrieved cases:",
+	      "{cases}",
+	      "",
+	      "Expected case attributes:",
+	      "{attributes}",
+	      "",
+	      "Respond with only a valid JSON object."
+	    ].join("\n");
+	  };
+
+	  $scope.resetRagPrompt = function() {
+	    $scope.rag.current.prompt_template = $scope.getDefaultRagPrompt();
+	  };
+
+	  $scope.getProjectRagPrompt = function() {
+	    if ($scope.selected && $scope.selected.rag && $scope.selected.rag.promptTemplate) {
+	      return $scope.selected.rag.promptTemplate;
+	    }
+	    return $scope.getDefaultRagPrompt();
+	  };
+
+	  $scope.saveRagPromptForProject = function() {
+	    var promptTemplate = $scope.rag.current.prompt_template || "";
+	    if (!promptTemplate.includes("{query_case}") || !promptTemplate.includes("{cases}") || !promptTemplate.includes("{attributes}")) {
+	      $scope.pop("warn", null, "Prompt template must include {query_case}, {cases}, and {attributes} before saving.");
+	      return;
+	    }
+	    var proj = angular.copy($scope.selected);
+	    proj.rag = proj.rag || {};
+	    proj.rag.promptTemplate = promptTemplate;
+	    delete proj.id__;
+
+	    $http.put(ENV_CONST.base_api_url + "/project/" + $scope.selected.id__, proj, {headers: {"Authorization":$scope.auth.token}}).then(function(res) {
+	      $scope.selected.rag = res.data.project.rag || proj.rag;
+	      $scope.pop("success", null, "RAG prompt saved for this project.");
+	    }, function(err) {
+	      console.log(err);
+	      $scope.pop("error", null, "Could not save RAG prompt for this project.");
+	    });
+	  };
+
+	  $scope.useSavedRagPrompt = function() {
+	    $scope.rag.current.prompt_template = $scope.getProjectRagPrompt();
+	  };
+
+	  $scope.runRag = function() {
+	    var promptTemplate = $scope.rag.current.prompt_template || $scope.getDefaultRagPrompt();
+	    if (!promptTemplate.includes("{query_case}") || !promptTemplate.includes("{cases}") || !promptTemplate.includes("{attributes}")) {
+	      $scope.pop("warn", null, "Prompt template must include {query_case}, {cases}, and {attributes}.");
+	      return;
+	    }
+
+	    var request = angular.copy($scope.rag.current);
+	    request.project = angular.copy($scope.selected);
+	    request.include_reasoning = true;
+	    request.prompt_template = promptTemplate;
+	    request.topk = request.topk || 5;
+	    request.max_tokens = request.max_tokens || 1200;
+
+	    $scope.rag.loading = true;
+	    $http.post(ENV_CONST.base_api_url + '/rag', request, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
+	      var ragResponse = res.data;
+	      var generatedCase = recoverGeneratedCase(ragResponse.generatedCase);
+	      var reasoning = ragResponse.reasoning || (generatedCase && generatedCase.reasoning);
+	      if (generatedCase && generatedCase.generatedCase) {
+	        generatedCase = generatedCase.generatedCase;
+	      }
+
+	      $scope.rag.response = ragResponse;
+	      $scope.rag.reasoningSections = getReasoningSections(reasoning);
+	      $scope.requests.response = {
+	        recommended: generatedCase || {},
+	        bestK: ragResponse.bestK || [],
+	        ragTime: ragResponse.ragTime,
+	        esTime: ragResponse.esTime,
+	        reasoning: reasoning,
+	        source: "rag"
+	      };
+	      $scope.rag.loading = false;
+	      $scope.pop("success", null, "CBR-RAG completed.");
+	    }).catch(function(err) {
+	      console.log(err);
+	      $scope.rag.loading = false;
+	      $scope.pop("error", null, "An error occurred while running CBR-RAG.");
+	    });
+	  };
+
+	  $scope.reviseRagCase = function() {
+	    if (!$scope.requests.response || !$scope.requests.response.recommended) {
+	      $scope.pop("warn", null, "Run CBR-RAG before revising a generated case.");
+	      return;
+	    }
+	    $scope.reviseCase();
+	  };
+
+	  function recoverGeneratedCase(generatedCase) {
+	    if (!generatedCase || !generatedCase._error || !generatedCase.raw_response) {
+	      return generatedCase;
+	    }
+	    var parsed = parseLlmJsonLike(generatedCase.raw_response);
+	    return parsed || generatedCase;
+	  }
+
+	  function parseLlmJsonLike(value) {
+	    if (typeof value !== "string") {
+	      return null;
+	    }
+	    var cleaned = value.trim().replace(/^```(?:json)?\\s*/i, "").replace(/\\s*```$/i, "").trim();
+	    var candidates = [cleaned];
+	    var fencedMatch = value.match(/```(?:json)?\\s*([\\s\\S]*?)```/i);
+	    if (fencedMatch && fencedMatch[1]) {
+	      candidates.push(fencedMatch[1].trim());
+	    }
+	    var extracted = extractFirstJsonObject(cleaned);
+	    if (extracted) {
+	      candidates.push(extracted);
+	    }
+	    for (var i = 0; i < candidates.length; i++) {
+	      try {
+	        var parsed = JSON.parse(candidates[i]);
+	        return parsed && typeof parsed === "object" ? parsed : null;
+	      } catch (_err) {}
+	    }
+	    return null;
+	  }
+
+	  function extractFirstJsonObject(value) {
+	    var start = value.indexOf("{");
+	    if (start < 0) {
+	      return null;
+	    }
+	    var depth = 0;
+	    var inString = false;
+	    var escaped = false;
+	    for (var index = start; index < value.length; index += 1) {
+	      var char = value[index];
+	      if (escaped) {
+	        escaped = false;
+	        continue;
+	      }
+	      if (char === "\\\\") {
+	        escaped = true;
+	        continue;
+	      }
+	      if (char === '"') {
+	        inString = !inString;
+	        continue;
+	      }
+	      if (inString) {
+	        continue;
+	      }
+	      if (char === "{") {
+	        depth += 1;
+	      }
+	      if (char === "}") {
+	        depth -= 1;
+	        if (depth === 0) {
+	          return value.slice(start, index + 1);
+	        }
+	      }
+	    }
+	    return null;
+	  }
+
+	  function getReasoningSections(reasoning) {
+	    if (!reasoning) {
+	      return [];
+	    }
+	    if (typeof reasoning === "string") {
+	      var parsed = parseLlmJsonLike(reasoning);
+	      if (parsed) {
+	        return getReasoningSections(parsed);
+	      }
+	      return [{key: "Reasoning", value: reasoning, isArray: false, isObject: false}];
+	    }
+	    if (typeof reasoning !== "object") {
+	      return [{key: "Reasoning", value: String(reasoning), isArray: false, isObject: false}];
+	    }
+	    return Object.keys(reasoning).map(function(key) {
+	      var value = reasoning[key];
+	      return {
+	        key: key.replace(/_/g, " "),
+	        value: Array.isArray(value) || typeof value === "object" ? JSON.stringify(value, null, 2) : value,
+	        isArray: Array.isArray(value),
+	        isObject: typeof value === "object"
+	      };
+	    });
+	  }
 
   // retrieves cases from the casebase using specified request features
   $scope.retrieveCases = function() {
     $scope.requests.current.project = angular.copy($scope.selected);
 
     // console.log("Current ", $scope.requests.current); // array attributes: name, value, weight, unknown, strategy (if unknown)
-    $http.post(ENV_CONST.base_api_url + '/retrieve', $scope.requests.current, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
-      $scope.requests.response = res.data;
-      console.log($scope.requests.response)
+	    $http.post(ENV_CONST.base_api_url + '/retrieve', $scope.requests.current, {headers:{"Authorization":$scope.auth.token}}).then(function(res) {
+	      $scope.requests.response = res.data;
+	      $scope.requests.response.source = "retrieve";
+	      console.log($scope.requests.response)
       $state.transitionTo('cbr.reuse');
       $scope.pop("success", null, "Cases retrieved.");
     }).catch(function(err) {
@@ -152,11 +379,11 @@ angular.module('cloodApp.cbr', [])
   };
 
   // Hides case editing fields are restores case values to earlier state
-  $scope.cancelReviseCase = function() {
-    // $scope.editing = false; // turn ui case editing on
-    $scope.requests.response.recommended = $scope.caseCopy; // keep copy of the case
-    $state.transitionTo('cbr.reuse');
-  };
+	  $scope.cancelReviseCase = function() {
+	    // $scope.editing = false; // turn ui case editing on
+	    $scope.requests.response.recommended = $scope.caseCopy; // keep copy of the case
+	    $state.transitionTo($scope.requests.response.source == "rag" ? 'cbr.rag' : 'cbr.reuse');
+	  };
 
   //Export the results of the best k cases to a csv file
   $scope.exportResults = function(){
@@ -378,10 +605,11 @@ angular.module('cloodApp.cbr', [])
   };
 
 
-  // Start calls
-  $scope.getAllProjects();
-  $state.transitionTo('cbr.retrieve'); // REMOVE
-}])
+	  // Start calls
+	  $scope.getAllProjects();
+	  $scope.getLlmConfig();
+	  $state.transitionTo('cbr.retrieve'); // REMOVE
+	}])
 .controller('ModalGraphInstanceCtrl', ['$uibModalInstance', 'data', '$scope', function($uibModalInstance, data, $scope) {
   $scope.data = angular.copy(data);
   console.log($scope.data);

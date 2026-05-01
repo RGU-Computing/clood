@@ -1192,6 +1192,27 @@ def get_config(event, context=None):
   return response
 
 
+def get_llm_config(event, context=None):
+  """
+  End-point: Retrieves non-secret LLM configuration metadata for dashboard display.
+  """
+  provider = cfg.llm.get('provider', '')
+  api_key = cfg.llm.get('api_key', '')
+  body = {
+    "provider": provider,
+    "model": cfg.llm.get('model', ''),
+    "urlConfigured": bool(cfg.llm.get('url')),
+    "apiKeyConfigured": bool(api_key),
+    "configured": bool(provider and cfg.llm.get('model') and cfg.llm.get('url') and (api_key or provider.lower() == 'ollama'))
+  }
+  response = {
+    "statusCode": 200,
+    "headers": headers,
+    "body": json.dumps(body)
+  }
+  return response
+
+
 def update_config(event, context=None):
   """
   End-point: Updates configuration
@@ -1408,15 +1429,16 @@ def cbr_retain(event, context=None):
   statusCode = 201
   params = json.loads(event['body'])  # parameters in request body
   proj = params.get('project')
+  projId = params.get('projectId')
   es = getESConn()
   logger.info("Starting CBR Retain step")
 
   if proj is None:   # if project object is not specified, find using project id
-    projId = params.get('projectId')
     proj = utility.getByUniqueField(es, projects_db, "_id", projId)
 
   if proj:
-    pid = proj["id__"]
+    pid = proj.get("id__", projId)
+    projId = pid
     if(not proj['hasCasebase']): # Update project status if only using retain API
       proj['hasCasebase'] = True
       source_to_update = {'doc': proj}
