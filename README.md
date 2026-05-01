@@ -6,7 +6,7 @@
 <img src="https://img.shields.io/badge/version-2.1.0-brightgreen" alt="Version"/> <a href="https://doi.org/10.5281/zenodo.7702458"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.7702458.svg" alt="DOI"></a>
 
 
-<!-- ### 🚀 Version 2 Released! -->
+### 🚀 Version 2 Released!
 
 
 # What is Clood? 
@@ -142,18 +142,36 @@ For the Clood implementation we have used [AWS Elasticsearch service](https://aw
 
 End-point | Request Method | Description
 --- | --- | ---
+/auth | HTTP POST | Authenticates a dashboard/API user and returns a JWT
+/ | HTTP GET | API reachability check
 /project | HTTP GET | Retrieves all the CBR projects
 /project/{id} | HTTP GET | Retrieves a specific CBR project with specified id
 /project | HTTP POST | Creates a new CBR project. The details of the project are included as a JSON object in the request body
 /project/{id} | HTTP PUT | Updates the details of a CBR project. Modifications are included as a JSON object in the request body
 /project/{id} | HTTP DELETE | Removes a CBR project with specified id
+/project/mapping/{id} | HTTP GET | Creates the OpenSearch casebase mapping for a project
 /case/{id}/list | HTTP POST | Bulk addition of cases to the casebase of the project with specified id. Cases are included in the request body as an array of objects
+/case | HTTP POST | Retrieves cases from a project casebase
+/project/{id}/case/{cid} | HTTP GET | Retrieves a specific case from a project casebase
+/project/{id}/case/{cid} | HTTP PUT | Updates a specific case in a project casebase
+/project/{id}/case | HTTP DELETE | Deletes a project's casebase
+/project/{id}/case/{cid} | HTTP DELETE | Deletes a specific case from a project casebase
 /retrieve | HTTP POST | Performs the case retrieve task (see `retrieve` section below)
 /reuse | HTTP POST | Performs reuse/adaptation based on specified logic (see `reuse` section below)
+/revise | HTTP POST | Performs the case revise task
 /retain | HTTP POST | Performs the case retain task
 /rag | HTTP POST | Performs the CBR-RAG task by retrieving similar cases and using the configured LLM to generate a new case (see CBR-RAG section below)
+/explain | HTTP POST | Extracts explanation details from a retrieval explanation
+/project/{id}/options | HTTP POST | Updates project attribute options from stored case values
+/project/{id}/suggest-config | HTTP POST | Suggests project attribute configuration from uploaded data profiles, with rule-based inference and optional LLM enrichment
 /config | HTTP GET | Retrieves the system configuration
 /config | HTTP POST | Adds or updates the system configuration
+/config/create | HTTP GET | Recreates the global system configuration
+/llm/config | HTTP GET | Retrieves non-secret LLM configuration metadata, such as provider, model, and configured status
+/ontology_sim/{ontology_id} | HTTP GET | Checks whether ontology similarity data exists for an ontology
+/token | HTTP GET | Retrieves all saved API access tokens
+/token | HTTP POST | Creates a new API access token
+/token/{id} | HTTP DELETE | Deletes a saved API access token
 
 Notes:
 - **Base URL**: default local API URL is `http://localhost:3000/`.
