@@ -15,6 +15,7 @@ from opensearchpy import OpenSearch, helpers, RequestsHttpConnection
 # imports for hash - to test for unique records
 import hashlib
 from collections import OrderedDict
+from string import Formatter
 # imports for reuse operations (using both libs increases overall project size by ~20MB)
 import numpy as np
 import statistics
@@ -731,6 +732,194 @@ def re_create_config(event, context=None):
     "headers": headers,
     "body": json.dumps(result)
   }
+  return response
+
+
+def cbr_rag(event, context=None):
+  """
+  End-point: CBR + RAG (Retrieve-And-Generate).
+  Performs case retrieval (like `cbr_retrieve`), builds a prompt using a template,
+  calls an LLM (configured in `config.py`) and returns the LLM answer along with the top-k cases.
+  """
+  start = timer()
+  logger.info("Starting CBR RAG step")
+
+  params = json.loads(event['body'])
+  queryFeatures = params.get('data')
+  proj = params.get('project')
+  topk = int(params.get('topk', 5))
+  addExplanation = params.get('explanation')
+  addFeedback = params.get('feedback')
+  includeReasoning = params.get('include_reasoning')
+
+  result = {'bestK': []}
+  response = {"statusCode": 200, "headers": headers, "body": ""}
+  queryAdded = False
+  es = getESConn()
+
+  if proj is None:
+    projId = params.get('projectId')
+    proj = utility.getByUniqueField(es, projects_db, "_id", projId)
+
+  proj_attributes = proj['attributes']
+  query = {"query": {"bool": {"filter": [], "should": []}}}
+  query["size"] = topk
+
+  for entry in queryFeatures:
+    if entry.get('filterTerm') is not None and entry.get('filterTerm') != 'None':
+      field = entry.get('name')
+      value = entry.get('value')
+      filter = retrieve.get_filter_object(entry.get('filterTerm'), field, entry.get('filterValue'), value)
+      if filter is not None:
+        query["query"]["bool"]["filter"].append(filter)
+        queryAdded = True
+
+    if entry.get('value') is not None and "" != entry['value'] and int(entry.get('weight', 1)) > 0 and entry.get('similarity') != "None":
+      field = entry['name']
+      value = entry['value']
+      similarityType = entry.get('similarity', [x['similarity'] for x in proj_attributes if x['name'] == field][0])
+      valueType = entry.get('type', [x['type'] for x in proj_attributes if x['name'] == field][0])
+      weight = entry.get('weight', [x['weight'] for x in proj_attributes if x['name'] == field][0])
+      options = retrieve.get_attribute_by_name(proj['attributes'], field).get('options', None)
+      queryAdded = True
+
+      qfnc = retrieve.getQueryFunction(proj['id__'], field, value, valueType, weight, similarityType, options)
+      query["query"]["bool"]["should"].append(qfnc)
+
+  if not queryAdded:
+    query["query"]["bool"]["should"].append(retrieve.MatchAll())
+
+  # perform retrieval
+  res = es.search(index=proj['casebase'], body=query, explain=addExplanation)
+  logger.info(f"CBR RAG retrieval query executed: {query}")
+
+  # format results
+  counter = 0
+  for hit in res['hits']['hits']:
+    entry = hit['_source']
+    entry.pop('hash__', None)
+    entry = retrieve.remove_vector_fields(proj_attributes, entry)
+    entry['score__'] = hit['_score']
+    result['bestK'].append(entry)
+    if addExplanation:
+      entry['match_explanation'] = retrieve.get_explain_details(hit.get('_explanation'))
+    if addFeedback:
+      entry['feedback'] = retrieve.get_feedback_details(queryFeatures, proj['casebase'], hit['_id'], es)
+    counter += 1
+
+  # Build prompt text from template and retrieved cases
+  cases_text_lines = []
+  for i, c in enumerate(result['bestK'], start=1):
+    try:
+      summary = json.dumps(c, ensure_ascii=False)
+    except Exception:
+      summary = str(c)
+    cases_text_lines.append(f"Case {i}: {summary}")
+  cases_text = "\n".join(cases_text_lines)
+
+  # question = params.get('question', queryFeatures)
+  
+  # Build schema description for the new case structure
+  attributes_schema = []
+  for attr in proj_attributes:
+    # attr_desc = f"- {attr['name']}: {attr.get('type', 'string')}"
+    if attr.get('description'):
+      attr_desc = f"- {attr['name']}: {attr.get('type', 'string')} - {attr['description']}"
+    else:
+      attr_desc = f"- {attr['name']}: {attr.get('type', 'string')}"
+    attributes_schema.append(attr_desc)
+  attributes_schema_text = "\n".join(attributes_schema)
+  
+  # Allow a full prompt override, otherwise use an editable prompt template.
+  if params.get('prompt'):  # user supplied full prompt text at query time
+    prompt = params.get('prompt')
+  else:
+    default_template = "You are an expert assistant. Based on the query features and retrieved cases, create a new case (JSON object) that represents the best solution.\n\nThe query case is provided as a list of feature objects. In each feature object, 'name' is the attribute name and 'value' is the value for that attribute.\n\nRetrieved cases are standard case objects where each entry is in the form attribute_name: attribute_value.\n\nThe generated solution must use the same case-object structure as the retrieved cases and must follow the expected attributes specification.\n\nThe retrieved cases should directly influence the generated solution. Use the retrieved cases as the primary evidence for choosing attribute values, and prefer values supported by the best-matching retrieved cases rather than inventing unsupported values.\n\nQuery features:\n{query_case}\n\nRetrieved cases:\n{cases}\n\nExpected case attributes:\n{attributes}\n\nRespond with ONLY a valid JSON object (no markdown, no extra text) that matches the case structure with all required attributes filled:"
+    prompt_template = params.get('prompt_template') or cfg.llm.get('prompt_template') or default_template
+    format_fields = {
+      field_name for _, field_name, _, _ in Formatter().parse(prompt_template)
+      if field_name is not None and field_name != ''
+    }
+
+    if 'cases' not in format_fields or 'attributes' not in format_fields or 'query_case' not in format_fields:
+      error_msg = "Invalid prompt_template: must include {query_case}, {cases}, and {attributes}"
+      logger.warning(error_msg)
+      response["statusCode"] = 400
+      response["body"] = json.dumps({"message": error_msg})
+      return response
+
+    try:
+      prompt = prompt_template.format(
+        query_case=params.get('data'),
+        cases=cases_text,
+        attributes=attributes_schema_text
+      )
+    except KeyError as e:
+      error_msg = f"Invalid prompt_template: unsupported placeholder {{{str(e)}}}"
+      logger.warning(error_msg)
+      response["statusCode"] = 400
+      response["body"] = json.dumps({"message": error_msg})
+      return response
+    except ValueError as e:
+      error_msg = f"Invalid prompt_template: {str(e)}"
+      logger.warning(error_msg)
+      response["statusCode"] = 400
+      response["body"] = json.dumps({"message": error_msg})
+      return response
+  logger.info("Prompt for LLM constructed")
+
+  if includeReasoning:
+    prompt += "\n\nAlso include a top-level 'reasoning' object in the JSON response. The response must be a JSON object with exactly two top-level keys: 'generatedCase' and 'reasoning'.\n\nThe 'generatedCase' value must be the new case object.\n\nThe 'reasoning' value must be concise and evidence-based. It should explain how the retrieved cases influenced the generated solution, identify the most relevant retrieved cases or patterns, and justify the main attribute choices. Do not include hidden internal chain-of-thought. Keep the reasoning short and focused on case-based evidence."
+
+  # Call LLM using utility function (supports multiple providers)
+  llm_response_text = None
+  generated_case = None
+  reasoning = None
+  try:
+    llm_response_text = utility.call_llm(prompt, params.get('max_tokens', 1024))
+  except Exception as e:
+    logger.error(f"Exception calling LLM: {e}")
+    llm_response_text = f"Exception calling LLM: {str(e)}"
+
+  # Parse LLM response as a new case
+  if llm_response_text and not llm_response_text.startswith("LLM call failed") and not llm_response_text.startswith("No LLM") and not llm_response_text.startswith("Exception"):
+    try:
+      # Try to extract JSON from the response (in case there's extra text)
+      json_start = llm_response_text.find('{')
+      json_end = llm_response_text.rfind('}') + 1
+      if json_start >= 0 and json_end > json_start:
+        json_str = llm_response_text[json_start:json_end]
+        parsed_response = json.loads(json_str)
+      else:
+        parsed_response = json.loads(llm_response_text)
+
+      if includeReasoning and isinstance(parsed_response, dict):
+        reasoning = parsed_response.get('reasoning')
+        generated_case = parsed_response.get('generatedCase')
+        if generated_case is None:
+          generated_case = parsed_response
+      else:
+        generated_case = parsed_response
+      logger.info(f"Generated case from LLM: {json.dumps(generated_case)}")
+    except json.JSONDecodeError as je:
+      logger.warning(f"Failed to parse LLM response as JSON: {je}. Response: {llm_response_text}")
+      generated_case = {"_error": "Failed to parse LLM response", "raw_response": llm_response_text}
+  else:
+    generated_case = {"_error": "LLM did not generate valid response", "raw_response": llm_response_text}
+
+  end = timer()
+  result['ragTime'] = end - start
+  result['generatedCase'] = generated_case
+  if includeReasoning:
+    result['reasoning'] = reasoning
+  result['esTime'] = res.get('took') if isinstance(res, dict) else None
+
+  response = {
+    "statusCode": 200,
+    "headers": headers,
+    "body": json.dumps(result)
+  }
+  logger.info(f"CBR-RAG step completed in {result['ragTime']} seconds")
   return response
 
 

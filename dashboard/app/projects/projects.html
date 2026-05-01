@@ -42,8 +42,8 @@
 
   <p></p><hr><p></p>
 
-  <h2 class="sub-header">Existing projects 
-    <button class="btn" style="float: right;" title="Import" data-toggle="modal" data-target="#importModal">
+  <h2 class="sub-header projects-header">Existing projects
+    <button class="btn btn-default" title="Import" data-toggle="modal" data-target="#importModal">
       <i class="fas fa-upload"></i>
       Import Project
     </button>
@@ -54,13 +54,11 @@
     <!-- <table class="table table-striped"> -->
       <thead>
         <tr>
-          <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Duplicates</th>
-            <th>Project ID</th>
-
-            <th></th>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Duplicates</th>
+          <th>Project ID</th>
+          <th class="project-actions-heading">Actions</th>
         </tr>
       </thead>
       <tbody id="projectsTableBody">
@@ -72,7 +70,8 @@
             <span ng-if="!item.retainDuplicateCases">No</span>
           </td>
           <td><code>{{ item.id__ }}</code></td>
-          <td align="right">
+          <td class="project-actions-cell">
+            <div class="project-actions">
             <button ng-click="exportProject(item)" class="btn btn-success" title="Export">
               <i class="fas fa-download"></i>
             </button>
@@ -84,6 +83,7 @@
             <button ng-click="deleteProject(item)" class="btn btn-danger" title="Delete">
               <i class="fas fa-trash"></i>
             </button>
+            </div>
           </td>
         </tr>
       </tbody>

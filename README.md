@@ -3,10 +3,10 @@
 
 *Clood CBR: Towards Microservices Oriented Case-Based Reasoning*
 
-<img src="https://img.shields.io/badge/version-2.0.0-brightgreen" alt="Version"/> <a href="https://doi.org/10.5281/zenodo.7702458"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.7702458.svg" alt="DOI"></a>
+<img src="https://img.shields.io/badge/version-2.1.0-brightgreen" alt="Version"/> <a href="https://doi.org/10.5281/zenodo.7702458"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.7702458.svg" alt="DOI"></a>
 
 
-### 🚀 Version 2 Released!
+<!-- ### 🚀 Version 2 Released! -->
 
 
 # What is Clood? 
@@ -102,7 +102,7 @@ _Does not include support for Semantic USE, Semantic SBERT, AnglE and Ontology s
 docker compose --profile other --env-file .env.dev up --build
 ```
 
-* Please note that the docker build might take a bit longer depending on the internet speed (10-20mins)
+* Please note that the docker build might take a bit longer depending on the internet speed (5-20mins)
 * The above command uses default configuration from .env.dev, when moving to proudction make sure to change config files inside ```api/config.py```, ```dashboard/app/env.js``` and other services (if using them).
 
 3. Open Clood CBR dashboard at [http://localhost:8000/](http://localhost:8000/) using default username and password (```clood:clood```)
@@ -148,16 +148,272 @@ End-point | Request Method | Description
 /project/{id} | HTTP PUT | Updates the details of a CBR project. Modifications are included as a JSON object in the request body
 /project/{id} | HTTP DELETE | Removes a CBR project with specified id
 /case/{id}/list | HTTP POST | Bulk addition of cases to the casebase of the project with specified id. Cases are included in the request body as an array of objects
-/retrieve | HTTP POST | Performs the case retrieve task
+/retrieve | HTTP POST | Performs the case retrieve task (see `retrieve` section below)
+/reuse | HTTP POST | Performs reuse/adaptation based on specified logic (see `reuse` section below)
 /retain | HTTP POST | Performs the case retain task
+/rag | HTTP POST | Performs the CBR-RAG task by retrieving similar cases and using the configured LLM to generate a new case (see CBR-RAG section below)
 /config | HTTP GET | Retrieves the system configuration
 /config | HTTP POST | Adds or updates the system configuration
 
+Notes:
+- **Base URL**: default local API URL is `http://localhost:3000/`.
+
+
+**Using the API — `retrieve`**
+
+The `/retrieve` endpoint performs the Retrieve step of the CBR cycle. It takes a query case as a list of query features, matches it against the selected project casebase using the configured similarity measures, and returns the top matching cases.
+
+Request body:
+- `data`:
+  The query case used for retrieval. This is a list of query feature objects.
+  In each feature object:
+  - `name` is the attribute name
+  - `value` is the value for that attribute
+- `projectId`:
+  Project ID to retrieve against
+- `project`:
+  Optional full project object. If supplied, it is used instead of `projectId`
+- `topk`:
+  Optional number of cases to retrieve. Default: `5`
+- `explanation`:
+  Optional boolean. If `true`, includes retrieval explanation details for each case in `bestK`
+- `feedback`:
+  Optional boolean. If `true`, includes feedback details for each case in `bestK`
+- `globalSim`:
+  Optional global similarity setting. Default: `Weighted Sum`.
+  The current implementation uses `Weighted Sum` to aggregate local similarities by default, and other global similarity options are not yet included. This field is retained for future support of additional aggregation strategies.
+
+
+Query feature fields:
+- `name`:
+  Attribute name to query on
+- `value`:
+  Query value for that attribute
+- `similarity`:
+  Optional similarity metric to use for that attribute
+- `type`:
+  Optional attribute type
+- `weight`:
+  Optional attribute weight
+- `strategy`:
+  Optional reuse strategy for query features marked as unknown. Supported values include `NN value`, `Maximum`, `Minimum`, `Mean`, `Median`, `Mode`, `Majority`, and `Minority`.
+- `filterTerm`:
+  Optional filter operator if the field is to be treated as a filter (instead of using similarity measure)
+- `filterValue`:
+  Optional filter comparison value
+
+Notes:
+- If `project` is not supplied, `projectId` is used to load the project
+- If a query feature does not specify `similarity`, `type`, or `weight`, the endpoint uses the values defined in the project attributes
+- If no valid query features are provided, the endpoint falls back to returning cases using a match-all query
+- Retrieved cases are returned as normal case objects, with `score__` added to each result
+- If `explanation` is enabled, each retrieved case includes `match_explanation`
+- If `feedback` is enabled, each retrieved case includes `feedback`
+
+
+Below is a minimal example showing how to call the `/retrieve` endpoint to perform a case retrieval. Replace `http://localhost:3000` with your API base URL and provide a valid JWT in the `Authorization` header if your deployment requires it.
+
+```bash
+curl -X POST "http://localhost:3000/dev/retrieve" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -d '{
+    "data": [
+      {
+        "name": "symptom",
+        "value": "fever"
+      },
+      {
+        "name": "age",
+        "value": 35
+      }
+    ],
+    "projectId": "<project_id>"
+  }'
+```
+
+Example (simplified) response:
+
+```json
+{
+    "recommended": {
+        "symptom": "fever",
+        "age": 35,
+        "...": "...",
+        "condition": "Common cold"
+    },
+    "bestK": [
+        {
+            "symptom": "fever",
+            "age": 33,
+            "...": "...",
+            "condition": "Flu",
+            "score__": 0.852363
+        },
+        {
+            "symptom": "headache",
+            "age": 35,
+            "...": "...",
+            "condition": "Migraine",
+            "score__": 0.5228514
+        }
+    ]
+}
+```
+
+- **Auth**: include `Authorization: Bearer <JWT_TOKEN>` when JWT authentication is enabled (enabled by default).
+
+Response fields:
+- `recommended`:
+  The recommended case produced from the retrieved results. It is based on the top-ranked retrieved case, then updated using known query values and any reuse `strategy` specified for unknown values.
+- `bestK`:
+  The top matching retrieved cases
+- `retrieveTime`:
+  Total end-to-end time for the retrieve step
+- `esTime`:
+  Elasticsearch/OpenSearch query time in milliseconds
+
+
+
+**Using the API — `reuse`**
+
+The `/reuse` endpoint completes the Reuse step of the CBR cycle. It supports custom reuse logic.
+
+How it works:
+- A user can provide a custom reuse script in `api/cbrcycle/custom_reuse_scripts`
+- The script file name must begin with `_`, for example `_my_reuse.py`
+- The request body should include `reuse_type` with the script name, for example `"_my_reuse"`
+- Clood loads that script and executes its `reuse(...)` function
+- The endpoint returns whatever result the custom reuse script produces
+
+This allows users to define any reuse or adaptation logic they need for their domain, while keeping the `/reuse` endpoint unchanged.
+
+Example request:
+
+```bash
+curl -X POST "http://localhost:3000/dev/reuse" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -d '{
+    "reuse_type": "_my_reuse",
+    "query_case": {},
+    "neighbours": []
+  }'
+```
+
 🚧 We are currently improving this section
+
+
+### CBR-RAG
+
+Clood also supports CBR-RAG through the `/rag` endpoint. This combines case retrieval with LLM-based generation by using the retrieved cases and project attribute specification to complete a query case.
+
+**Using the API — `rag`**
+
+The `/rag` endpoint performs retrieval plus generation. It retrieves the top matching cases for a query case, builds a prompt from the query features, retrieved cases, and project's attribute specification, then calls the configured LLM to generate a new case.
+
+LLM provider configuration:
+These can be set through environment variables, for example in `.env.dev` for local Docker development.
+- The backend selects the provider from `CLOOD_LLM_PROVIDER`
+- Supported values: `openai`, `ollama`, `anthropic`, `huggingface`
+- Related configuration includes `CLOOD_LLM_API_KEY`, `CLOOD_LLM_API_URL`, `CLOOD_LLM_MODEL`, and `CLOOD_CBR_RAG_PROMPT`
+
+
+Request body:
+The `/rag` endpoint reuses the same retrieval input structure as `/retrieve`, then augments it with LLM-specific generation options.
+
+- Retrieval-related request fields follow the same structure as `/retrieve`, including `data`, `projectId` / `project`, `topk`, `explanation`, and `feedback`
+- `max_tokens`:
+  Optional maximum token count passed to the LLM. Default: `1024`
+- `include_reasoning`:
+  Optional boolean. If `true`, asks the LLM to return a concise evidence-based reasoning object alongside the generated case
+- `prompt_template`:
+  Optional template override for the RAG prompt
+- `prompt`:
+  Optional full prompt override
+
+
+Prompt template placeholders:
+- `{query_case}`
+- `{cases}`
+- `{attributes}`
+
+Notes:
+- Retrieved cases are passed to the LLM as standard case objects using `attribute_name: attribute_value`
+- The generated solution is expected to use the same case-object structure as the retrieved cases
+- The generated solution should be influenced by the retrieved cases and follow the project attribute specification
+- A valid `prompt_template` must include `{query_case}`, `{cases}`, and `{attributes}`
+- If `prompt` is supplied, it overrides `prompt_template`
+
+Example request:
+
+```bash
+curl -X POST "http://localhost:3000/dev/rag" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <jwt_token>" \
+  -d '{
+    "projectId": "<project_id>",
+    "topk": 3,
+    "include_reasoning": true,
+    "data": [
+      {
+        "name": "symptom",
+        "value": "fever",
+        "weight": 1,
+        "similarity": "BM25"
+      },
+      {
+        "name": "age",
+        "value": 35,
+        "weight": 1,
+        "similarity": "Nearest Number"
+      }
+    ]
+  }'
+```
+
+Example response:
+
+```json
+{
+  "bestK": [
+    {
+      "symptom": "fever",
+      "age": 33,
+      "condition": "Flu",
+      "score__": 0.852363
+    },
+    ...
+  ],
+  "generatedCase": {
+    "symptom": "fever",
+    "age": 35,
+    "condition": "Common cold"
+  },
+  "reasoning": {
+    "summary": "The generated case is based on the best-matching retrieved cases and reflects their strongest shared patterns, including a similar age range."
+  },
+  "ragTime": 1.284,
+  "esTime": 18
+}
+```
+
+Response fields:
+- `bestK`:
+  The top matching retrieved cases
+- `generatedCase`:
+  The new case generated by the LLM
+- `reasoning`:
+  Present when `include_reasoning` is enabled and the LLM returns it
+- `ragTime`:
+  Total retrieval-plus-generation time
+- `esTime`:
+  Elasticsearch/OpenSearch query time in milliseconds
+
 
 ### Client Dashboard
 
-The Client Dashboard demonstrates the use of Clood through API calls to create and configure projects and perform CBR tasks. Project is available in the ```dashboard``` folder of the repository. The readme at ```dashboard``` describes how to instal the client dashboard.
+The Client Dashboard demonstrates the use of Clood through API calls to create and configure projects and perform CBR tasks. Project is available in the ```dashboard``` folder of the repository. The readme at ```dashboard``` describes how to install the client dashboard.
 
 <img src="https://raw.githubusercontent.com/RGU-Computing/clood/master/images/screenshots/client_projects.png">
 
@@ -209,4 +465,4 @@ serverless deploy
 <p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><a property="dct:title" rel="cc:attributionURL" href="https://github.com/RGU-Computing/clood">Clood CBR: Towards Microservices Oriented Case-Based Reasoning</a> by <span property="cc:attributionName">Nkisi-Orji, Ikechukwu; Wiratunga, Nirmalie; Palihawadana, Chamath; Recio-García, Juan A.; Corsar, David; Robert Gordon University Aberdeen</span> is licensed under <a href="http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">Attribution 4.0 International<br><img width="22px" style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1"><img width="22px" style="width:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1"></a></p>
 
 ----
-Repo Maintained by [Ikechukwu Nkisi-Orji (RGU)](https://github.com/ike01), [Chamath Palihawadana (RGU)](https://github.com/chamathpali) and [Andrew McLeman (RGU)](https://github.com/Andrew-McLeman)
+Repo Maintained by [Ikechukwu Nkisi-Orji (RGU)](https://github.com/ike01) and [Chamath Palihawadana](https://github.com/chamathpali).

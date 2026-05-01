@@ -73,7 +73,12 @@
         <tr ng-repeat="item in tokens">
             <td class="nowrap">{{ item.name }}</td>
             <td class="nowrap">{{ item.description }}</td>
-            <td class="nowrap">{{ item.expiryDate }}</td>
+            <td class="nowrap">
+              <span>{{ item.expiryDate }}</span>
+              <span class="token-status" ng-class="{'token-status-expired': item.isExpired, 'token-status-active': !item.isExpired}">
+                {{ item.expiryStatus }}
+              </span>
+            </td>
             <td>
               <input ng-click="copyToken(item.token)" style="width:100%;cursor: pointer;" type="text" value="{{item.token}}" readonly/>
             </td>

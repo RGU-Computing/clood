@@ -8,27 +8,33 @@
 
 <div ng-show="(selected | json) != '{}'">
   <!-- Set attributes, data types and similarity metrics -->
-  <div class="row">
-    <h4 align="center">Specify casebase attributes</h4>
-    <br />
+  <div class="row attribute-config-section">
     <form id="attributesForm">
-      <div class="form-group col-sm-4">
+      <div class="attribute-form-heading">
+        <h4>Specify casebase attributes</h4>
+        <p>Define the field name, data type, similarity measure, and optional description used by CBR-RAG.</p>
+      </div>
+      <div class="form-group attribute-name-field col-sm-3">
         <label for="newAttribName">Name</label>
         <input id="newAttribName" type="text" name="name" class="form-control" ng-model="newAttrib.name" placeholder="Attribute name">
       </div>
-      <div class="form-group  col-sm-2" ng-init="newAttrib.type=globalConfig.attributeOptions[0].type">
+      <div class="form-group attribute-type-field col-sm-3" ng-init="newAttrib.type=globalConfig.attributeOptions[0].type">
         <label for="newAttribType">Data type</label>
         <select id="newAttribType" class="form-control" ng-options="item.type as item.type for item in globalConfig.attributeOptions" ng-model="newAttrib.type"></select>
       </div>
-      <div class="form-group col-sm-3" ng-init="newAttrib.similarity=getSimilarityTypes(newAttrib.type)[0]">
+      <div class="form-group attribute-similarity-field col-sm-3" ng-init="newAttrib.similarity=getSimilarityTypes(newAttrib.type)[0]">
         <label for="newAttribSimilarity">Similarity type <a href="" ng-click="simListPopup()"><i class="fas fa-info-circle" title="Click for more information!"></i></a></label>
         <select id="newAttribSimilarity" class="form-control" ng-options="sim as sim for sim in getSimilarityTypes(newAttrib.type)" ng-model="newAttrib.similarity"></select>
       </div>
       <div class="form-group" ng-init="newAttrib.weight = newAttrib.weight || 1">
         <input type="hidden" class="form-control" ng-model="newAttrib.weight" required>
       </div>
+      <div class="form-group attribute-description-field col-sm-9">
+        <label for="newAttribDescription">Description</label>
+        <input id="newAttribDescription" type="text" name="description" class="form-control" ng-model="newAttrib.description" placeholder="Attribute description">
+      </div>
 
-      <div class="form-group col-sm-3">
+      <div class="form-group attribute-action-field col-sm-3">
         <label for="newAttribSubmit"></label>
         <button ng-hide="editing.status" id="newAttribSubmit" type="button" name="button" class="btn btn-block" ng-click="addAttribute(newAttrib)" ng-disabled="!(newAttrib.name.length>0 && newAttrib.type.length>0 && newAttrib.similarity.length>0)">
           Add Attribute

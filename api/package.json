@@ -1,7 +1,7 @@
 {
   "name": "cloodcbr",
-  "description": "",
-  "version": "0.1.0",
+  "description": "Scalable framework for building case-based reasoning (CBR) applications.",
+  "version": "2.1.0",
   "scripts": {
     "dev": "sls offline start --host 0.0.0.0"
   },

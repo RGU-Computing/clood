@@ -40,7 +40,8 @@ def getProjectMapping():
                     "properties": {
                             "name": {"type": "keyword"},
                             "type": {"type": "keyword"},
-                            "similarity": {"type": "keyword"}
+                            "similarity": {"type": "keyword"},
+                            "description": {"type": "text"}
                     }
                 }
             }
