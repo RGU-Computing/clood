@@ -1,7 +1,7 @@
 {
   "name": "clood-dashboard",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.1.1",
   "description": "A Clood client demonstration using AngularJS framework",
   "repository": "https://github.com/RGU-Computing/clood.git",
   "license": "MIT",
