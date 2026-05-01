@@ -1,0 +1,168 @@
+<ul class="nav nav-tabs">
+  <li role="presentation"><a class="btn btn-link" ng-click="$state.go('cbr.retrieve')"><i class="fas fa-search-plus"></i> Retrieve</a></li>
+  <li role="presentation"><a class="btn btn-link" ng-click="$state.go('cbr.reuse')" ng-show="requests.response && requests.response.source != 'rag'"><i class="fas fa-redo"></i> Reuse</a></li>
+  <li role="presentation" class="active"><a class="btn btn-link"><i class="fas fa-magic"></i> RAG</a></li>
+  <li role="presentation"><a class="btn btn-link" ng-click="reviseCase()" ng-show="requests.response && requests.response.recommended"><i class="fas fa-edit"></i> Revise</a></li>
+  <li role="presentation"><a class="btn btn-link" ng-click="retainCase()" ng-show="requests.response && requests.response.recommended"><i class="fas fa-plus"></i> Retain</a></li>
+</ul>
+
+<p></p>
+
+<div class="rag-status-card">
+  <div>
+    <h4>CBR-RAG generation</h4>
+    <p>Generate a candidate case from retrieved evidence, then revise and retain it using the existing CBR workflow.</p>
+  </div>
+  <div class="rag-model-card">
+    <span>Generation model</span>
+    <strong ng-if="rag.llm && rag.llm.model">{{ rag.llm.provider || 'LLM' }} · {{ rag.llm.model }}</strong>
+    <strong ng-if="!rag.llm || !rag.llm.model">Not configured</strong>
+  </div>
+</div>
+
+<div class="row" ng-show="selected.hasCasebase">
+  <div class="col-lg-12">
+    <form id="ragForm">
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th style="width:25%">Attribute (Type)</th>
+              <th style="width:45%">Query value</th>
+              <th style="width:15%">Weight</th>
+              <th style="width:15%">Similarity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="field in selected.attributes">
+              <td ng-init="rag.current.data[$index].name = field.name">
+                {{ field.name }} <span ng-init="rag.current.data[$index].type = field.type">({{ field.type }})</span>
+              </td>
+              <td ng-init="rag.current.data[$index].similarity = field.similarity">
+                <div ng-if="(field.type=='String' || field.type=='Ontology Concept')" class="form-group">
+                  <input type="text" class="form-control" ng-model="rag.current.data[$index].value" placeholder="{{ field.name }}">
+                </div>
+                <div ng-if="(field.type=='Integer' || field.type=='Float')" class="form-group">
+                  <input type="number" class="form-control" ng-model="rag.current.data[$index].value" placeholder="{{ field.name }}">
+                </div>
+                <div ng-if="field.type=='Boolean'" class="form-group">
+                  <input class="form-check-input" type="checkbox" ng-model="rag.current.data[$index].value">
+                </div>
+                <div ng-if="field.type=='Date'" class="form-group">
+                  <input type="date" class="form-control" ng-model="rag.current.data[$index].value">
+                </div>
+                <div ng-if="field.type=='Location'" class="form-group">
+                  <input type="text" class="form-control" ng-model="rag.current.data[$index].value" placeholder="{{ field.name }} as 'lat,lon'">
+                </div>
+                <div ng-if="field.type=='Categorical'" class="form-group">
+                  <select class="form-control" ng-model="rag.current.data[$index].value" ng-options="val as val for val in field.options.values"></select>
+                </div>
+                <div ng-if="field.type=='Array'" class="form-group">
+                  <textarea type="text" class="form-control" ng-model="rag.current.data[$index].value" ng-list rows="1" placeholder="{{ field.name }}"></textarea>
+                </div>
+                <div ng-if="field.type=='Object'" class="form-group">
+                  <textarea type="text" class="form-control" ng-model="rag.current.data[$index].value" rows="1" placeholder="{{ field.name }}"></textarea>
+                </div>
+              </td>
+              <td>
+                <div class="form-group" ng-init="rag.current.data[$index].weight = field.weight">
+                  <input type="number" class="form-control" ng-model="rag.current.data[$index].weight" min="0" max="10">
+                </div>
+              </td>
+              <td>{{ field.similarity }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="rag-settings-row">
+          <div class="form-group">
+            <label for="ragTopk">Best k cases</label>
+            <input id="ragTopk" type="number" class="form-control" ng-model="rag.current.topk" min="1" max="100">
+          </div>
+          <div class="form-group">
+            <label for="ragMaxTokens">Max tokens</label>
+            <input id="ragMaxTokens" type="number" class="form-control" ng-model="rag.current.max_tokens" min="128" max="8000">
+          </div>
+          <div class="rag-reasoning-note">Evidence reasoning is always requested.</div>
+          <button type="button" class="btn btn-primary" ng-click="runRag()" ng-disabled="rag.loading">
+            {{ rag.loading ? 'Running CBR-RAG...' : 'Run CBR-RAG' }}
+          </button>
+        </div>
+
+        <details class="rag-prompt-editor">
+          <summary>Prompt template</summary>
+          <div class="rag-prompt-meta">
+            <span ng-if="selected.rag && selected.rag.promptTemplate">Using saved project prompt unless edited below.</span>
+            <span ng-if="!selected.rag || !selected.rag.promptTemplate">Using default prompt. Save it to make it project-specific.</span>
+          </div>
+          <textarea class="form-control" ng-model="rag.current.prompt_template" rows="10"></textarea>
+          <p>Required placeholders: <code>{query_case}</code>, <code>{cases}</code>, and <code>{attributes}</code>.</p>
+          <div class="rag-prompt-actions">
+            <button type="button" class="btn btn-primary" ng-click="saveRagPromptForProject()">Save prompt for project</button>
+            <button type="button" class="btn btn-default" ng-click="useSavedRagPrompt()" ng-disabled="!selected.rag || !selected.rag.promptTemplate">Use saved prompt</button>
+            <button type="button" class="btn btn-default" ng-click="resetRagPrompt()">Reset to default</button>
+          </div>
+        </details>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row" ng-if="requests.response && requests.response.source == 'rag'">
+  <div class="col-lg-12">
+    <div class="rag-results-grid">
+      <section class="rag-result-panel">
+        <h4>Generated case</h4>
+        <p>RAG time: {{ requests.response.ragTime | number:3 }}s | ES query time: {{ requests.response.esTime | number:3 }}ms</p>
+        <div class="table-responsive">
+          <table class="table table-striped table-bordered">
+            <tbody>
+              <tr ng-repeat="(key, value) in requests.response.recommended">
+                <td>{{ key }}</td>
+                <td>{{ value }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <button type="button" class="btn btn-primary" ng-click="reviseRagCase()">Revise generated case</button>
+        <button type="button" class="btn btn-default" ng-click="retainCase()">Retain as-is</button>
+      </section>
+
+      <section class="rag-result-panel">
+        <h4>Reasoning</h4>
+        <div ng-if="rag.reasoningSections.length">
+          <div class="rag-reasoning-section" ng-repeat="section in rag.reasoningSections">
+            <h5>{{ section.key }}</h5>
+            <pre ng-if="section.isObject">{{ section.value }}</pre>
+            <p ng-if="!section.isObject">{{ section.value }}</p>
+          </div>
+        </div>
+        <p ng-if="!rag.reasoningSections.length">No reasoning returned.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="row" ng-if="requests.response && requests.response.source == 'rag' && requests.response.bestK.length">
+  <div class="col-lg-12">
+    <h4 align="center">Retrieved evidence cases</h4>
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th ng-repeat="attrib in selected.attributes">{{ attrib.name }}</th>
+            <th>Score</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="entry in requests.response.bestK">
+            <td ng-repeat="attrib in selected.attributes">{{ entry[attrib.name] | displaySnippet:this:60 }}</td>
+            <td>{{ entry.score__ | number:3 }}</td>
+            <td><button type="button" class="btn btn-primary" ng-click="showCase(entry)">Details</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

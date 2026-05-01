@@ -432,6 +432,15 @@ label {
   padding: 0;
 }
 
+.recommendation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e3e9e5;
+}
+
 .token-status {
   display: inline-flex;
   align-items: center;
@@ -699,6 +708,175 @@ legend {
 #plotly-graph{
   width: 100%;
   height: 100%;
+}
+
+.rag-status-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  border: 1px solid #d7dfda;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(28, 42, 35, 0.07);
+  padding: 18px 20px;
+}
+
+.rag-status-card h4 {
+  margin: 0;
+  color: #18221e;
+  font-size: 20px;
+  font-weight: 850;
+}
+
+.rag-status-card p {
+  margin: 8px 0 0;
+  color: #66736d;
+}
+
+.rag-model-card {
+  min-width: 250px;
+  border: 1px solid #d7dfda;
+  border-radius: 8px;
+  background: #eef4f1;
+  padding: 10px 12px;
+}
+
+.rag-model-card span {
+  display: block;
+  color: #66736d;
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.rag-model-card strong {
+  display: block;
+  margin-top: 4px;
+  color: #155c44;
+}
+
+.rag-settings-row {
+  display: grid;
+  grid-template-columns: 160px 160px minmax(220px, 1fr) 180px;
+  align-items: end;
+  gap: 12px;
+  padding: 14px 0;
+}
+
+.rag-reasoning-note {
+  min-height: 39px;
+  border: 1px solid #d7dfda;
+  border-radius: 6px;
+  background: #eef4f1;
+  color: #40524a;
+  padding: 9px 12px;
+  font-weight: 700;
+}
+
+.rag-prompt-editor {
+  margin-top: 10px;
+  border-top: 1px solid #e3e9e5;
+  padding-top: 12px;
+}
+
+.rag-prompt-editor summary {
+  width: fit-content;
+  color: #155c44;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.rag-prompt-editor textarea {
+  margin-top: 10px;
+  font-family: Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+}
+
+.rag-prompt-meta {
+  margin-top: 10px;
+  border-left: 3px solid #1f7a5a;
+  background: #eef4f1;
+  color: #40524a;
+  padding: 8px 10px;
+  font-weight: 700;
+}
+
+.rag-prompt-editor p {
+  margin: 8px 0;
+  color: #66736d;
+}
+
+.rag-prompt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rag-results-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.rag-result-panel {
+  border: 1px solid #d7dfda;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(28, 42, 35, 0.07);
+  padding: 18px;
+}
+
+.rag-result-panel h4 {
+  margin-top: 0;
+  color: #18221e;
+  font-weight: 850;
+}
+
+.rag-reasoning-section + .rag-reasoning-section {
+  margin-top: 12px;
+}
+
+.rag-reasoning-section h5 {
+  margin: 0 0 5px;
+  color: #155c44;
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.rag-reasoning-section p {
+  margin: 0;
+  color: #40524a;
+  line-height: 1.5;
+}
+
+.rag-reasoning-section pre {
+  white-space: pre-wrap;
+  border: 1px solid #d7dfda;
+  border-radius: 6px;
+  background: #f8fbf9;
+  color: #40524a;
+  padding: 9px;
+}
+
+@media (max-width: 1100px) {
+  .rag-status-card,
+  .rag-results-grid {
+    display: block;
+  }
+
+  .rag-model-card,
+  .rag-result-panel + .rag-result-panel {
+    margin-top: 12px;
+  }
+
+  .rag-settings-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .app-version-footer {

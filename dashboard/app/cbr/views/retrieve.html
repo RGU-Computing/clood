@@ -1,6 +1,7 @@
 <ul class="nav nav-tabs">
   <li role="presentation" class="active"><a class="btn"><i class="fas fa-search-plus"></i> Retrieve</a></li>
-  <li role="presentation"><a class="btn" ng-click="$state.go('cbr.reuse')" ng-show="requests.response"><i class="fas fa-redo"></i> Reuse</a></li>
+  <li role="presentation"><a class="btn" ng-click="$state.go('cbr.reuse')" ng-show="requests.response && requests.response.source != 'rag'"><i class="fas fa-redo"></i> Reuse</a></li>
+  <li role="presentation"><a class="btn" ng-click="$state.go('cbr.rag')"><i class="fas fa-magic"></i> RAG</a></li>
 </ul>
 <p></p>
 <div class="row">
