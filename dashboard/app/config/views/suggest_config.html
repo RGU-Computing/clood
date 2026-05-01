@@ -1,0 +1,93 @@
+<ul class="nav nav-tabs">
+  <li role="presentation"><a class="btn" ng-click="$state.go('config.attributes')"><i class="fas fa-wrench"></i> Define Attributes</a></li>
+  <li role="presentation" class="active"><a class="btn"><i class="fas fa-magic"></i> Suggest from Data</a></li>
+  <li role="presentation"><a class="btn" ng-click="$state.go('config.add_data')"><i class="fas fa-database"></i> Add Data</a></li>
+  <li role="presentation"><a class="btn" ng-click="$state.go('config.add_case')"><i class="fas fa-plus"></i> Add Case</a></li>
+</ul>
+
+<p ng-show="(selected | json) == '{}'" class="lead">Create or select a project before generating attribute suggestions.</p>
+<p ng-show="selected.hasCasebase" class="lead">Generate from Data is unavailable after a project casebase has been created.</p>
+
+<div class="row suggest-config-section" ng-show="(selected | json) != '{}' && !selected.hasCasebase">
+  <div class="suggest-config-card">
+    <div class="suggest-config-heading">
+      <h4>Suggest attributes from data</h4>
+      <p>Upload a CSV sample and let Clood suggest the project schema. You can review and edit attribute types, similarity measures, weights, and descriptions before applying.</p>
+    </div>
+
+    <div class="row">
+      <div class="form-group col-sm-6">
+        <label for="suggestConfigFile">CSV data file</label>
+        <input type="file" class="form-control-file" id="suggestConfigFile" custom-on-change="readSuggestionFile">
+      </div>
+      <div class="form-group col-sm-3">
+        <label>Columns detected</label>
+        <div class="suggest-config-stat">{{ suggestConfig.columns.length || 0 }}</div>
+      </div>
+      <div class="form-group col-sm-3 suggest-config-action">
+        <button type="button" class="btn btn-primary btn-block" ng-click="generateSuggestedConfig()" ng-disabled="!suggestConfig.columns.length || suggestConfig.loading">
+          {{ suggestConfig.loading ? 'Generating...' : 'Generate Suggestions' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="suggest-config-message" ng-if="suggestConfig.llmMessage">
+      <strong>LLM status:</strong> {{ suggestConfig.llmMessage }}
+    </div>
+  </div>
+
+  <div class="table-responsive suggest-config-table" ng-if="suggestConfig.attributes.length > 0">
+    <div class="suggest-config-review-header">
+      <div>
+        <h4>Review suggested attributes</h4>
+        <p>Edit suggestions before applying them to the project.</p>
+        <p class="suggest-config-note">Some similarity measures include advanced options. After applying suggestions, use the configure button in Define Attributes to tune settings such as nearest-number decay, intervals, vectors, and ontology options.</p>
+      </div>
+      <div class="suggest-apply-options">
+        <label class="radio-inline">
+          <input type="radio" ng-model="suggestConfig.applyMode" value="replace"> Replace attributes
+        </label>
+        <label class="radio-inline">
+          <input type="radio" ng-model="suggestConfig.applyMode" value="append"> Append selected
+        </label>
+      </div>
+    </div>
+
+    <table class="table table-striped table-bordered">
+      <thead>
+        <tr>
+          <th>Use</th>
+          <th>Name</th>
+          <th>Data Type</th>
+          <th>Similarity</th>
+          <th>Weight</th>
+          <th>Description</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="attrib in suggestConfig.attributes">
+          <td><input type="checkbox" ng-model="attrib.selected"></td>
+          <td><input type="text" class="form-control" ng-model="attrib.name"></td>
+          <td>
+            <select class="form-control" ng-options="item.type as item.type for item in globalConfig.attributeOptions" ng-model="attrib.type" ng-change="attrib.similarity=getSuggestedSimilarityTypes(attrib.type)[0]"></select>
+          </td>
+          <td>
+            <select class="form-control" ng-options="sim as sim for sim in getSuggestedSimilarityTypes(attrib.type)" ng-model="attrib.similarity"></select>
+          </td>
+          <td><input type="number" class="form-control" ng-model="attrib.weight" min="0" max="10"></td>
+          <td><textarea class="form-control suggest-description-input" ng-model="attrib.description" rows="2"></textarea></td>
+          <td>
+            <span class="suggest-source">{{ attrib.source }}</span>
+            <small>{{ attrib.reason }}</small>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="suggest-config-footer">
+      <button type="button" class="btn btn-primary" ng-click="applySuggestedConfig()">Apply Selected to Project</button>
+      <button type="button" class="btn btn-default" ng-click="$state.go('config.attributes')">Cancel</button>
+    </div>
+  </div>
+</div>

@@ -216,6 +216,15 @@ functions:
           method: post
           cors: true
           authorizer: auth
+  suggest_project_config:
+    handler: handler.suggest_project_config
+    timeout: 120
+    events:
+      - http:
+          path: project/{id}/suggest-config
+          method: post
+          cors: true
+          authorizer: auth
   all_tokens:
     handler: handler.all_tokens
     events:

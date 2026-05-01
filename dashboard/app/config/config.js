@@ -20,10 +20,15 @@ angular.module('cloodApp.config', [])
     name: 'config.add_case',
     templateUrl: 'config/views/add_case.html'
   };
+  var configSuggestState = {
+    name: 'config.suggest_config',
+    templateUrl: 'config/views/suggest_config.html'
+  };
   $stateProvider.state(configState);
   $stateProvider.state(configAttributesState);
   $stateProvider.state(configAddDataState);
   $stateProvider.state(configAddCaseState);
+  $stateProvider.state(configSuggestState);
 }])
 .directive('customOnChange', [function() {
   return {
@@ -53,11 +58,12 @@ angular.module('cloodApp.config', [])
 //}])
 .controller('ProjectConfigCtrl', ['$scope', '$http', '$state', 'Project', 'ENV_CONST', '$uibModal', '$log', function($scope, $http, $state, Project, ENV_CONST, $uibModal, $log) {
   $scope.menu.active = $scope.menu.items[1]; // ui active menu tag
-  $scope.selected = {};
-  $scope.newAttrib = {};
-  $scope.newCasebase = {'data':[], 'columnHeads':[], 'preview':false};
-  $scope.editing = {'status': false, 'index' : -1};  // indicate attribute edit operation
-  $scope.newCase = {'data':{}, 'project':{}};
+	  $scope.selected = {};
+	  $scope.newAttrib = {};
+	  $scope.newCasebase = {'data':[], 'columnHeads':[], 'preview':false};
+	  $scope.suggestConfig = {'columns': [], 'attributes': [], 'loading': false, 'llmAvailable': false, 'llmMessage': '', 'applyMode': 'replace'};
+	  $scope.editing = {'status': false, 'index' : -1};  // indicate attribute edit operation
+	  $scope.newCase = {'data':{}, 'project':{}};
 
 
   // Get all projects
@@ -70,10 +76,11 @@ angular.module('cloodApp.config', [])
     });
   };
 
-  $scope.selectProject = function(item) {
-    console.log(item);
-    $scope.selected = item;
-  };
+	  $scope.selectProject = function(item) {
+	    console.log(item);
+	    $scope.selected = item;
+	    $scope.suggestConfig.applyMode = item && item.attributes && item.attributes.length > 0 ? 'append' : 'replace';
+	  };
 
   $scope.addAttribute = function(item) {
     console.log(item);
@@ -435,16 +442,188 @@ angular.module('cloodApp.config', [])
   };
 
   // Get allowed similarity metric for a data type
-  $scope.getSimilarityTypes = function(type) {
+	  $scope.getSimilarityTypes = function(type) {
     if (typeof type != 'undefined' && type != null) {
       var res = $scope.globalConfig.attributeOptions.find(obj => {
         return obj.type === type
       });
       return res.similarityTypes;
     }
-  };
+	  };
 
-  // Checks if an object is in a list of objects using 'name' attribute
+	  $scope.readSuggestionFile = function(event) {
+	    var files = event.target.files;
+	    $scope.suggestConfig.columns = [];
+	    $scope.suggestConfig.attributes = [];
+	    $scope.suggestConfig.llmMessage = "";
+	    if (!files || !files.length) {
+	      return;
+	    }
+	    if ($scope.selected.hasCasebase) {
+	      $scope.pop("warn", null, "Suggest from Data is unavailable after a casebase has been created.");
+	      return;
+	    }
+
+	    Papa.parse(files[0], {
+	      header: true,
+	      skipEmptyLines: true,
+	      preview: 250,
+	      complete: function(results) {
+	        $scope.$apply(function() {
+	          if (results.errors && results.errors.length > 0) {
+	            $scope.pop("error", null, "CSV could not be parsed. Please check the file format.");
+	            return;
+	          }
+	          $scope.suggestConfig.columns = profileCsvForSuggestion(results.data, results.meta.fields || []);
+	          $scope.pop("success", null, "Data profile generated.");
+	        });
+	      },
+	      error: function() {
+	        $scope.$apply(function() {
+	          $scope.pop("error", null, "Unable to read CSV file.");
+	        });
+	      }
+	    });
+	  };
+
+	  $scope.generateSuggestedConfig = function() {
+	    if (!$scope.suggestConfig.columns.length) {
+	      $scope.pop("warn", null, "Upload a CSV file first.");
+	      return;
+	    }
+	    if ($scope.selected.hasCasebase) {
+	      $scope.pop("warn", null, "Suggest from Data is unavailable after a casebase has been created.");
+	      return;
+	    }
+
+	    $scope.suggestConfig.loading = true;
+	    $http.post(ENV_CONST.base_api_url + "/project/" + $scope.selected.id__ + "/suggest-config", {
+	      columns: $scope.suggestConfig.columns,
+	      use_llm: true
+	    }, {headers: {"Authorization":$scope.auth.token}}).then(function(res) {
+	      $scope.suggestConfig.attributes = res.data.attributes || [];
+	      $scope.suggestConfig.llmAvailable = res.data.llmAvailable;
+	      $scope.suggestConfig.llmMessage = res.data.llmMessage;
+	      $scope.suggestConfig.loading = false;
+	      $scope.pop("success", null, "Suggested configuration generated.");
+	    }, function(err) {
+	      console.log(err);
+	      $scope.suggestConfig.loading = false;
+	      $scope.pop("error", null, "Could not generate suggested configuration.");
+	    });
+	  };
+
+	  $scope.applySuggestedConfig = function() {
+	    if ($scope.selected.hasCasebase) {
+	      $scope.pop("warn", null, "Cannot change attributes after a casebase has been created.");
+	      return;
+	    }
+
+	    var selectedAttributes = $scope.suggestConfig.attributes.filter(function(item) {
+	      return item.selected;
+	    }).map(function(item) {
+	      var attrib = angular.copy(item);
+	      delete attrib.selected;
+	      delete attrib.confidence;
+	      delete attrib.source;
+	      delete attrib.reason;
+	      return attrib;
+	    });
+
+	    if (!selectedAttributes.length) {
+	      $scope.pop("warn", null, "Select at least one suggested attribute.");
+	      return;
+	    }
+
+	    if ($scope.suggestConfig.applyMode === 'replace') {
+	      $scope.selected.attributes = selectedAttributes;
+	    } else {
+	      selectedAttributes.forEach(function(item) {
+	        if (!containsObject(item, $scope.selected.attributes)) {
+	          $scope.selected.attributes.push(item);
+	        }
+	      });
+	    }
+
+	    $scope.updateProject();
+	    $state.go('config.attributes');
+	  };
+
+	  $scope.getSuggestedSimilarityTypes = function(type) {
+	    return $scope.getSimilarityTypes(type) || [];
+	  };
+
+	  function profileCsvForSuggestion(rows, fields) {
+	    return fields.map(function(field) {
+	      var values = rows.map(function(row) { return row[field]; });
+	      return {
+	        name: field,
+	        samples: nonEmptyValues(values).slice(0, 12),
+	        stats: getColumnStats(values)
+	      };
+	    });
+	  }
+
+	  function nonEmptyValues(values) {
+	    return values.filter(function(value) {
+	      return value !== null && typeof value !== 'undefined' && String(value).trim() !== "";
+	    }).map(function(value) {
+	      return String(value).trim();
+	    });
+	  }
+
+	  function getColumnStats(values) {
+	    var nonEmpty = nonEmptyValues(values);
+	    var uniqueMap = {};
+	    nonEmpty.forEach(function(value) { uniqueMap[value] = true; });
+	    var lengths = nonEmpty.map(function(value) { return value.length; });
+	    var averageLength = lengths.length ? lengths.reduce(function(total, value) { return total + value; }, 0) / lengths.length : 0;
+	    var allNumeric = nonEmpty.length > 0 && nonEmpty.every(isNumericValue);
+	    var allInteger = allNumeric && nonEmpty.every(function(value) { return Number(value) % 1 === 0; });
+	    var allBoolean = nonEmpty.length > 0 && nonEmpty.every(isBooleanLike);
+	    var allDateLike = nonEmpty.length > 0 && nonEmpty.every(isDateLike);
+	    var allArray = nonEmpty.length > 0 && nonEmpty.every(isArrayLike);
+
+	    return {
+	      count: values.length,
+	      nonEmpty: nonEmpty.length,
+	      unique: Object.keys(uniqueMap).length,
+	      allNumeric: allNumeric,
+	      allInteger: allInteger,
+	      allBoolean: allBoolean,
+	      allDateLike: allDateLike,
+	      allArray: allArray,
+	      averageLength: averageLength,
+	      confidence: nonEmpty.length ? 0.8 : 0.3
+	    };
+	  }
+
+	  function isNumericValue(value) {
+	    return value !== "" && !isNaN(Number(value));
+	  }
+
+	  function isBooleanLike(value) {
+	    var normalised = String(value).trim().toLowerCase();
+	    return ["true", "false", "yes", "no", "0", "1"].includes(normalised);
+	  }
+
+	  function isDateLike(value) {
+	    var text = String(value).trim();
+	    if (/^\d{4}-\d{2}-\d{2}/.test(text) || /^\d{1,2}\/\d{1,2}\/\d{4}/.test(text) || /^\d{1,2}-\d{1,2}-\d{4}/.test(text)) {
+	      return !isNaN(Date.parse(text));
+	    }
+	    return false;
+	  }
+
+	  function isArrayLike(value) {
+	    var text = String(value).trim();
+	    if (text[0] === "[" && text[text.length - 1] === "]") {
+	      return true;
+	    }
+	    return text.indexOf("|") > -1 || text.indexOf(";") > -1;
+	  }
+
+	  // Checks if an object is in a list of objects using 'name' attribute
   function containsObject(obj, list) {
     var i;
     for (i = 0; i < list.length; i++) {

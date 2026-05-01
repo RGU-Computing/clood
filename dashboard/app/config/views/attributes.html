@@ -1,5 +1,6 @@
 <ul class="nav nav-tabs">
-  <li role="presentation" class="active"><a class="btn"><i class="fas fa-wrench"></i> Attributes</a></li>
+  <li role="presentation" class="active"><a class="btn"><i class="fas fa-wrench"></i> Define Attributes</a></li>
+  <li role="presentation" ng-if="!selected.hasCasebase"><a class="btn" ng-click="$state.go('config.suggest_config')"><i class="fas fa-magic"></i> Suggest from Data</a></li>
   <li role="presentation"><a class="btn" ng-click="$state.go('config.add_data')"><i class="fas fa-database"></i> Add Data</a></li>
   <li role="presentation"><a class="btn" ng-click="$state.go('config.add_case')"><i class="fas fa-plus"></i> Add Case</a></li>
 </ul>
@@ -7,12 +8,17 @@
 <p ng-show="(selected | json) == '{}'" class="lead">Create a project before specifying case attributes.</p>
 
 <div ng-show="(selected | json) != '{}'">
+  <div class="setup-assist-callout" ng-if="!selected.hasCasebase">
+    <strong>Want a faster setup?</strong>
+    Upload a CSV sample in <a href="" ng-click="$state.go('config.suggest_config')">Suggest from Data</a> to generate editable attribute suggestions before creating the casebase.
+  </div>
+
   <!-- Set attributes, data types and similarity metrics -->
   <div class="row attribute-config-section">
     <form id="attributesForm">
       <div class="attribute-form-heading">
-        <h4>Specify casebase attributes</h4>
-        <p>Define the field name, data type, similarity measure, and optional description used by CBR-RAG.</p>
+        <h4>Define attributes manually</h4>
+        <p>Create the project schema by adding each case attribute yourself. Descriptions help CBR-RAG interpret each field.</p>
       </div>
       <div class="form-group attribute-name-field col-sm-3">
         <label for="newAttribName">Name</label>
@@ -61,6 +67,7 @@
             <th>Name</th>
             <th>Data Type</th>
             <th>Similarity Metric</th>
+            <th>Description</th>
             <th>Weight (default)</th>
             <th></th>
           </tr>
@@ -70,6 +77,7 @@
             <th>Name</th>
             <th>Data Type</th>
             <th>Similarity Metric</th>
+            <th>Description</th>
             <th>Weight (default)</th>
             <th></th>
           </tr>
@@ -79,6 +87,7 @@
             <td>{{ attrib.name }}</td>
             <td>{{ attrib.type }} <span ng-show="attrib.similarity == 'Cosine'">({{ attrib.options.dimension }})</span></td>
             <td>{{ attrib.similarity }}</td>
+            <td class="attribute-description-cell">{{ attrib.description || 'No description' }}</td>
             <td>
                 <div class="form-group">
                     <input type="number" class="form-control" ng-model="attrib.weight" min="0" max="10">
